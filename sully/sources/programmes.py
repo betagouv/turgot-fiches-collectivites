@@ -1,4 +1,4 @@
-"""Programmes d'accompagnement de l'État dont une commune peut relever.
+"""Programmes nationaux d'accompagnement dont une commune peut relever.
 
 Les listes sont publiées par commune, chacune avec son propre en-tête. Pour ACV
 la source retenue est la Caisse des Dépôts : la liste ANCT ne couvre que la
@@ -7,11 +7,34 @@ seconde vague, 50 communes contre 244.
 
 import csv
 import io
+import sqlite3
 from dataclasses import dataclass
 
 import httpx
 
+from . import base
+from .registry import source
+
 DATA_GOUV_URL = "https://www.data.gouv.fr/api/1/datasets"
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS programme (
+    code_insee TEXT NOT NULL,
+    programme  TEXT NOT NULL,
+    libelle    TEXT,
+    depuis     TEXT,
+    PRIMARY KEY (code_insee, programme)
+);
+"""
+
+COLUMNS = ("code_insee", "programme", "libelle", "depuis")
+
+UPSERT = f"""
+INSERT INTO programme ({", ".join(COLUMNS)})
+VALUES ({", ".join(f":{c}" for c in COLUMNS)})
+ON CONFLICT (code_insee, programme) DO UPDATE SET
+libelle = excluded.libelle, depuis = excluded.depuis
+"""
 
 
 @dataclass(frozen=True)
@@ -54,33 +77,33 @@ PROGRAMMES = (
     ),
 )
 
+PAR_CODE = {programme.code: programme for programme in PROGRAMMES}
+
 
 def _resource(client: httpx.Client, programme: Programme) -> dict:
     response = client.get(f"{DATA_GOUV_URL}/{programme.dataset}/")
     response.raise_for_status()
-    fichiers = [
+    files = [
         r
         for r in response.json().get("resources", [])
         if r.get("format", "").lower() == "csv"
     ]
     if programme.ressource:
-        fichiers = [
-            r for r in fichiers if programme.ressource in r.get("title", "").lower()
-        ]
-    if not fichiers:
+        files = [r for r in files if programme.ressource in r.get("title", "").lower()]
+    if not files:
         raise ValueError(f"Aucune ressource CSV pour {programme.code}")
-    return fichiers[0]
+    return files[0]
 
 
-def lignes(client: httpx.Client, programme: Programme):
-    ressource = _resource(client, programme)
-    response = client.get(ressource["url"], follow_redirects=True)
+def rows(client: httpx.Client, programme: Programme):
+    resource = _resource(client, programme)
+    response = client.get(resource["url"], follow_redirects=True)
     response.raise_for_status()
-    texte = response.content.decode("utf-8-sig", errors="replace")
-    entete = texte.split("\n", 1)[0]
-    delimiteur = ";" if entete.count(";") > entete.count(",") else ","
+    text = response.content.decode("utf-8-sig", errors="replace")
+    header = text.split("\n", 1)[0]
+    delimiter = ";" if header.count(";") > header.count(",") else ","
 
-    for row in csv.DictReader(io.StringIO(texte), delimiter=delimiteur):
+    for row in csv.DictReader(io.StringIO(text), delimiter=delimiter):
         code_insee = (row.get("insee_com") or "").strip()
         if not code_insee:
             continue
@@ -92,3 +115,24 @@ def lignes(client: httpx.Client, programme: Programme):
             if programme.colonne_date
             else "",
         }
+
+
+@source(
+    name="programmes",
+    label="Programmes nationaux (ACV, PVD, Territoires d'industrie, Villages d'avenir)",
+    schedule=source.MONTHLY,
+    schema=SCHEMA,
+)
+def fetch(client: httpx.Client, connection: sqlite3.Connection) -> str:
+    counts = []
+    for programme in PROGRAMMES:
+        written = base.upsert(connection, UPSERT, rows(client, programme))
+        counts.append(f"{programme.code} {written}")
+    return ", ".join(counts)
+
+
+def de_commune(connection: sqlite3.Connection, code_insee: str) -> list[sqlite3.Row]:
+    return connection.execute(
+        "SELECT * FROM programme WHERE code_insee = ? ORDER BY programme",
+        (code_insee,),
+    ).fetchall()

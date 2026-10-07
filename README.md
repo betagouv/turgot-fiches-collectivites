@@ -1,39 +1,83 @@
 # Sully
 
 POC de fiche collectivité, générée en PDF à partir de l'[API Référentiel
-Collectivités](https://api.collectivites.beta.gouv.fr/referentiel) (beta.gouv.fr).
+Collectivités](https://api.collectivites.beta.gouv.fr/referentiel), de
+[geo.api.gouv.fr](https://geo.api.gouv.fr) et de plusieurs jeux data.gouv.
 
-Une fiche se demande par SIREN, qu'il s'agisse d'une commune ou d'un groupement
-(EPCI, syndicat, PETR…).
+Une fiche se demande par code INSEE de commune ou par SIREN, qu'il s'agisse
+d'une commune ou d'un groupement (EPCI, syndicat, PETR…).
 
 ## Installation
 
 ```sh
 uv sync
+uv run sully fetch
 ```
 
 Typst est embarqué via sa liaison Python, il n'y a pas de binaire à installer.
 
 ## Utilisation
 
-En ligne de commande :
+```sh
+uv run sully fiche 64008                      # écrit 64008.pdf
+uv run sully fiche 216400085 -o ahaxe.pdf
+uv run sully fiche 64008 -b identite,subventions
+```
+
+En HTTP :
 
 ```sh
-uv run sully 213502388              # écrit 213502388.pdf
-uv run sully 243500139 -o metro.pdf
-uv run sully 213502388 -b identite,subventions
+uv run uvicorn sully.main:app --reload
 ```
+
+| Endpoint | Rôle |
+| --- | --- |
+| `GET /fiches/{identifiant}.pdf` | la fiche en PDF, `?bloc=a,b` pour choisir |
+| `GET /api/recherche?q=` | recherche par nom, communes et groupements |
+| `GET /api/communes/{code_insee}` | fiche brute d'une commune |
+| `GET /api/groupements/{siren}` | fiche brute d'un groupement |
+
+## Les sources
+
+Chaque source déclare son rythme. `sully fetch` ne récupère que ce qui est dû,
+`--force` passe outre.
+
+```sh
+uv run sully fetch                 # tout ce qui est dû
+uv run sully fetch dgcl,programmes
+uv run sully fetch contours --force
+```
+
+| Source | Rythme | Contenu |
+| --- | --- | --- |
+| `contours` | oneshot | contours communaux simplifiés à 100 m, 35 014 communes |
+| `dgcl` | mensuel | DETR, DSIL et DPV, 8 millésimes, 205 651 lignes |
+| `fonds-vert` | mensuel | Fonds vert, 25 621 lignes |
+| `siren` | mensuel | index SIREN → code INSEE, 34 875 communes |
+| `programmes` | mensuel | ACV, PVD, Territoires d'industrie, Villages d'avenir |
+
+Les récupérations sont idempotentes : chaque subvention est identifiée par son
+millésime, son dispositif, son SIREN, son intitulé et son rang d'occurrence — la
+DGCL ne publiant aucun identifiant de ligne.
+
+Deux écarts assumés : les lignes sans SIREN de bénéficiaire sont écartées, ce qui
+retire de fait toute la DSID (la DGCL ne publie pas le SIREN des départements) ;
+et `fonds-vert-p113-2024-export.csv` est ignoré, faute de colonne SIREN ou SIRET.
+Pour ACV la source est la Caisse des Dépôts et non l'ANCT, dont la liste ne
+couvre que la seconde vague, 50 communes contre 244.
 
 ## Organisation du code
 
 ```
 sully/
-├── sources/      une donnée consommée = un module : d'où elle vient, où elle va
+├── sources/      une donnée consommée = un module : origine, table, requêtes
+│   ├── registry.py       le décorateur @source(nom, libellé, rythme, schéma)
+│   └── base.py           connexion, schémas, suivi des récupérations
 ├── blocs/        un paquet par bloc de la fiche
 │   ├── commun.typ        jetons, règles de page, composants partagés
 │   └── <nom>/            __init__.py (ce qu'il collecte) + <nom>.typ (son rendu)
 ├── rendu/        une cible = un assembleur ; typst.py écrit le gabarit racine
-└── fiche.py      résout le SIREN, appelle les blocs retenus, délègue le rendu
+└── fiche.py      résout l'identifiant, appelle les blocs retenus, délègue
 ```
 
 Un bloc déclare son `PLACEMENT` — `cartouche` pour la rangée du haut, `section`
@@ -46,88 +90,30 @@ et un assembleur dans `rendu/` : ni les sources ni les collectes ne bougent.
 
 ## Choix des blocs
 
-`--blocs` en ligne de commande, `?blocs=` en HTTP, les deux attendant une liste
+`--blocs` en ligne de commande, `?bloc=` en HTTP, les deux attendant une liste
 séparée par des virgules ; sans l'option, tous les blocs sont rendus.
 
 | Bloc | Contenu |
 | --- | --- |
 | `identite` | SIREN, code INSEE, population, superficie, densité, codes |
 | `programmes` | ACV, PVD, Territoires d'industrie, Villages d'avenir |
-| `carto` | les deux choroplèthes |
+| `carto` | les deux choroplèthes, colorées par taux de financement |
 | `chiffres` | tuiles, histogramme annuel, répartition par dispositif |
-| `subventions` | le détail ligne à ligne |
+| `subventions` | l'historique ligne à ligne |
 | `competences` | compétences Banatic, pour un groupement |
 
-Un bloc écarté n'est pas seulement masqué : ses appels réseau et ses requêtes
-sont évités. Retirer `carto` fait passer une fiche de 16 s à 2,5 s, les contours
-du département pesant 3,7 Mo.
+Un bloc écarté n'est pas seulement masqué : ses requêtes et ses appels réseau
+sont évités.
 
-En HTTP :
+## Comment un identifiant est résolu
 
-```sh
-uv run uvicorn sully.main:app --reload
-```
+Un code INSEE désigne une commune et s'adresse directement. Un SIREN peut
+désigner l'une ou l'autre : l'API adresse les groupements par SIREN mais pas les
+communes, donc le groupement est tenté d'abord, puis l'index SIREN → INSEE.
 
-| Endpoint | Rôle |
-| --- | --- |
-| `GET /fiches/{siren}.pdf` | la fiche en PDF |
-| `GET /api/recherche?q=` | recherche par nom, communes et groupements |
-| `GET /api/communes/{code_insee}` | fiche brute d'une commune |
-| `GET /api/groupements/{siren}` | fiche brute d'un groupement |
+## Limites connues de l'API Collectivités
 
-## Import des subventions
-
-```sh
-uv run sully-import                    # DGCL + Fonds vert + programmes
-uv run sully-import --source dgcl
-uv run sully-import --source programmes
-```
-
-Charge dans `.cache/subventions.db` les projets subventionnés publiés en
-opendata : DETR, DSIL, DPV (DGCL, 8 millésimes) et Fonds vert. L'import est
-idempotent, chaque ligne étant identifiée par son millésime, son dispositif, son
-SIREN, son intitulé et son rang d'occurrence — la DGCL ne publiant aucun
-identifiant de ligne.
-
-Deux écarts assumés : les lignes sans SIREN de bénéficiaire sont écartées, ce qui
-retire de fait toute la DSID (la DGCL ne publie pas le SIREN des départements) ;
-et `fonds-vert-p113-2024-export.csv` est ignoré, faute de colonne SIREN ou SIRET.
-
-Charge aussi l'appartenance des communes aux programmes nationaux — Action cœur
-de ville, Petites villes de demain, Territoires d'industrie, Villages d'avenir —
-publiée par l'ANCT, sauf ACV pris chez la Caisse des Dépôts : la liste ANCT ne
-couvre que la seconde vague, 50 communes contre 244.
-
-## Ce que contient une fiche
-
-Pour une commune : identité (SIREN, code INSEE, population, superficie, densité,
-codes postaux), et deux cartes choroplèthes — son département et son
-intercommunalité — colorées par population, la commune concernée en rouge.
-
-Pour un groupement : identité (type, mode de financement, date de création,
-départements) et la liste de ses compétences Banatic.
-
-## Comment un SIREN est résolu
-
-L'API adresse les groupements par SIREN, mais les communes par code INSEE
-uniquement. Un SIREN est donc d'abord tenté comme groupement ; en cas d'échec,
-il est traduit en code INSEE via un index construit depuis
-[geo.api.gouv.fr](https://geo.api.gouv.fr) et mis en cache dans `.cache/`.
-
-## Maquette
-
-`maquette/` contient une reproduction de la cible graphique (encadrés, cartes,
-tuiles chiffrées, histogrammes) sur une commune figée, **avec des montants
-inventés** : elle sert à juger la mise en page, pas les données. Les blocs
-financiers attendent l'import DGCL pour entrer dans la vraie fiche.
-
-```sh
-uv run python maquette/build.py
-```
-
-## Limites connues
-
-L'API est en alpha, et plusieurs données annoncées sont absentes ou fausses :
+En alpha, plusieurs données annoncées sont absentes ou fausses :
 
 - `population` et `nbCommunes` des groupements sont erronées (Rennes Métropole
   à 7 040 habitants) : elles ne sont pas reprises dans la fiche ;
@@ -142,7 +128,10 @@ L'API est en alpha, et plusieurs données annoncées sont absentes ou fausses :
   leurs noms ;
 - le type d'un groupement est affiché tel quel (`METRO`, `SIVU`…), faute de
   nomenclature accessible ;
-- pas de maire, ni gentilé, superficie ou densité.
+- ni géométrie, ni maire, ni gentilé, ni superficie — d'où le recours à
+  geo.api.gouv.fr et aux contours data.gouv ;
+- pas d'entrée par SIREN pour les communes, d'où l'index.
 
 Les projets et financements du territoire sont exposés par une autre API du même
-service (`/territoires/{code}/projets`), qui demande un jeton.
+service (`/territoires/{code}/projets`), qui demande un jeton. Une trace n'y
+porte ni exercice ni dispositif distinct : elle ne remplace pas l'import DGCL.

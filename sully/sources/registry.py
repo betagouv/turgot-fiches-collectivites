@@ -1,0 +1,67 @@
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import timedelta
+
+ONESHOT = "oneshot"
+DAILY = "daily"
+WEEKLY = "weekly"
+MONTHLY = "monthly"
+
+INTERVALS = {
+    DAILY: timedelta(days=1),
+    WEEKLY: timedelta(weeks=1),
+    MONTHLY: timedelta(days=30),
+}
+
+
+@dataclass(frozen=True)
+class Source:
+    name: str
+    label: str
+    schedule: str
+    schema: str
+    fetch: Callable
+
+    @property
+    def interval(self) -> timedelta | None:
+        return INTERVALS.get(self.schedule)
+
+
+SOURCES: dict[str, Source] = {}
+
+
+class UnknownSource(Exception):
+    pass
+
+
+def source(name: str, label: str, schedule: str, schema: str = ""):
+    def decorate(fetch: Callable) -> Callable:
+        SOURCES[name] = Source(
+            name=name, label=label, schedule=schedule, schema=schema, fetch=fetch
+        )
+        return fetch
+
+    return decorate
+
+
+source.ONESHOT = ONESHOT
+source.DAILY = DAILY
+source.WEEKLY = WEEKLY
+source.MONTHLY = MONTHLY
+
+
+def schemas() -> list[str]:
+    return [source.schema for source in SOURCES.values() if source.schema]
+
+
+def selected(requested: str | None) -> tuple[Source, ...]:
+    if not requested:
+        return tuple(SOURCES.values())
+    names = tuple(name.strip() for name in requested.split(",") if name.strip())
+    unknown = [name for name in names if name not in SOURCES]
+    if unknown:
+        raise UnknownSource(
+            f"Source(s) inconnue(s) : {', '.join(unknown)}. "
+            f"Sources disponibles : {', '.join(SOURCES)}."
+        )
+    return tuple(SOURCES[name] for name in names)

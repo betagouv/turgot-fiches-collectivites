@@ -1,4 +1,5 @@
 import re
+import sqlite3
 from datetime import UTC, datetime
 
 import httpx
@@ -9,7 +10,10 @@ from .rendu import typst
 from .sources import base, geo
 from .sources.referentiel import COMMUNE, Fiche, NotFound, Referentiel
 
-SOURCE = "Sources : API Référentiel Collectivités (alpha) et geo.api.gouv.fr"
+SOURCE = (
+    "Sources : API Référentiel Collectivités, geo.api.gouv.fr, "
+    "contours et subventions publiés sur data.gouv.fr"
+)
 
 CODE_INSEE = re.compile(r"\d{5}|2[AB]\d{3}")
 SIREN = re.compile(r"\d{9}")
@@ -19,7 +23,9 @@ class IdentifiantInvalide(Exception):
     pass
 
 
-async def resolve(client: httpx.AsyncClient, identifiant: str) -> Fiche:
+async def resolve(
+    client: httpx.AsyncClient, identifiant: str, connection: sqlite3.Connection | None
+) -> Fiche:
     """Trouve la collectivité derrière un code INSEE ou un SIREN.
 
     Un code INSEE désigne une commune et s'adresse directement. Un SIREN peut
@@ -40,8 +46,9 @@ async def resolve(client: httpx.AsyncClient, identifiant: str) -> Fiche:
         return await referentiel.groupement(identifiant)
     except NotFound:
         pass
-    index = await geo.siren_index(client)
-    code_insee = index.get(identifiant)
+    code_insee = (
+        geo.code_insee_de(connection, identifiant) if connection is not None else None
+    )
     if code_insee is None:
         raise NotFound(identifiant)
     return await referentiel.commune(code_insee)
@@ -50,13 +57,9 @@ async def resolve(client: httpx.AsyncClient, identifiant: str) -> Fiche:
 async def collect(
     client: httpx.AsyncClient, identifiant: str, blocs: tuple[str, ...] = registre.NOMS
 ) -> tuple[dict, dict]:
-    fiche = await resolve(client, identifiant)
-    contexte = Contexte(
-        client=client,
-        fiche=fiche,
-        connection=base.connect() if base.DB_PATH.exists() else None,
-        blocs=blocs,
-    )
+    connection = base.connect() if base.DB_PATH.exists() else None
+    fiche = await resolve(client, identifiant, connection)
+    contexte = Contexte(client=client, fiche=fiche, connection=connection, blocs=blocs)
 
     resultats = {}
     for nom in registre.NOMS:

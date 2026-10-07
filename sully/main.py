@@ -45,9 +45,9 @@ async def groupement(siren: str):
 
 
 @app.get("/fiches/{identifiant}.pdf")
-async def fiche_pdf(identifiant: str, blocs: str | None = None):
+async def fiche_pdf(identifiant: str, bloc: str | None = None):
     try:
-        choisis = normalise(blocs)
+        choisis = normalise(bloc)
     except BlocInconnu as erreur:
         raise HTTPException(400, str(erreur))
     try:

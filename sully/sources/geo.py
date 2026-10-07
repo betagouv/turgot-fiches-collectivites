@@ -1,56 +1,58 @@
-"""Client for geo.api.gouv.fr: surfaces, contours, and the SIREN index.
+"""geo.api.gouv.fr : superficie d'une commune, et index SIREN → code INSEE.
 
-The Référentiel API addresses communes by INSEE code only, so a SIREN entry
-point needs the index built here. Groupements need no index: they are addressed
-by SIREN upstream.
+L'API Référentiel adresse les communes par code INSEE seulement, d'où cet index.
 """
 
-import json
-from pathlib import Path
+import sqlite3
 
 import httpx
 
+from . import base
+from .registry import source
+
 BASE_URL = "https://geo.api.gouv.fr"
-CACHE_PATH = Path(__file__).parent.parent.parent / ".cache" / "siren_to_insee.json"
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS siren_insee (
+    siren      TEXT PRIMARY KEY,
+    code_insee TEXT NOT NULL
+);
+"""
+
+UPSERT = """
+INSERT INTO siren_insee (siren, code_insee) VALUES (:siren, :code_insee)
+ON CONFLICT (siren) DO UPDATE SET code_insee = excluded.code_insee
+"""
 
 
-async def _get(client: httpx.AsyncClient, path: str, **params):
-    response = await client.get(f"{BASE_URL}{path}", params=params)
+@source(
+    name="siren",
+    label="Index SIREN → code INSEE",
+    schedule=source.MONTHLY,
+    schema=SCHEMA,
+)
+def fetch(client: httpx.Client, connection: sqlite3.Connection) -> str:
+    response = client.get(f"{BASE_URL}/communes", params={"fields": "code,siren"})
     response.raise_for_status()
-    return response.json()
+    rows = (
+        {"siren": commune["siren"], "code_insee": commune["code"]}
+        for commune in response.json()
+        if commune.get("siren")
+    )
+    written = base.upsert(connection, UPSERT, rows)
+    return f"{written} commune(s)"
 
 
-async def siren_index(
-    client: httpx.AsyncClient, refresh: bool = False
-) -> dict[str, str]:
-    if CACHE_PATH.exists() and not refresh:
-        return json.loads(CACHE_PATH.read_text())
-    communes = await _get(client, "/communes", fields="code,siren")
-    index = {c["siren"]: c["code"] for c in communes if c.get("siren")}
-    CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    CACHE_PATH.write_text(json.dumps(index))
-    return index
+def code_insee_de(connection: sqlite3.Connection, siren: str) -> str | None:
+    row = connection.execute(
+        "SELECT code_insee FROM siren_insee WHERE siren = ?", (siren,)
+    ).fetchone()
+    return row["code_insee"] if row else None
 
 
 async def commune(client: httpx.AsyncClient, code_insee: str) -> dict:
-    return await _get(client, f"/communes/{code_insee}", fields="nom,surface,centre")
-
-
-async def contours_departement(client: httpx.AsyncClient, code: str) -> dict:
-    return await _get(
-        client,
-        f"/departements/{code}/communes",
-        fields="nom,code,population,contour",
-        format="geojson",
-        geometry="contour",
+    response = await client.get(
+        f"{BASE_URL}/communes/{code_insee}", params={"fields": "nom,surface,centre"}
     )
-
-
-async def contours_epci(client: httpx.AsyncClient, siren: str) -> dict:
-    return await _get(
-        client,
-        f"/epcis/{siren}/communes",
-        fields="nom,code,population,contour",
-        format="geojson",
-        geometry="contour",
-    )
+    response.raise_for_status()
+    return response.json()

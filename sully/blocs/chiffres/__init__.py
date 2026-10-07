@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from ...contexte import Contexte, Resultat
-from ...sources import base
+from ...sources import subventions
 
 NOM = "chiffres"
 PLACEMENT = "section"
@@ -20,17 +20,17 @@ async def collecte(contexte: Contexte) -> Resultat | None:
     siren = contexte.fiche.siren
     par_dispositif = [
         (ligne["dispositif"], ligne["montant"] or 0, ligne["projets"])
-        for ligne in base.totaux_par_dispositif(contexte.connection, siren)
+        for ligne in subventions.totaux_par_dispositif(contexte.connection, siren)
     ]
     if not par_dispositif:
         return None
 
     cumul = {}
-    for ligne in base.totaux_par_annee(contexte.connection, siren):
+    for ligne in subventions.totaux_par_annee(contexte.connection, siren):
         cumul[ligne["annee"]] = cumul.get(ligne["annee"], 0) + (ligne["montant"] or 0)
     annees = sorted(cumul)
 
-    cofinancement = base.cofinancement(contexte.connection, siren)
+    cofinancement = subventions.cofinancement(contexte.connection, siren)
     cout = cofinancement["cout"] or 0
     taux = cofinancement["montant"] / cout if cout else None
 

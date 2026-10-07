@@ -1,66 +1,23 @@
+"""La base locale : connexion, application des schémas, suivi des récupérations.
+
+Chaque source déclare sa propre table ; ce module n'en possède qu'une, celle
+qui retient quand chaque source a été récupérée.
+"""
+
 import sqlite3
+from datetime import UTC, datetime
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent.parent.parent / ".cache" / "subventions.db"
+from .registry import Source, schemas
 
-SOURCE_DGCL = "dgcl"
-SOURCE_FONDS_VERT = "fonds_vert"
+DB_PATH = Path(__file__).parent.parent.parent / ".cache" / "sully.db"
 
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS subvention (
-    source            TEXT NOT NULL,
-    source_id         TEXT NOT NULL,
-    dispositif        TEXT NOT NULL,
-    annee             INTEGER NOT NULL,
-    siren             TEXT NOT NULL,
-    beneficiaire_nom  TEXT,
-    code_insee        TEXT,
-    code_departement  TEXT,
-    libelle           TEXT,
-    cout_total        REAL,
-    montant_accorde   REAL,
-    PRIMARY KEY (source, source_id)
+FETCH_LOG_SCHEMA = """
+CREATE TABLE IF NOT EXISTS fetch_log (
+    source    TEXT PRIMARY KEY,
+    fetched_at TEXT NOT NULL,
+    report    TEXT
 );
-CREATE INDEX IF NOT EXISTS subvention_siren ON subvention (siren);
-CREATE INDEX IF NOT EXISTS subvention_insee ON subvention (code_insee);
-
-CREATE TABLE IF NOT EXISTS programme (
-    code_insee TEXT NOT NULL,
-    programme  TEXT NOT NULL,
-    libelle    TEXT,
-    depuis     TEXT,
-    PRIMARY KEY (code_insee, programme)
-);
-"""
-
-PROGRAMME_COLUMNS = ("code_insee", "programme", "libelle", "depuis")
-
-UPSERT_PROGRAMME = f"""
-INSERT INTO programme ({", ".join(PROGRAMME_COLUMNS)})
-VALUES ({", ".join(f":{c}" for c in PROGRAMME_COLUMNS)})
-ON CONFLICT (code_insee, programme) DO UPDATE SET
-libelle = excluded.libelle, depuis = excluded.depuis
-"""
-
-COLUMNS = (
-    "source",
-    "source_id",
-    "dispositif",
-    "annee",
-    "siren",
-    "beneficiaire_nom",
-    "code_insee",
-    "code_departement",
-    "libelle",
-    "cout_total",
-    "montant_accorde",
-)
-
-UPSERT = f"""
-INSERT INTO subvention ({", ".join(COLUMNS)})
-VALUES ({", ".join(f":{c}" for c in COLUMNS)})
-ON CONFLICT (source, source_id) DO UPDATE SET
-{", ".join(f"{c} = excluded.{c}" for c in COLUMNS if c not in ("source", "source_id"))}
 """
 
 
@@ -68,22 +25,15 @@ def connect(path: Path = DB_PATH) -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path)
     connection.row_factory = sqlite3.Row
-    # Sorting 200k rows spills to a temp file otherwise.
+    # Trier 200 000 lignes déborde sinon dans un fichier temporaire.
     connection.execute("PRAGMA temp_store = MEMORY")
-    connection.executescript(SCHEMA)
+    connection.executescript(FETCH_LOG_SCHEMA)
+    for schema in schemas():
+        connection.executescript(schema)
     return connection
 
 
-def upsert(connection: sqlite3.Connection, rows) -> int:
-    written = 0
-    with connection:
-        for batch in _batched(rows, 5_000):
-            connection.executemany(UPSERT, batch)
-            written += len(batch)
-    return written
-
-
-def _batched(rows, size):
+def batched(rows, size: int = 5_000):
     batch = []
     for row in rows:
         batch.append(row)
@@ -94,106 +44,36 @@ def _batched(rows, size):
         yield batch
 
 
-def par_siren(connection: sqlite3.Connection, siren: str) -> list[sqlite3.Row]:
-    return connection.execute(
-        "SELECT * FROM subvention WHERE siren = ? ORDER BY annee DESC, dispositif",
-        (siren,),
-    ).fetchall()
-
-
-def totaux_par_annee(connection: sqlite3.Connection, siren: str) -> list[sqlite3.Row]:
-    return connection.execute(
-        """
-        SELECT annee, dispositif,
-               SUM(montant_accorde) AS montant,
-               SUM(cout_total) AS cout,
-               COUNT(*) AS projets
-        FROM subvention
-        WHERE siren = ?
-        GROUP BY annee, dispositif
-        ORDER BY annee
-        """,
-        (siren,),
-    ).fetchall()
-
-
-def totaux_par_dispositif(
-    connection: sqlite3.Connection, siren: str
-) -> list[sqlite3.Row]:
-    return connection.execute(
-        """
-        SELECT dispositif,
-               SUM(montant_accorde) AS montant,
-               COUNT(*) AS projets
-        FROM subvention
-        WHERE siren = ?
-        GROUP BY dispositif
-        ORDER BY montant DESC
-        """,
-        (siren,),
-    ).fetchall()
-
-
-def cofinancement(connection: sqlite3.Connection, siren: str) -> sqlite3.Row:
-    """Accordé et coût des projets, restreint aux lignes qui publient un coût.
-
-    Le Fonds vert ne publie que le montant engagé : l'inclure gonflerait le taux
-    en ajoutant de l'accordé sans son coût.
-    """
-    return connection.execute(
-        """
-        SELECT SUM(montant_accorde) AS montant,
-               SUM(cout_total) AS cout,
-               COUNT(*) AS projets
-        FROM subvention
-        WHERE siren = ? AND cout_total IS NOT NULL AND cout_total > 0
-        """,
-        (siren,),
-    ).fetchone()
-
-
-def taux_par_commune(connection: sqlite3.Connection, codes_insee) -> dict[str, float]:
-    codes = list(codes_insee)
-    if not codes:
-        return {}
-    marques = ", ".join("?" * len(codes))
-    lignes = connection.execute(
-        f"""
-        SELECT code_insee,
-               SUM(montant_accorde) AS montant,
-               SUM(cout_total) AS cout
-        FROM subvention
-        WHERE cout_total IS NOT NULL AND cout_total > 0 AND code_insee IN ({marques})
-        GROUP BY code_insee
-        """,
-        codes,
-    ).fetchall()
-    return {
-        ligne["code_insee"]: ligne["montant"] / ligne["cout"]
-        for ligne in lignes
-        if ligne["cout"]
-    }
-
-
-def upsert_programmes(connection: sqlite3.Connection, rows) -> int:
+def upsert(connection: sqlite3.Connection, statement: str, rows) -> int:
     written = 0
     with connection:
-        for batch in _batched(rows, 5_000):
-            connection.executemany(UPSERT_PROGRAMME, batch)
+        for batch in batched(rows):
+            connection.executemany(statement, batch)
             written += len(batch)
     return written
 
 
-def programmes_de(connection: sqlite3.Connection, code_insee: str) -> list[sqlite3.Row]:
-    return connection.execute(
-        "SELECT * FROM programme WHERE code_insee = ? ORDER BY programme",
-        (code_insee,),
-    ).fetchall()
+def last_fetch(connection: sqlite3.Connection, name: str) -> datetime | None:
+    row = connection.execute(
+        "SELECT fetched_at FROM fetch_log WHERE source = ?", (name,)
+    ).fetchone()
+    return datetime.fromisoformat(row["fetched_at"]) if row else None
 
 
-def compte(connection: sqlite3.Connection) -> int:
-    return connection.execute("SELECT COUNT(*) FROM subvention").fetchone()[0]
+def record_fetch(connection: sqlite3.Connection, name: str, report: str) -> None:
+    with connection:
+        connection.execute(
+            "INSERT INTO fetch_log (source, fetched_at, report) VALUES (?, ?, ?) "
+            "ON CONFLICT (source) DO UPDATE SET "
+            "fetched_at = excluded.fetched_at, report = excluded.report",
+            (name, datetime.now(UTC).isoformat(), report),
+        )
 
 
-def compte_programmes(connection: sqlite3.Connection) -> int:
-    return connection.execute("SELECT COUNT(*) FROM programme").fetchone()[0]
+def is_due(connection: sqlite3.Connection, source: Source) -> bool:
+    previous = last_fetch(connection, source.name)
+    if previous is None:
+        return True
+    if source.interval is None:
+        return False
+    return datetime.now(UTC) - previous >= source.interval

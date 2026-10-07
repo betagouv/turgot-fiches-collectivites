@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from ...contexte import Contexte, Resultat
-from ...sources import base
+from ...sources import subventions
 
 NOM = "subventions"
 PLACEMENT = "section"
@@ -16,7 +16,7 @@ async def collecte(contexte: Contexte) -> Resultat | None:
     if contexte.connection is None:
         return None
     lignes = []
-    for ligne in base.par_siren(contexte.connection, contexte.fiche.siren):
+    for ligne in subventions.par_siren(contexte.connection, contexte.fiche.siren):
         cout = ligne["cout_total"]
         montant = ligne["montant_accorde"]
         lignes.append(

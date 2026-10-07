@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from ...contexte import Contexte, Resultat
-from ...sources import base, programmes
+from ...sources import programmes
 from ...sources.referentiel import COMMUNE
 
 NOM = "programmes"
@@ -16,7 +16,7 @@ async def collecte(contexte: Contexte) -> Resultat | None:
     return Resultat(
         donnees=[
             (noms.get(ligne["programme"], ligne["programme"]), ligne["depuis"] or "")
-            for ligne in base.programmes_de(
+            for ligne in programmes.de_commune(
                 contexte.connection, contexte.fiche.code_insee
             )
         ]

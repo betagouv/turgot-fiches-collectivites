@@ -1,8 +1,23 @@
-"""Les données consommées par les fiches : d'où elles viennent, où elles vont.
+"""Les données consommées par les fiches : d'où elles viennent, où elles sont
+stockées, comment elles se relisent.
 
-- `referentiel` : API Référentiel Collectivités — identité, groupements, compétences
-- `geo` : geo.api.gouv.fr — surfaces, contours, index SIREN → INSEE
-- `opendata` : subventions DGCL et Fonds vert publiées sur data.gouv.fr
-- `programmes` : appartenance des communes aux programmes nationaux
-- `base` : le stockage SQLite des deux dernières
+Importer ce paquet enregistre les sources auprès du registre.
 """
+
+from . import contours, dgcl, fonds_vert, geo, programmes, subventions
+from .registry import SOURCES, Source, UnknownSource, schemas, selected, source
+
+__all__ = [
+    "SOURCES",
+    "Source",
+    "UnknownSource",
+    "contours",
+    "dgcl",
+    "fonds_vert",
+    "geo",
+    "programmes",
+    "schemas",
+    "selected",
+    "source",
+    "subventions",
+]
