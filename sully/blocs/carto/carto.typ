@@ -32,9 +32,10 @@
         projection: (type: "mercator"),
         fill: "{couleur}",
         stroke: "{contour}",
-        stroke_width: 0.012,
+        stroke_width: 0.005,
+        viewbox_padding: 0.01,
       )),
-      height: 4.3cm,
+      height: 5.8cm,
     )
     v(0.3em)
     legende

@@ -1,3 +1,4 @@
+import re
 from datetime import UTC, datetime
 
 import httpx
@@ -10,29 +11,46 @@ from .sources.referentiel import COMMUNE, Fiche, NotFound, Referentiel
 
 SOURCE = "Sources : API Référentiel Collectivités (alpha) et geo.api.gouv.fr"
 
+CODE_INSEE = re.compile(r"\d{5}|2[AB]\d{3}")
+SIREN = re.compile(r"\d{9}")
 
-async def resolve(client: httpx.AsyncClient, siren: str) -> Fiche:
-    """Trouve la collectivité derrière un SIREN.
 
-    L'API amont adresse les groupements par SIREN, mais pas les communes :
-    tenter le groupement d'abord réserve l'index aux seules communes.
+class IdentifiantInvalide(Exception):
+    pass
+
+
+async def resolve(client: httpx.AsyncClient, identifiant: str) -> Fiche:
+    """Trouve la collectivité derrière un code INSEE ou un SIREN.
+
+    Un code INSEE désigne une commune et s'adresse directement. Un SIREN peut
+    désigner l'une ou l'autre : l'API amont adresse les groupements par SIREN
+    mais pas les communes, donc tenter le groupement d'abord réserve l'index
+    aux seules communes.
     """
     referentiel = Referentiel(client)
+    if CODE_INSEE.fullmatch(identifiant):
+        return await referentiel.commune(identifiant)
+    if not SIREN.fullmatch(identifiant):
+        raise IdentifiantInvalide(
+            f"{identifiant} n'est ni un code INSEE de commune (5 caractères) "
+            f"ni un SIREN (9 chiffres)."
+        )
+
     try:
-        return await referentiel.groupement(siren)
+        return await referentiel.groupement(identifiant)
     except NotFound:
         pass
     index = await geo.siren_index(client)
-    code_insee = index.get(siren)
+    code_insee = index.get(identifiant)
     if code_insee is None:
-        raise NotFound(siren)
+        raise NotFound(identifiant)
     return await referentiel.commune(code_insee)
 
 
 async def collect(
-    client: httpx.AsyncClient, siren: str, blocs: tuple[str, ...] = registre.NOMS
+    client: httpx.AsyncClient, identifiant: str, blocs: tuple[str, ...] = registre.NOMS
 ) -> tuple[dict, dict]:
-    fiche = await resolve(client, siren)
+    fiche = await resolve(client, identifiant)
     contexte = Contexte(
         client=client,
         fiche=fiche,

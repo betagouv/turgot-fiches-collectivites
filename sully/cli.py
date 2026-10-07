@@ -6,24 +6,33 @@ from pathlib import Path
 import httpx
 
 from .blocs import NOMS, BlocInconnu, normalise
-from .fiche import collect, render
+from .fiche import IdentifiantInvalide, collect, render
 from .sources.referentiel import NotFound
 
 
-async def build(siren: str, output_path: Path, blocs) -> Path:
+async def build(identifiant: str, output_path: Path, blocs) -> Path:
     async with httpx.AsyncClient(timeout=120) as client:
-        entete, resultats = await collect(client, siren, blocs)
+        entete, resultats = await collect(client, identifiant, blocs)
     output_path.write_bytes(render(entete, resultats))
     return output_path
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        prog="sully", description="Génère la fiche PDF d'une collectivité, par SIREN."
+        prog="sully",
+        description="Génère la fiche PDF d'une collectivité, "
+        "par code INSEE de commune ou par SIREN.",
     )
-    parser.add_argument("siren", help="SIREN d'une commune ou d'un groupement")
     parser.add_argument(
-        "-o", "--output", type=Path, help="Fichier de sortie (défaut : <siren>.pdf)"
+        "identifiant",
+        help="Code INSEE d'une commune (5 caractères) "
+        "ou SIREN d'une commune ou d'un groupement (9 chiffres)",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        help="Fichier de sortie (défaut : <identifiant>.pdf)",
     )
     parser.add_argument(
         "-b",
@@ -38,11 +47,13 @@ def main(argv=None):
     except BlocInconnu as erreur:
         sys.exit(str(erreur))
 
-    output_path = args.output or Path(f"{args.siren}.pdf")
+    output_path = args.output or Path(f"{args.identifiant}.pdf")
     try:
-        written = asyncio.run(build(args.siren, output_path, blocs))
+        written = asyncio.run(build(args.identifiant, output_path, blocs))
+    except IdentifiantInvalide as erreur:
+        sys.exit(str(erreur))
     except NotFound:
-        sys.exit(f"Aucune collectivité connue pour le SIREN {args.siren}.")
+        sys.exit(f"Aucune collectivité connue pour {args.identifiant}.")
     print(written)
 
 

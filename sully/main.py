@@ -5,7 +5,7 @@ import httpx
 from fastapi import FastAPI, HTTPException, Response
 
 from .blocs import BlocInconnu, normalise
-from .fiche import collect, render
+from .fiche import IdentifiantInvalide, collect, render
 from .sources.referentiel import NotFound, Referentiel
 
 
@@ -44,18 +44,20 @@ async def groupement(siren: str):
         raise HTTPException(404, f"Groupement {siren} inconnu du référentiel.")
 
 
-@app.get("/fiches/{siren}.pdf")
-async def fiche_pdf(siren: str, blocs: str | None = None):
+@app.get("/fiches/{identifiant}.pdf")
+async def fiche_pdf(identifiant: str, blocs: str | None = None):
     try:
         choisis = normalise(blocs)
     except BlocInconnu as erreur:
         raise HTTPException(400, str(erreur))
     try:
-        entete, resultats = await collect(app.state.client, siren, choisis)
+        entete, resultats = await collect(app.state.client, identifiant, choisis)
+    except IdentifiantInvalide as erreur:
+        raise HTTPException(400, str(erreur))
     except NotFound:
-        raise HTTPException(404, f"Aucune collectivité connue pour le SIREN {siren}.")
+        raise HTTPException(404, f"Aucune collectivité connue pour {identifiant}.")
     return Response(
         content=render(entete, resultats),
         media_type="application/pdf",
-        headers={"Content-Disposition": f'inline; filename="{siren}.pdf"'},
+        headers={"Content-Disposition": f'inline; filename="{identifiant}.pdf"'},
     )
