@@ -1,0 +1,7 @@
+.cache/
+.venv/
+build/
+*.pdf
+__pycache__/
+tmp/
+uv.lock
