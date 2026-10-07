@@ -4,13 +4,14 @@ from dataclasses import asdict
 import httpx
 from fastapi import FastAPI, HTTPException, Response
 
-from .fiche import BlocInconnu, collect, normalise_blocs, render
-from .referentiel import NotFound, Referentiel
+from .blocs import BlocInconnu, normalise
+from .fiche import collect, render
+from .sources.referentiel import NotFound, Referentiel
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient(timeout=120) as client:
         app.state.client = client
         app.state.referentiel = Referentiel(client)
         yield
@@ -46,15 +47,15 @@ async def groupement(siren: str):
 @app.get("/fiches/{siren}.pdf")
 async def fiche_pdf(siren: str, blocs: str | None = None):
     try:
-        choisis = normalise_blocs(blocs)
+        choisis = normalise(blocs)
     except BlocInconnu as erreur:
         raise HTTPException(400, str(erreur))
     try:
-        contexte = await collect(app.state.client, siren, choisis)
+        entete, resultats = await collect(app.state.client, siren, choisis)
     except NotFound:
         raise HTTPException(404, f"Aucune collectivité connue pour le SIREN {siren}.")
     return Response(
-        content=render(contexte),
+        content=render(entete, resultats),
         media_type="application/pdf",
         headers={"Content-Disposition": f'inline; filename="{siren}.pdf"'},
     )

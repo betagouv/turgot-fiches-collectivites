@@ -24,6 +24,26 @@ uv run sully 243500139 -o metro.pdf
 uv run sully 213502388 -b identite,subventions
 ```
 
+## Organisation du code
+
+```
+sully/
+├── sources/      une donnée consommée = un module : d'où elle vient, où elle va
+├── blocs/        un paquet par bloc de la fiche
+│   ├── commun.typ        jetons, règles de page, composants partagés
+│   └── <nom>/            __init__.py (ce qu'il collecte) + <nom>.typ (son rendu)
+├── rendu/        une cible = un assembleur ; typst.py écrit le gabarit racine
+└── fiche.py      résout le SIREN, appelle les blocs retenus, délègue le rendu
+```
+
+Un bloc déclare son `PLACEMENT` — `cartouche` pour la rangée du haut, `section`
+pour la pleine largeur — et sa `collecte` renvoie `None` quand il n'a rien à
+montrer, auquel cas il disparaît de la page. Les imports Typst étant statiques,
+le gabarit racine est écrit à la compilation avec les seuls blocs demandés.
+
+Ajouter une cible de rendu revient à poser un `<nom>.html` à côté du `<nom>.typ`
+et un assembleur dans `rendu/` : ni les sources ni les collectes ne bougent.
+
 ## Choix des blocs
 
 `--blocs` en ligne de commande, `?blocs=` en HTTP, les deux attendant une liste

@@ -8,7 +8,7 @@ from hashlib import md5
 
 import httpx
 
-from .subventions import SOURCE_DGCL, SOURCE_FONDS_VERT
+from .base import SOURCE_DGCL, SOURCE_FONDS_VERT
 
 DATA_GOUV_URL = "https://www.data.gouv.fr/api/1/datasets"
 DGCL_DATASET = "6176785207139a929a2776fe"

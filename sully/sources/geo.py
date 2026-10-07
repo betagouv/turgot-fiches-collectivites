@@ -11,7 +11,7 @@ from pathlib import Path
 import httpx
 
 BASE_URL = "https://geo.api.gouv.fr"
-CACHE_PATH = Path(__file__).parent.parent / ".cache" / "siren_to_insee.json"
+CACHE_PATH = Path(__file__).parent.parent.parent / ".cache" / "siren_to_insee.json"
 
 
 async def _get(client: httpx.AsyncClient, path: str, **params):

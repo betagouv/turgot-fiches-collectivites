@@ -5,14 +5,15 @@ from pathlib import Path
 
 import httpx
 
-from .fiche import BLOCS, BlocInconnu, collect, normalise_blocs, render
-from .referentiel import NotFound
+from .blocs import NOMS, BlocInconnu, normalise
+from .fiche import collect, render
+from .sources.referentiel import NotFound
 
 
 async def build(siren: str, output_path: Path, blocs) -> Path:
     async with httpx.AsyncClient(timeout=120) as client:
-        contexte = await collect(client, siren, blocs)
-    output_path.write_bytes(render(contexte))
+        entete, resultats = await collect(client, siren, blocs)
+    output_path.write_bytes(render(entete, resultats))
     return output_path
 
 
@@ -27,13 +28,13 @@ def main(argv=None):
     parser.add_argument(
         "-b",
         "--blocs",
-        help=f"Blocs à afficher, séparés par des virgules (défaut : tous). "
-        f"Disponibles : {', '.join(BLOCS)}",
+        help="Blocs à afficher, séparés par des virgules (défaut : tous). "
+        f"Disponibles : {', '.join(NOMS)}",
     )
     args = parser.parse_args(argv)
 
     try:
-        blocs = normalise_blocs(args.blocs)
+        blocs = normalise(args.blocs)
     except BlocInconnu as erreur:
         sys.exit(str(erreur))
 

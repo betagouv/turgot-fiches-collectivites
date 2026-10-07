@@ -3,14 +3,14 @@ from collections import Counter
 
 import httpx
 
-from . import opendata, programmes, subventions
+from .sources import base, opendata, programmes
 
 
 def importe_programmes(client, connection) -> int:
     print(f"Programmes : {len(programmes.PROGRAMMES)} liste(s)")
     total = 0
     for programme in programmes.PROGRAMMES:
-        ecrites = subventions.upsert_programmes(
+        ecrites = base.upsert_programmes(
             connection, programmes.lignes(client, programme)
         )
         print(f"  {programme.nom} : {ecrites} commune(s)")
@@ -25,7 +25,7 @@ def importe_dgcl(client, connection) -> int:
     rejets = Counter()
     for ressource in ressources:
         texte = opendata.download(client, ressource["url"])
-        ecrites = subventions.upsert(connection, opendata.lignes_dgcl(texte, rejets))
+        ecrites = base.upsert(connection, opendata.lignes_dgcl(texte, rejets))
         print(f"  {ressource['title']} : {ecrites} ligne(s)")
         total += ecrites
     if rejets:
@@ -51,7 +51,7 @@ def importe_fonds_vert(client, connection) -> int:
         if not opendata.porte_un_siren(texte):
             print(f"  {titre} : ignoré, ni SIREN ni SIRET de bénéficiaire")
             continue
-        ecrites = subventions.upsert(
+        ecrites = base.upsert(
             connection, opendata.lignes_fonds_vert(texte, annee, rejets)
         )
         print(f"  {titre} : {ecrites} ligne(s)")
@@ -73,7 +73,7 @@ def main(argv=None):
     )
     args = parser.parse_args(argv)
 
-    connection = subventions.connect()
+    connection = base.connect()
     with httpx.Client(timeout=300, follow_redirects=True) as client:
         if args.source in ("dgcl", "tout"):
             importe_dgcl(client, connection)
@@ -83,10 +83,10 @@ def main(argv=None):
             importe_programmes(client, connection)
 
     print(
-        f"\nEn base : {subventions.compte(connection)} subvention(s), "
-        f"{subventions.compte_programmes(connection)} rattachement(s) à un programme"
+        f"\nEn base : {base.compte(connection)} subvention(s), "
+        f"{base.compte_programmes(connection)} rattachement(s) à un programme"
     )
-    print(subventions.DB_PATH)
+    print(base.DB_PATH)
 
 
 if __name__ == "__main__":

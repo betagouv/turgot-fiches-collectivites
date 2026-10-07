@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent.parent / ".cache" / "subventions.db"
+DB_PATH = Path(__file__).parent.parent.parent / ".cache" / "subventions.db"
 
 SOURCE_DGCL = "dgcl"
 SOURCE_FONDS_VERT = "fonds_vert"
