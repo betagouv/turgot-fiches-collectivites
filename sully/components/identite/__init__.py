@@ -1,20 +1,16 @@
-from pathlib import Path
-
-from ...contexte import Contexte, Resultat
+from ...context import Context, Result
 from ...sources import geo
 from ...sources.referentiel import COMMUNE
-
-NOM = "identite"
-PLACEMENT = "cartouche"
-DOSSIER = Path(__file__).parent
+from ..registry import Placement, component
 
 
-def _nombre(valeur) -> str:
-    return f"{valeur:,}".replace(",", " ")
+def _number(value) -> str:
+    return f"{value:,}".replace(",", " ")
 
 
-async def collecte(contexte: Contexte) -> Resultat | None:
-    fiche = contexte.fiche
+@component(name="identite", placement=Placement.CARD)
+async def collect(context: Context) -> Result | None:
+    fiche = context.fiche
     lignes = [("SIREN", fiche.siren)]
 
     if fiche.famille != COMMUNE:
@@ -24,22 +20,22 @@ async def collecte(contexte: Contexte) -> Resultat | None:
             ("Date de création", fiche.date_creation),
             ("Départements", ", ".join(fiche.departements)),
         ]
-        return Resultat(donnees=[p for p in lignes if p[1]])
+        return Result(data=[p for p in lignes if p[1]])
 
-    details = await geo.commune(contexte.client, fiche.code_insee)
+    details = await geo.commune(context.client, fiche.code_insee)
     surface = details["surface"] / 100 if details.get("surface") else None
 
     lignes.append(("Code INSEE", fiche.code_insee))
     if fiche.population is not None:
-        lignes.append(("Population", f"{_nombre(fiche.population)} habitants"))
+        lignes.append(("Population", f"{_number(fiche.population)} habitants"))
     if surface:
         lignes.append(("Superficie", f"{surface:.1f}".replace(".", ",") + " km²"))
         if fiche.population is not None:
             densite = round(fiche.population / surface)
-            lignes.append(("Densité", f"{_nombre(densite)} hab./km²"))
+            lignes.append(("Densité", f"{_number(densite)} hab./km²"))
     lignes += [
         ("Codes postaux", ", ".join(fiche.codes_postaux)),
         ("Département", fiche.code_departement),
         ("Région", fiche.code_region),
     ]
-    return Resultat(donnees=[p for p in lignes if p[1]])
+    return Result(data=[p for p in lignes if p[1]])

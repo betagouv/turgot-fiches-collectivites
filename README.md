@@ -21,7 +21,7 @@ Typst est embarqué via sa liaison Python, il n'y a pas de binaire à installer.
 ```sh
 uv run sully fiche 64008                      # écrit 64008.pdf
 uv run sully fiche 216400085 -o ahaxe.pdf
-uv run sully fiche 64008 -b identite,subventions
+uv run sully fiche 64008 -c identite,subventions
 ```
 
 En HTTP :
@@ -32,7 +32,7 @@ uv run uvicorn sully.main:app --reload
 
 | Endpoint | Rôle |
 | --- | --- |
-| `GET /fiches/{identifiant}.pdf` | la fiche en PDF, `?bloc=a,b` pour choisir |
+| `GET /fiches/{identifiant}.pdf` | la fiche en PDF, `?component=a,b` pour choisir |
 | `GET /api/recherche?q=` | recherche par nom, communes et groupements |
 | `GET /api/communes/{code_insee}` | fiche brute d'une commune |
 | `GET /api/groupements/{siren}` | fiche brute d'un groupement |
@@ -71,29 +71,42 @@ couvre que la seconde vague, 50 communes contre 244.
 ```
 sully/
 ├── sources/      une donnée consommée = un module : origine, table, requêtes
-│   ├── registry.py       le décorateur @source(nom, libellé, rythme, schéma)
+│   ├── registry.py       @source(name, label, schedule, schema)
 │   └── base.py           connexion, schémas, suivi des récupérations
-├── blocs/        un paquet par bloc de la fiche
-│   ├── commun.typ        jetons, règles de page, composants partagés
-│   └── <nom>/            __init__.py (ce qu'il collecte) + <nom>.typ (son rendu)
-├── rendu/        une cible = un assembleur ; typst.py écrit le gabarit racine
-└── fiche.py      résout l'identifiant, appelle les blocs retenus, délègue
+├── components/   un paquet par composant de la fiche
+│   ├── registry.py       @component(name, placement, access)
+│   ├── common.typ        jetons, règles de page, éléments partagés
+│   └── <nom>/            __init__.py (sa collecte) + <nom>.typ (son rendu)
+├── render/       une cible = un assembleur ; typst.py écrit le gabarit racine
+└── fiche.py      résout l'identifiant, appelle les composants retenus, délègue
 ```
 
-Un bloc déclare son `PLACEMENT` — `cartouche` pour la rangée du haut, `section`
-pour la pleine largeur — et sa `collecte` renvoie `None` quand il n'a rien à
-montrer, auquel cas il disparaît de la page. Les imports Typst étant statiques,
-le gabarit racine est écrit à la compilation avec les seuls blocs demandés.
+Un composant se déclare par décorateur, sur la fonction qui le collecte :
 
-Ajouter une cible de rendu revient à poser un `<nom>.html` à côté du `<nom>.typ`
-et un assembleur dans `rendu/` : ni les sources ni les collectes ne bougent.
+```python
+@component(name="identite", placement=Placement.CARD)
+async def collect(context: Context) -> Result | None
+```
 
-## Choix des blocs
+`placement` vaut `CARD` pour la rangée du haut ou `SECTION` pour la pleine
+largeur ; `access` vaut `PUBLIC` ou `RESTRICTED`, les composants restreints
+étant écartés quand l'appelant n'est pas authentifié. Une collecte qui renvoie
+`None` fait disparaître son composant de la page.
 
-`--blocs` en ligne de commande, `?bloc=` en HTTP, les deux attendant une liste
-séparée par des virgules ; sans l'option, tous les blocs sont rendus.
+L'ordre d'apparition est déclaré une fois dans `components/__init__.py`, et
+vérifié contre le registre : il ne dépend pas de l'ordre des imports.
 
-| Bloc | Contenu |
+Les imports Typst étant statiques, le gabarit racine est écrit à la compilation
+avec les seuls composants demandés. Ajouter une cible de rendu revient à poser
+un `<nom>.html` à côté du `<nom>.typ` et un assembleur dans `render/` : ni les
+sources ni les collectes ne bougent.
+
+## Choix des composants
+
+`--component` en ligne de commande, `?component=` en HTTP, les deux attendant
+une liste séparée par des virgules ; sans l'option, tous sont rendus.
+
+| Composant | Contenu |
 | --- | --- |
 | `identite` | SIREN, code INSEE, population, superficie, densité, codes |
 | `programmes` | ACV, PVD, Territoires d'industrie, Villages d'avenir |
@@ -102,8 +115,8 @@ séparée par des virgules ; sans l'option, tous les blocs sont rendus.
 | `subventions` | l'historique ligne à ligne |
 | `competences` | compétences Banatic, pour un groupement |
 
-Un bloc écarté n'est pas seulement masqué : ses requêtes et ses appels réseau
-sont évités.
+Un composant écarté n'est pas seulement masqué : ses requêtes et ses appels
+réseau sont évités.
 
 ## Comment un identifiant est résolu
 

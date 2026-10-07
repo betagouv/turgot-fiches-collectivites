@@ -12,7 +12,7 @@ from hashlib import md5
 import httpx
 
 from . import base, datagouv, subventions
-from .registry import source
+from .registry import Schedule, source
 
 DATASET = "6176785207139a929a2776fe"
 
@@ -80,7 +80,7 @@ def rows(text: str, skipped: Counter):
 @source(
     name="dgcl",
     label="Subventions DETR, DSIL et DPV",
-    schedule=source.MONTHLY,
+    schedule=Schedule.MONTHLY,
     schema=subventions.SCHEMA,
 )
 def fetch(client: httpx.Client, connection: sqlite3.Connection) -> str:

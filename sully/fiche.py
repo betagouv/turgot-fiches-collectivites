@@ -4,9 +4,9 @@ from datetime import UTC, datetime
 
 import httpx
 
-from . import blocs as registre
-from .contexte import Contexte
-from .rendu import typst
+from .components import COMPONENTS
+from .context import Context
+from .render import typst
 from .sources import base, geo
 from .sources.referentiel import COMMUNE, Fiche, NotFound, Referentiel
 
@@ -55,27 +55,31 @@ async def resolve(
 
 
 async def collect(
-    client: httpx.AsyncClient, identifiant: str, blocs: tuple[str, ...] = registre.NOMS
+    client: httpx.AsyncClient, identifiant: str, components
 ) -> tuple[dict, dict]:
     connection = base.connect() if base.DB_PATH.exists() else None
     fiche = await resolve(client, identifiant, connection)
-    contexte = Contexte(client=client, fiche=fiche, connection=connection, blocs=blocs)
+    names = tuple(component.name for component in components)
+    context = Context(
+        client=client, fiche=fiche, connection=connection, components=names
+    )
 
-    resultats = {}
-    for nom in registre.NOMS:
-        if nom not in blocs:
-            continue
-        resultat = await registre.PAR_NOM[nom].collecte(contexte)
-        if resultat is not None:
-            resultats[nom] = resultat
+    results = {}
+    for component in components:
+        result = await component.collect(context)
+        if result is not None:
+            results[component.name] = result
 
-    entete = {
+    header = {
         "nom": fiche.nom,
         "libelle_type": "Commune" if fiche.famille == COMMUNE else fiche.type,
         "source": f"{SOURCE} — généré le {datetime.now(UTC):%d/%m/%Y}",
     }
-    return entete, resultats
+    return header, results
 
 
-def render(entete: dict, resultats: dict) -> bytes:
-    return typst.compile_fiche(entete, resultats)
+def render(header: dict, results: dict) -> bytes:
+    return typst.compile_fiche(header, results)
+
+
+__all__ = ["COMPONENTS", "IdentifiantInvalide", "collect", "render", "resolve"]

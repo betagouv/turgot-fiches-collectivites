@@ -8,7 +8,7 @@ import sqlite3
 import httpx
 
 from . import base
-from .registry import source
+from .registry import Schedule, source
 
 BASE_URL = "https://geo.api.gouv.fr"
 
@@ -28,7 +28,7 @@ ON CONFLICT (siren) DO UPDATE SET code_insee = excluded.code_insee
 @source(
     name="siren",
     label="Index SIREN → code INSEE",
-    schedule=source.MONTHLY,
+    schedule=Schedule.MONTHLY,
     schema=SCHEMA,
 )
 def fetch(client: httpx.Client, connection: sqlite3.Connection) -> str:

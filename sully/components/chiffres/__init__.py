@@ -1,11 +1,6 @@
-from pathlib import Path
-
-from ...contexte import Contexte, Resultat
+from ...context import Context, Result
 from ...sources import subventions
-
-NOM = "chiffres"
-PLACEMENT = "section"
-DOSSIER = Path(__file__).parent
+from ..registry import component
 
 DISPOSITIFS_PRINCIPAUX = ("DETR", "DSIL")
 
@@ -14,23 +9,24 @@ def euros(montant) -> str:
     return f"{round(montant):,}".replace(",", " ") + " €"
 
 
-async def collecte(contexte: Contexte) -> Resultat | None:
-    if contexte.connection is None:
+@component(name="chiffres")
+async def collect(context: Context) -> Result | None:
+    if context.connection is None:
         return None
-    siren = contexte.fiche.siren
+    siren = context.fiche.siren
     par_dispositif = [
         (ligne["dispositif"], ligne["montant"] or 0, ligne["projets"])
-        for ligne in subventions.totaux_par_dispositif(contexte.connection, siren)
+        for ligne in subventions.totaux_par_dispositif(context.connection, siren)
     ]
     if not par_dispositif:
         return None
 
     cumul = {}
-    for ligne in subventions.totaux_par_annee(contexte.connection, siren):
+    for ligne in subventions.totaux_par_annee(context.connection, siren):
         cumul[ligne["annee"]] = cumul.get(ligne["annee"], 0) + (ligne["montant"] or 0)
     annees = sorted(cumul)
 
-    cofinancement = subventions.cofinancement(contexte.connection, siren)
+    cofinancement = subventions.cofinancement(context.connection, siren)
     cout = cofinancement["cout"] or 0
     taux = cofinancement["montant"] / cout if cout else None
 
@@ -39,8 +35,8 @@ async def collecte(contexte: Contexte) -> Resultat | None:
     principaux = sum(montants.get(d, 0) for d in DISPOSITIFS_PRINCIPAUX)
     fonds_vert = montants.get("FONDS VERT", 0)
 
-    return Resultat(
-        donnees={
+    return Result(
+        data={
             "periode": f"{annees[0]} – {annees[-1]}",
             "tuiles": [
                 (

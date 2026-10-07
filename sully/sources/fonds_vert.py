@@ -13,7 +13,7 @@ from hashlib import md5
 import httpx
 
 from . import base, datagouv, subventions
-from .registry import source
+from .registry import Schedule, source
 
 DATASET = "fonds-vert-liste-des-projets-subventionnes"
 DISPOSITIF = "FONDS VERT"
@@ -85,7 +85,7 @@ def _carries_siren(text: str) -> bool:
 @source(
     name="fonds-vert",
     label="Subventions Fonds vert",
-    schedule=source.MONTHLY,
+    schedule=Schedule.MONTHLY,
     schema=subventions.SCHEMA,
 )
 def fetch(client: httpx.Client, connection: sqlite3.Connection) -> str:

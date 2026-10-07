@@ -1,22 +1,18 @@
-from pathlib import Path
-
-from ...contexte import Contexte, Resultat
+from ...context import Context, Result
 from ...sources import subventions
-
-NOM = "subventions"
-PLACEMENT = "section"
-DOSSIER = Path(__file__).parent
+from ..registry import component
 
 
 def _euros(montant) -> str:
     return f"{round(montant):,}".replace(",", " ") + " €"
 
 
-async def collecte(contexte: Contexte) -> Resultat | None:
-    if contexte.connection is None:
+@component(name="subventions")
+async def collect(context: Context) -> Result | None:
+    if context.connection is None:
         return None
     lignes = []
-    for ligne in subventions.par_siren(contexte.connection, contexte.fiche.siren):
+    for ligne in subventions.par_siren(context.connection, context.fiche.siren):
         cout = ligne["cout_total"]
         montant = ligne["montant_accorde"]
         lignes.append(
@@ -31,4 +27,4 @@ async def collecte(contexte: Contexte) -> Resultat | None:
                 else "—",
             }
         )
-    return Resultat(donnees=lignes) if lignes else None
+    return Result(data=lignes) if lignes else None

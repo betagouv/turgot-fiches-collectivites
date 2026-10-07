@@ -1,24 +1,24 @@
-#import "commun.typ": bleu, gris
+#import "common.typ": blue, grey
 
-#let rendu(donnees) = {
-  heading(level: 2, [Historique des subventions (#donnees.len())])
+#let render(data) = {
+  heading(level: 2, [Historique des subventions (#data.len())])
 
   table(
     columns: (auto, auto, 1fr, auto, auto, auto),
     stroke: none,
     inset: (x: 5pt, y: 4pt),
     align: (left, left, left, right, right, right),
-    fill: (_, y) => if y == 0 { none } else if calc.odd(y) { gris },
+    fill: (_, y) => if y == 0 { none } else if calc.odd(y) { grey },
     table.header(
       ..([Année], [Dotation], [Projet], [Coût], [Subvention], [Taux]).map(c => text(
         size: 8pt,
         weight: "bold",
-        fill: bleu,
+        fill: blue,
         c,
       )),
     ),
-    table.hline(y: 1, stroke: 0.5pt + bleu),
-    ..donnees
+    table.hline(y: 1, stroke: 0.5pt + blue),
+    ..data
       .map(l => (
         text(size: 8pt, [#l.annee]),
         text(size: 8pt, l.dispositif),

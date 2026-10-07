@@ -11,7 +11,7 @@ import sqlite3
 import httpx
 
 from . import base
-from .registry import source
+from .registry import Schedule, source
 
 URL = (
     "https://object.data.gouv.fr/contours-administratifs/2025/geojson/"
@@ -55,7 +55,7 @@ def _rows(payload: dict):
 @source(
     name="contours",
     label="Contours communaux simplifiés (100 m)",
-    schedule=source.ONESHOT,
+    schedule=Schedule.ONESHOT,
     schema=SCHEMA,
 )
 def fetch(client: httpx.Client, connection: sqlite3.Connection) -> str:

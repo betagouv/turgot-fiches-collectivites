@@ -13,7 +13,7 @@ from dataclasses import dataclass
 import httpx
 
 from . import base
-from .registry import source
+from .registry import Schedule, source
 
 DATA_GOUV_URL = "https://www.data.gouv.fr/api/1/datasets"
 
@@ -120,7 +120,7 @@ def rows(client: httpx.Client, programme: Programme):
 @source(
     name="programmes",
     label="Programmes nationaux (ACV, PVD, Territoires d'industrie, Villages d'avenir)",
-    schedule=source.MONTHLY,
+    schedule=Schedule.MONTHLY,
     schema=SCHEMA,
 )
 def fetch(client: httpx.Client, connection: sqlite3.Connection) -> str:

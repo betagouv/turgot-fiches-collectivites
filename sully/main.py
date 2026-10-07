@@ -4,7 +4,7 @@ from dataclasses import asdict
 import httpx
 from fastapi import FastAPI, HTTPException, Response
 
-from .blocs import BlocInconnu, normalise
+from . import components
 from .fiche import IdentifiantInvalide, collect, render
 from .sources.referentiel import NotFound, Referentiel
 
@@ -45,19 +45,19 @@ async def groupement(siren: str):
 
 
 @app.get("/fiches/{identifiant}.pdf")
-async def fiche_pdf(identifiant: str, bloc: str | None = None):
+async def fiche_pdf(identifiant: str, component: str | None = None):
     try:
-        choisis = normalise(bloc)
-    except BlocInconnu as erreur:
+        chosen = components.selected(component)
+    except components.UnknownComponent as erreur:
         raise HTTPException(400, str(erreur))
     try:
-        entete, resultats = await collect(app.state.client, identifiant, choisis)
+        header, results = await collect(app.state.client, identifiant, chosen)
     except IdentifiantInvalide as erreur:
         raise HTTPException(400, str(erreur))
     except NotFound:
         raise HTTPException(404, f"Aucune collectivité connue pour {identifiant}.")
     return Response(
-        content=render(entete, resultats),
+        content=render(header, results),
         media_type="application/pdf",
         headers={"Content-Disposition": f'inline; filename="{identifiant}.pdf"'},
     )

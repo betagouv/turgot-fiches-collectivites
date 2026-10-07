@@ -1,16 +1,20 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import timedelta
+from enum import StrEnum
 
-ONESHOT = "oneshot"
-DAILY = "daily"
-WEEKLY = "weekly"
-MONTHLY = "monthly"
+
+class Schedule(StrEnum):
+    ONESHOT = "oneshot"
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+
 
 INTERVALS = {
-    DAILY: timedelta(days=1),
-    WEEKLY: timedelta(weeks=1),
-    MONTHLY: timedelta(days=30),
+    Schedule.DAILY: timedelta(days=1),
+    Schedule.WEEKLY: timedelta(weeks=1),
+    Schedule.MONTHLY: timedelta(days=30),
 }
 
 
@@ -18,7 +22,7 @@ INTERVALS = {
 class Source:
     name: str
     label: str
-    schedule: str
+    schedule: Schedule
     schema: str
     fetch: Callable
 
@@ -34,7 +38,7 @@ class UnknownSource(Exception):
     pass
 
 
-def source(name: str, label: str, schedule: str, schema: str = ""):
+def source(name: str, label: str, schedule: Schedule, schema: str = ""):
     def decorate(fetch: Callable) -> Callable:
         SOURCES[name] = Source(
             name=name, label=label, schedule=schedule, schema=schema, fetch=fetch
@@ -42,12 +46,6 @@ def source(name: str, label: str, schedule: str, schema: str = ""):
         return fetch
 
     return decorate
-
-
-source.ONESHOT = ONESHOT
-source.DAILY = DAILY
-source.WEEKLY = WEEKLY
-source.MONTHLY = MONTHLY
 
 
 def schemas() -> list[str]:

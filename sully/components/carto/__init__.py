@@ -1,13 +1,9 @@
 import json
-from pathlib import Path
 
-from ...contexte import Contexte, Resultat
+from ...context import Context, Result
 from ...sources import contours, subventions
 from ...sources.referentiel import COMMUNE
-
-NOM = "carto"
-PLACEMENT = "section"
-DOSSIER = Path(__file__).parent
+from ..registry import component
 
 PALETTE = ("#ececfe", "#cacafb", "#9a9af8", "#6a6af4", "#000091")
 SEUILS_TAUX = (0.15, 0.25, 0.35, 0.50)
@@ -40,9 +36,10 @@ def _colorise(geojson: dict, code_focus: str, taux: dict[str, float]) -> dict:
     return geojson
 
 
-async def collecte(contexte: Contexte) -> Resultat | None:
-    fiche = contexte.fiche
-    if fiche.famille != COMMUNE or contexte.connection is None:
+@component(name="carto")
+async def collect(context: Context) -> Result | None:
+    fiche = context.fiche
+    if fiche.famille != COMMUNE or context.connection is None:
         return None
 
     territoires = [
@@ -63,16 +60,16 @@ async def collecte(contexte: Contexte) -> Resultat | None:
             )
         )
 
-    cartes, fichiers = [], {}
+    cartes, files = [], {}
     for titre, fichier, recupere, cle in territoires:
-        geojson = recupere(contexte.connection, cle)
+        geojson = recupere(context.connection, cle)
         if not geojson["features"]:
             continue
         codes = [f["properties"]["code"] for f in geojson["features"]]
-        taux = subventions.taux_par_commune(contexte.connection, codes)
+        taux = subventions.taux_par_commune(context.connection, codes)
         cartes.append(
             {"titre": titre, "fichier": fichier, "communes": len(geojson["features"])}
         )
-        fichiers[fichier] = json.dumps(_colorise(geojson, fiche.code_insee, taux))
+        files[fichier] = json.dumps(_colorise(geojson, fiche.code_insee, taux))
 
-    return Resultat(donnees=cartes, fichiers=fichiers) if cartes else None
+    return Result(data=cartes, files=files) if cartes else None

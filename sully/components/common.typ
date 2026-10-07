@@ -1,13 +1,13 @@
 // Feuille de style des fiches : jetons, règles de page, composants partagés.
 
-#let bleu = rgb("#000091")
-#let rouge = rgb("#e1000f")
-#let gris = rgb("#f6f6f6")
-#let discret = luma(40%)
+#let blue = rgb("#000091")
+#let red = rgb("#e1000f")
+#let grey = rgb("#f6f6f6")
+#let muted = luma(40%)
 #let palette = ("#ececfe", "#cacafb", "#9a9af8", "#6a6af4", "#000091")
-#let sans-donnee = rgb("#e5e5e5")
+#let no-data = rgb("#e5e5e5")
 
-#let theme(source: "", corps) = {
+#let theme(source: "", body) = {
   set page(
     paper: "a4",
     margin: (x: 1.6cm, top: 1.6cm, bottom: 2cm),
@@ -25,46 +25,46 @@
     below: 0.7em,
     text(size: 12pt, it.body),
   )
-  corps
+  body
 }
 
-#let encadre(titre, contenu) = block(
-  fill: gris,
-  stroke: (left: 2pt + bleu),
+#let panel(title, body) = block(
+  fill: grey,
+  stroke: (left: 2pt + blue),
   inset: (x: 12pt, y: 10pt),
   width: 100%,
   breakable: false,
   {
-    text(weight: "bold", size: 10pt, titre)
+    text(weight: "bold", size: 10pt, title)
     v(0.4em)
-    contenu
+    body
   },
 )
 
-#let etiquette(texte, couleur: bleu) = box(
-  fill: couleur.lighten(88%),
+#let badge(label, color: blue) = box(
+  fill: color.lighten(88%),
   inset: (x: 6pt, y: 3pt),
   radius: 2pt,
-  text(size: 8pt, weight: "medium", fill: couleur, texte),
+  text(size: 8pt, weight: "medium", fill: color, label),
 )
 
-#let definitions(paires) = table(
+#let definitions(pairs) = table(
   columns: (auto, 1fr),
   stroke: none,
   inset: (x: 0pt, y: 3pt),
   column-gutter: 1.2em,
-  ..paires
-    .map(p => (text(fill: discret, p.at(0)), text(weight: "medium", p.at(1))))
+  ..pairs
+    .map(p => (text(fill: muted, p.at(0)), text(weight: "medium", p.at(1))))
     .flatten()
 )
 
-#let entete(nom, libelle-type) = {
+#let header(nom, libelle-type) = {
   heading(level: 1, nom)
-  etiquette(libelle-type)
+  badge(libelle-type)
   v(0.7em)
 }
 
-#let cartouches(elements) = if elements.len() > 0 {
+#let cards(elements) = if elements.len() > 0 {
   grid(
     columns: if elements.len() == 1 { (1fr,) } else { (1.15fr, 1fr) },
     column-gutter: 10pt,
