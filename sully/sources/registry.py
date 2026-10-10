@@ -38,6 +38,11 @@ class UnknownSource(Exception):
     pass
 
 
+class Interrupted(Exception):
+    """Raised by a fetch stopped before its end: it does not count as a fetch,
+    so the source stays due."""
+
+
 def source(name: str, label: str, schedule: Schedule, schema: str = ""):
     def decorate(fetch: Callable) -> Callable:
         SOURCES[name] = Source(

@@ -25,7 +25,7 @@
 )
 
 #let render(data) = {
-  heading(level: 2, [Subventions d'investissement])
+  heading(level: 2, [Financements reçus])
 
   grid(
     columns: (1fr, 1fr, 1fr, 1fr),
@@ -39,21 +39,36 @@
     columns: (1.1fr, 1fr),
     column-gutter: 10pt,
     panel(
-      [Montants accordés par année (€)],
-      lq.diagram(
-        width: 8cm,
-        height: 3.4cm,
-        xaxis: (ticks: data.annees.map(a => (a, text(size: 6pt)[#a]))),
-        lq.bar(data.annees, data.montants, fill: blue),
-      ),
+      [Montants reçus par année (€)],
+      {
+        if data.annees.len() > 0 {
+          let positions = range(data.annees.len())
+          lq.diagram(
+            width: 8cm,
+            height: 3.4cm,
+            xaxis: (
+              ticks: positions
+                .zip(data.annees)
+                .map(((position, annee)) => (position, text(size: 6pt)[#annee])),
+            ),
+            lq.bar(positions, data.montants, fill: blue),
+          )
+        }
+        if data.sans_date > 0 {
+          v(0.3em)
+          text(size: 7pt, fill: muted)[
+            #data.sans_date financement(s) sans date d'attribution, non représenté(s).
+          ]
+        }
+      },
     ),
     panel(
-      [Répartition par dispositif],
+      [Répartition par financeur],
       table(
         columns: (1fr, auto),
         stroke: none,
         inset: (x: 0pt, y: 3pt),
-        ..data.dispositifs
+        ..data.financeurs
           .map(d => (
             text(size: 8.5pt, d.nom),
             text(size: 8.5pt, weight: "medium", [#calc.round(d.montant / 1000) k€]),

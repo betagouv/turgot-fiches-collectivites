@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import sys
+from inspect import signature
 from pathlib import Path
 
 import httpx
@@ -9,6 +10,7 @@ from . import components, sources
 from .fiche import IdentifiantInvalide, collect, render
 from .sources import base
 from .sources.referentiel import NotFound
+from .sources.registry import Interrupted
 
 
 async def build(identifiant: str, output_path: Path, chosen) -> Path:
@@ -48,7 +50,14 @@ def command_fetch(args) -> None:
                 print(f"  {source.name:12} à jour ({previous:%d/%m/%Y})")
                 continue
             print(f"  {source.name:12} récupération…", flush=True)
-            report = source.fetch(client, connection)
+            options = {}
+            if args.max_pages and "max_pages" in signature(source.fetch).parameters:
+                options["max_pages"] = args.max_pages
+            try:
+                report = source.fetch(client, connection, **options)
+            except Interrupted as interruption:
+                print(f"  {source.name:12} {interruption}")
+                continue
             base.record_fetch(connection, source.name, report)
             print(f"  {source.name:12} {report}")
     print(base.DB_PATH)
@@ -93,6 +102,12 @@ def main(argv=None):
         "--force",
         action="store_true",
         help="Récupère même si le rythme n'est pas échu",
+    )
+    fetch.add_argument(
+        "--max-pages",
+        type=int,
+        help="Pour les sources paginées : s'arrête après N pages, "
+        "et reprend là au prochain appel",
     )
     fetch.set_defaults(run=command_fetch)
 

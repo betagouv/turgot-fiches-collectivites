@@ -20,8 +20,8 @@
     table.hline(y: 1, stroke: 0.5pt + blue),
     ..data
       .map(l => (
-        text(size: 8pt, [#l.annee]),
-        text(size: 8pt, l.dispositif),
+        text(size: 8pt, l.annee),
+        text(size: 8pt, l.financeur),
         text(size: 8pt, l.libelle),
         text(size: 8pt, l.cout),
         text(size: 8pt, weight: "medium", l.montant),

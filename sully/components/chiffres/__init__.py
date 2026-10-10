@@ -1,8 +1,6 @@
 from ...context import Context, Result
-from ...sources import subventions
+from ...sources import api_collectivites
 from ..registry import component
-
-DISPOSITIFS_PRINCIPAUX = ("DETR", "DSIL")
 
 
 def euros(montant) -> str:
@@ -14,60 +12,61 @@ async def collect(context: Context) -> Result | None:
     if context.connection is None:
         return None
     siren = context.fiche.siren
-    par_dispositif = [
-        (ligne["dispositif"], ligne["montant"] or 0, ligne["projets"])
-        for ligne in subventions.totaux_par_dispositif(context.connection, siren)
-    ]
-    if not par_dispositif:
+    par_source = {
+        ligne["source"]: (ligne["montant"] or 0, ligne["projets"])
+        for ligne in api_collectivites.totaux_par_source(context.connection, siren)
+    }
+    if not par_source:
         return None
 
-    cumul = {}
-    for ligne in subventions.totaux_par_annee(context.connection, siren):
-        cumul[ligne["annee"]] = cumul.get(ligne["annee"], 0) + (ligne["montant"] or 0)
-    annees = sorted(cumul)
+    par_annee = api_collectivites.totaux_par_annee(context.connection, siren)
+    datees = [ligne for ligne in par_annee if ligne["annee"] is not None]
+    sans_date = sum(
+        ligne["financements"] for ligne in par_annee if ligne["annee"] is None
+    )
+    annees = [ligne["annee"] for ligne in datees]
 
-    cofinancement = subventions.cofinancement(context.connection, siren)
+    cofinancement = api_collectivites.cofinancement(context.connection, siren)
     cout = cofinancement["cout"] or 0
     taux = cofinancement["montant"] / cout if cout else None
 
-    montants = {nom: montant for nom, montant, _ in par_dispositif}
+    montants = {source: montant for source, (montant, _) in par_source.items()}
     total = sum(montants.values())
-    principaux = sum(montants.get(d, 0) for d in DISPOSITIFS_PRINCIPAUX)
-    fonds_vert = montants.get("FONDS VERT", 0)
+    detr = montants.get("DETR", 0)
+    dsil = montants.get("DSIL", 0)
+    fonds_vert = montants.get("Fonds Vert", 0)
+    projets = sum(n for _, n in par_source.values())
 
     return Result(
         data={
-            "periode": f"{annees[0]} – {annees[-1]}",
+            "periode": f"{annees[0]} – {annees[-1]}" if annees else "",
             "tuiles": [
                 (
                     euros(total),
-                    "accordés, tous dispositifs",
-                    str(sum(p for _, _, p in par_dispositif)),
-                    "projets subventionnés",
+                    "reçus, tous financeurs",
+                    str(projets),
+                    "projets financés",
                 ),
-                (
-                    euros(montants.get("DETR", 0)),
-                    "de DETR",
-                    euros(montants.get("DSIL", 0)),
-                    "de DSIL",
-                ),
+                (euros(detr), "de DETR", euros(dsil), "de DSIL"),
                 (
                     euros(fonds_vert),
                     "de Fonds vert",
-                    euros(total - principaux - fonds_vert),
-                    "autres dotations",
+                    euros(total - detr - dsil - fonds_vert),
+                    "autres financeurs",
                 ),
                 (
                     euros(cout),
-                    "de coût de projet",
+                    "de coût des projets renseignés",
                     f"{taux:.0%}".replace("%", " %") if taux else "—",
                     "de taux de financement",
                 ),
             ],
             "annees": annees,
-            "montants": [cumul[annee] for annee in annees],
-            "dispositifs": [
-                {"nom": nom, "montant": montant} for nom, montant, _ in par_dispositif
+            "montants": [ligne["montant"] or 0 for ligne in datees],
+            "sans_date": sans_date,
+            "financeurs": [
+                {"nom": source, "montant": montant}
+                for source, montant in montants.items()
             ],
         }
     )

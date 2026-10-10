@@ -1,7 +1,8 @@
-"""La base locale : connexion, application des schémas, suivi des récupérations.
+"""Local database: connection, schemas, and fetch bookkeeping.
 
-Chaque source déclare sa propre table ; ce module n'en possède qu'une, celle
-qui retient quand chaque source a été récupérée.
+Each source declares its own tables; this module only owns the bookkeeping ones:
+when each source was last fetched, and where to resume an interrupted paginated
+fetch.
 """
 
 import sqlite3
@@ -12,11 +13,16 @@ from .registry import Source, schemas
 
 DB_PATH = Path(__file__).parent.parent.parent / ".cache" / "sully.db"
 
-FETCH_LOG_SCHEMA = """
+FETCH_SCHEMA = """
 CREATE TABLE IF NOT EXISTS fetch_log (
     source    TEXT PRIMARY KEY,
     fetched_at TEXT NOT NULL,
     report    TEXT
+);
+
+CREATE TABLE IF NOT EXISTS fetch_cursor (
+    source TEXT PRIMARY KEY,
+    cursor TEXT NOT NULL
 );
 """
 
@@ -25,9 +31,9 @@ def connect(path: Path = DB_PATH) -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path)
     connection.row_factory = sqlite3.Row
-    # Trier 200 000 lignes déborde sinon dans un fichier temporaire.
+    # Sorting 200k rows otherwise spills into a temp file.
     connection.execute("PRAGMA temp_store = MEMORY")
-    connection.executescript(FETCH_LOG_SCHEMA)
+    connection.executescript(FETCH_SCHEMA)
     for schema in schemas():
         connection.executescript(schema)
     return connection
@@ -68,6 +74,26 @@ def record_fetch(connection: sqlite3.Connection, name: str, report: str) -> None
             "fetched_at = excluded.fetched_at, report = excluded.report",
             (name, datetime.now(UTC).isoformat(), report),
         )
+
+
+def saved_cursor(connection: sqlite3.Connection, name: str) -> str | None:
+    row = connection.execute(
+        "SELECT cursor FROM fetch_cursor WHERE source = ?", (name,)
+    ).fetchone()
+    return row["cursor"] if row else None
+
+
+def save_cursor(connection: sqlite3.Connection, name: str, cursor: str | None) -> None:
+    """`None` clears the cursor once the fetch has reached its end. Call it in the
+    transaction that writes the page, so the cursor never runs ahead of the data."""
+    if cursor is None:
+        connection.execute("DELETE FROM fetch_cursor WHERE source = ?", (name,))
+        return
+    connection.execute(
+        "INSERT INTO fetch_cursor (source, cursor) VALUES (?, ?) "
+        "ON CONFLICT (source) DO UPDATE SET cursor = excluded.cursor",
+        (name, cursor),
+    )
 
 
 def is_due(connection: sqlite3.Connection, source: Source) -> bool:

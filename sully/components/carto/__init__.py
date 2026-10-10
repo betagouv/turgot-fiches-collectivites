@@ -1,4 +1,5 @@
 import json
+import math
 
 from ...context import Context, Result
 from ...sources import contours, subventions
@@ -7,8 +8,10 @@ from ..registry import component
 
 PALETTE = ("#ececfe", "#cacafb", "#9a9af8", "#6a6af4", "#000091")
 SEUILS_TAUX = (0.15, 0.25, 0.35, 0.50)
-COULEUR_FOCUS = "#e1000f"
+COULEUR_FOCUS = "#000000"
 COULEUR_SANS_DONNEE = "#e5e5e5"
+VIEWBOX_MARGIN = 0.01
+STROKE_RATIO = 0.0015
 
 
 def _teinte(taux: float) -> str:
@@ -67,9 +70,55 @@ async def collect(context: Context) -> Result | None:
             continue
         codes = [f["properties"]["code"] for f in geojson["features"]]
         taux = subventions.taux_par_commune(context.connection, codes)
+        viewbox = _project(geojson)
         cartes.append(
-            {"titre": titre, "fichier": fichier, "communes": len(geojson["features"])}
+            {
+                "titre": titre,
+                "fichier": fichier,
+                "communes": len(geojson["features"]),
+                "viewbox": viewbox,
+                "trait": max(viewbox[2], viewbox[3]) * STROKE_RATIO,
+            }
         )
         files[fichier] = json.dumps(_colorise(geojson, fiche.code_insee, taux))
 
     return Result(data=cartes, files=files) if cartes else None
+
+
+def _points(coordinates):
+    if isinstance(coordinates[0], (int, float)):
+        yield coordinates
+    else:
+        for part in coordinates:
+            yield from _points(part)
+
+
+def _project(geojson: dict) -> list[float]:
+    """Project in place and return the framing viewbox.
+
+    mercator frames every map in a square and pins it to the top, so a wide
+    territory fills only a strip: the projection and its exact extent are
+    computed here, and mercator only draws. Scaling longitudes by the cosine of
+    the central latitude keeps shapes undistorted at this scale.
+    """
+    latitudes = [
+        point[1]
+        for feature in geojson["features"]
+        for point in _points(feature["geometry"]["coordinates"])
+    ]
+    scale = math.cos(math.radians((min(latitudes) + max(latitudes)) / 2))
+    xs, ys = [], []
+    for feature in geojson["features"]:
+        for point in _points(feature["geometry"]["coordinates"]):
+            point[0] *= scale
+            xs.append(point[0])
+            ys.append(point[1])
+    width, height = max(xs) - min(xs), max(ys) - min(ys)
+    margin = max(width, height) * VIEWBOX_MARGIN
+    # SVG's y axis points down, hence the negated latitude.
+    return [
+        min(xs) - margin,
+        -max(ys) - margin,
+        width + 2 * margin,
+        height + 2 * margin,
+    ]
