@@ -21,7 +21,7 @@ Typst est embarqué via sa liaison Python, il n'y a pas de binaire à installer.
 ```sh
 uv run sully fiche 64008                      # écrit 64008.pdf
 uv run sully fiche 216400085 -o ahaxe.pdf
-uv run sully fiche 64008 -c identite,subventions
+uv run sully fiche 64008 -c identite,historique
 ```
 
 En HTTP :
@@ -112,7 +112,7 @@ une liste séparée par des virgules ; sans l'option, tous sont rendus.
 | `programmes` | ACV, PVD, Territoires d'industrie, Villages d'avenir |
 | `carto` | les deux choroplèthes, colorées par taux de financement |
 | `chiffres` | tuiles, histogramme annuel, répartition par dispositif |
-| `subventions` | l'historique ligne à ligne |
+| `historique` | l'historique ligne à ligne des financements reçus |
 | `competences` | compétences Banatic, pour un groupement |
 
 Un composant écarté n'est pas seulement masqué : ses requêtes et ses appels

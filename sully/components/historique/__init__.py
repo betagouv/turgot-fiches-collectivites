@@ -7,7 +7,7 @@ def _euros(montant) -> str:
     return f"{round(montant):,}".replace(",", " ") + " €"
 
 
-@component(name="subventions")
+@component(name="historique")
 async def collect(context: Context) -> Result | None:
     if context.connection is None:
         return None

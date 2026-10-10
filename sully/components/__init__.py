@@ -9,9 +9,9 @@ from . import (  # noqa: F401
     carto,
     chiffres,
     competences,
+    historique,
     identite,
     programmes,
-    subventions,
 )
 from .registry import (
     COMPONENTS,
@@ -30,7 +30,7 @@ order(
     "programmes",
     "carto",
     "chiffres",
-    "subventions",
+    "historique",
     "competences",
 )
 
