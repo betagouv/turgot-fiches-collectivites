@@ -8,7 +8,7 @@ from .sources.referentiel import Fiche
 
 @dataclass
 class Context:
-    """Ce dont un composant dispose pour collecter ce qu'il affiche."""
+    """What a component has at hand to collect what it displays."""
 
     client: httpx.AsyncClient
     fiche: Fiche
@@ -18,11 +18,10 @@ class Context:
 
 @dataclass
 class Result:
-    """Ce qu'un composant produit : ses données, et les fichiers que son rendu
-    lit.
+    """What a component produces: its data, and the files its templates read.
 
-    `files` sert aux composants dont le gabarit charge autre chose que `data`,
-    la cartographie lisant ses contours en GeoJSON.
+    `data` is the component's contract with every renderer: values are computed
+    here, templates only lay them out.
     """
 
     data: object

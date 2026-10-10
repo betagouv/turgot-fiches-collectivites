@@ -1,4 +1,3 @@
-#import "@preview/lilaq:0.5.0" as lq
 #import "common.typ": blue, grey, muted, panel
 
 #let tile(periode, t) = block(
@@ -14,13 +13,45 @@
       text(size: 6.5pt, fill: blue, weight: "medium", periode),
     )
     v(0.5em)
-    text(size: 13pt, weight: "bold", t.at(0))
+    text(size: 13pt, weight: "bold", t.main.label)
     linebreak()
-    text(size: 7.5pt, fill: muted, t.at(1))
+    text(size: 7.5pt, fill: muted, t.main_caption)
     v(0.4em)
-    text(size: 11pt, weight: "bold", t.at(2))
+    text(size: 11pt, weight: "bold", t.secondary.label)
     linebreak()
-    text(size: 7.5pt, fill: muted, t.at(3))
+    text(size: 7.5pt, fill: muted, t.secondary_caption)
+  },
+)
+
+#let histogram(bars, ticks, height: 3.2cm, axis: 1.1cm) = block(
+  width: 100%,
+  height: height + 1.2em,
+  {
+    for tick in ticks {
+      let y = height * (1 - tick.share)
+      place(
+        top + left,
+        dy: y - 0.45em,
+        box(width: axis - 5pt, align(right, text(size: 6pt, fill: muted, tick.montant.label))),
+      )
+      place(top + left, dx: axis, dy: y, line(length: 100% - axis, stroke: 0.4pt + luma(85%)))
+    }
+    place(
+      top + left,
+      dx: axis,
+      box(
+        width: 100% - axis,
+        grid(
+          columns: (1fr,) * bars.len(),
+          rows: (height, 1.2em),
+          ..bars.map(b => align(
+            bottom + center,
+            rect(width: 70%, height: height * b.share, fill: blue, stroke: none),
+          )),
+          ..bars.map(b => align(bottom + center, text(size: 6pt, fill: muted, str(b.annee)))),
+        ),
+      ),
+    )
   },
 )
 
@@ -30,7 +61,7 @@
   grid(
     columns: (1fr, 1fr, 1fr, 1fr),
     column-gutter: 8pt,
-    ..data.tuiles.map(t => tile(data.periode, t)),
+    ..data.tiles.map(t => tile(data.periode, t)),
   )
 
   v(0.9em)
@@ -39,20 +70,10 @@
     columns: (1.1fr, 1fr),
     column-gutter: 10pt,
     panel(
-      [Montants reçus par année (€)],
+      [Montants reçus par année],
       {
-        if data.annees.len() > 0 {
-          let positions = range(data.annees.len())
-          lq.diagram(
-            width: 8cm,
-            height: 3.4cm,
-            xaxis: (
-              ticks: positions
-                .zip(data.annees)
-                .map(((position, annee)) => (position, text(size: 6pt)[#annee])),
-            ),
-            lq.bar(positions, data.montants, fill: blue),
-          )
+        if data.bars.len() > 0 {
+          histogram(data.bars, data.ticks)
         }
         if data.sans_date > 0 {
           v(0.3em)
@@ -69,9 +90,9 @@
         stroke: none,
         inset: (x: 0pt, y: 3pt),
         ..data.financeurs
-          .map(d => (
-            text(size: 8.5pt, d.nom),
-            text(size: 8.5pt, weight: "medium", [#calc.round(d.montant / 1000) k€]),
+          .map(f => (
+            text(size: 8.5pt, f.financeur),
+            text(size: 8.5pt, weight: "medium", f.montant.label),
           ))
           .flatten()
       ),

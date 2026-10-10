@@ -6,6 +6,7 @@ compilation, avec les seuls composants retenus.
 
 import json
 import shutil
+from dataclasses import asdict
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -59,7 +60,9 @@ def compile_fiche(header: dict, results: dict) -> bytes:
 
         data = {name: result.data for name, result in results.items()}
         (build / "data.json").write_text(
-            json.dumps({**header, "components": data}, ensure_ascii=False)
+            json.dumps(
+                {**header, "components": data}, default=asdict, ensure_ascii=False
+            )
         )
         (build / ROOT).write_text(_document(cards, sections))
         return typst.compile(build / ROOT)

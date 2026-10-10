@@ -1,10 +1,100 @@
+import math
+from dataclasses import dataclass
+
 from ...context import Context, Result
 from ...sources import api_collectivites
 from ..registry import component
 
+TICK_COUNT = 4
 
-def euros(montant) -> str:
-    return f"{round(montant):,}".replace(",", " ") + " €"
+
+@dataclass
+class Display:
+    value: float | int | None
+    label: str
+
+
+@dataclass
+class Tile:
+    main: Display
+    main_caption: str
+    secondary: Display
+    secondary_caption: str
+
+
+@dataclass
+class Bar:
+    annee: int
+    montant: Display
+    share: float
+
+
+@dataclass
+class Tick:
+    montant: Display
+    share: float
+
+
+@dataclass
+class Financeur:
+    financeur: str
+    montant: Display
+    share: float
+
+
+@dataclass
+class Chiffres:
+    periode: str
+    tiles: list[Tile]
+    bars: list[Bar]
+    ticks: list[Tick]
+    sans_date: int
+    financeurs: list[Financeur]
+
+
+def _grouped(value: float) -> str:
+    return f"{round(value):,}".replace(",", " ")
+
+
+def euros(value: float) -> Display:
+    return Display(value, f"{_grouped(value)} €")
+
+
+def compact_euros(value: float) -> Display:
+    if value >= 1_000_000:
+        amount = f"{value / 1_000_000:.1f}".rstrip("0").rstrip(".").replace(".", ",")
+        return Display(value, f"{amount} M€")
+    if value >= 1_000:
+        return Display(value, f"{_grouped(value / 1_000)} k€")
+    return Display(value, f"{_grouped(value)} €")
+
+
+def percent(value: float | None) -> Display:
+    if value is None:
+        return Display(None, "—")
+    return Display(value, f"{value:.0%}".replace("%", " %"))
+
+
+def _nice_step(maximum: float) -> float:
+    raw = maximum / TICK_COUNT
+    magnitude = 10 ** math.floor(math.log10(raw))
+    for factor in (1, 2, 2.5, 5, 10):
+        if raw <= factor * magnitude:
+            return factor * magnitude
+    return 10 * magnitude
+
+
+def _scale(values: list[float]) -> tuple[float, list[Tick]]:
+    maximum = max(values, default=0)
+    if maximum <= 0:
+        return 1, [Tick(compact_euros(0), 0)]
+    step = _nice_step(maximum)
+    top = math.ceil(maximum / step) * step
+    ticks = [
+        Tick(compact_euros(step * i), step * i / top)
+        for i in range(round(top / step) + 1)
+    ]
+    return top, ticks
 
 
 @component(name="chiffres")
@@ -12,10 +102,7 @@ async def collect(context: Context) -> Result | None:
     if context.connection is None:
         return None
     siren = context.fiche.siren
-    par_source = {
-        ligne["source"]: (ligne["montant"] or 0, ligne["projets"])
-        for ligne in api_collectivites.totaux_par_source(context.connection, siren)
-    }
+    par_source = api_collectivites.totaux_par_source(context.connection, siren)
     if not par_source:
         return None
 
@@ -24,49 +111,55 @@ async def collect(context: Context) -> Result | None:
     sans_date = sum(
         ligne["financements"] for ligne in par_annee if ligne["annee"] is None
     )
-    annees = [ligne["annee"] for ligne in datees]
+    top, ticks = _scale([ligne["montant"] or 0 for ligne in datees])
 
     cofinancement = api_collectivites.cofinancement(context.connection, siren)
     cout = cofinancement["cout"] or 0
     taux = cofinancement["montant"] / cout if cout else None
 
-    montants = {source: montant for source, (montant, _) in par_source.items()}
+    montants = {ligne["source"]: ligne["montant"] or 0 for ligne in par_source}
     total = sum(montants.values())
     detr = montants.get("DETR", 0)
     dsil = montants.get("DSIL", 0)
     fonds_vert = montants.get("Fonds Vert", 0)
-    projets = sum(n for _, n in par_source.values())
+    projets = sum(ligne["projets"] for ligne in par_source)
 
-    return Result(
-        data={
-            "periode": f"{annees[0]} – {annees[-1]}" if annees else "",
-            "tuiles": [
-                (
-                    euros(total),
-                    "reçus, tous financeurs",
-                    str(projets),
-                    "projets financés",
-                ),
-                (euros(detr), "de DETR", euros(dsil), "de DSIL"),
-                (
-                    euros(fonds_vert),
-                    "de Fonds vert",
-                    euros(total - detr - dsil - fonds_vert),
-                    "autres financeurs",
-                ),
-                (
-                    euros(cout),
-                    "de coût des projets renseignés",
-                    f"{taux:.0%}".replace("%", " %") if taux else "—",
-                    "de taux de financement",
-                ),
-            ],
-            "annees": annees,
-            "montants": [ligne["montant"] or 0 for ligne in datees],
-            "sans_date": sans_date,
-            "financeurs": [
-                {"nom": source, "montant": montant}
-                for source, montant in montants.items()
-            ],
-        }
+    chiffres = Chiffres(
+        periode=f"{datees[0]['annee']} – {datees[-1]['annee']}" if datees else "",
+        tiles=[
+            Tile(
+                euros(total),
+                "reçus, tous financeurs",
+                Display(projets, str(projets)),
+                "projets financés",
+            ),
+            Tile(euros(detr), "de DETR", euros(dsil), "de DSIL"),
+            Tile(
+                euros(fonds_vert),
+                "de Fonds vert",
+                euros(total - detr - dsil - fonds_vert),
+                "autres financeurs",
+            ),
+            Tile(
+                euros(cout),
+                "de coût des projets renseignés",
+                percent(taux),
+                "de taux de financement",
+            ),
+        ],
+        bars=[
+            Bar(
+                ligne["annee"],
+                compact_euros(ligne["montant"] or 0),
+                (ligne["montant"] or 0) / top,
+            )
+            for ligne in datees
+        ],
+        ticks=ticks,
+        sans_date=sans_date,
+        financeurs=[
+            Financeur(source, compact_euros(montant), montant / total if total else 0)
+            for source, montant in montants.items()
+        ],
     )
+    return Result(data=chiffres)
