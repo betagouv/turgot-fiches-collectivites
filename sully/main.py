@@ -1,15 +1,21 @@
 import mimetypes
 from contextlib import asynccontextmanager
 from dataclasses import asdict
+from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, HTTPException, Response
+from fastapi.responses import FileResponse, HTMLResponse
 
 from . import components
-from .fiche import IdentifiantInvalide, collect, render
+from .fiche import IdentifiantInvalide, collect, describe, render
+from .render import html
 from .sources.referentiel import NotFound, Referentiel
 
 mimetypes.add_type("application/geo+json", ".geojson")
+
+ASSETS = Path(components.__file__).parent
+SHARED_ASSETS = {"common.js", "sully.css"}
 
 
 @asynccontextmanager
@@ -23,17 +29,31 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Sully", lifespan=lifespan)
 
 
-async def _collect(identifiant: str, requested: str | None):
+def _chosen(requested: str | None):
     try:
-        chosen = components.selected(requested)
+        return components.selected(requested)
     except components.UnknownComponent as erreur:
         raise HTTPException(400, str(erreur))
+
+
+async def _resolving(identifiant: str, awaitable):
     try:
-        return await collect(app.state.client, identifiant, chosen)
+        return await awaitable
     except IdentifiantInvalide as erreur:
         raise HTTPException(400, str(erreur))
     except NotFound:
         raise HTTPException(404, f"Aucune collectivité connue pour {identifiant}.")
+
+
+async def _collect(identifiant: str, requested: str | None):
+    chosen = _chosen(requested)
+    return await _resolving(identifiant, collect(app.state.client, identifiant, chosen))
+
+
+async def _page(identifiant: str, requested: str | None) -> HTMLResponse:
+    chosen = _chosen(requested)
+    header = await _resolving(identifiant, describe(app.state.client, identifiant))
+    return HTMLResponse(html.page(header, identifiant, chosen))
 
 
 async def _result(identifiant: str, name: str):
@@ -110,3 +130,29 @@ async def component_file(identifiant: str, name: str, filename: str):
         raise HTTPException(404, f"Le composant {name} ne produit pas {filename}.")
     media_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
     return Response(content=result.files[filename], media_type=media_type)
+
+
+@app.get("/fiches/{identifiant}.html", response_class=HTMLResponse)
+async def fiche_html(identifiant: str, component: str | None = None):
+    return await _page(identifiant, component)
+
+
+@app.get("/fiches/{identifiant}/{name}.html", response_class=HTMLResponse)
+async def component_html(identifiant: str, name: str):
+    return await _page(identifiant, name)
+
+
+@app.get("/assets/components/{name}.js")
+async def component_script(name: str):
+    if name not in components.COMPONENTS:
+        raise HTTPException(404, f"Composant inconnu : {name}.")
+    return FileResponse(
+        components.COMPONENTS[name].template("js"), media_type="text/javascript"
+    )
+
+
+@app.get("/assets/{filename}")
+async def shared_asset(filename: str):
+    if filename not in SHARED_ASSETS:
+        raise HTTPException(404, f"Fichier inconnu : {filename}.")
+    return FileResponse(ASSETS / filename)

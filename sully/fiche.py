@@ -54,10 +54,27 @@ async def resolve(
     return await referentiel.commune(code_insee)
 
 
+def _connect():
+    return base.connect() if base.DB_PATH.exists() else None
+
+
+def _header(fiche: Fiche) -> dict:
+    return {
+        "nom": fiche.nom,
+        "libelle_type": "Commune" if fiche.famille == COMMUNE else fiche.type,
+        "source": f"{SOURCE} — généré le {datetime.now(UTC):%d/%m/%Y}",
+    }
+
+
+async def describe(client: httpx.AsyncClient, identifiant: str) -> dict:
+    """The fiche's header alone, without collecting any component."""
+    return _header(await resolve(client, identifiant, _connect()))
+
+
 async def collect(
     client: httpx.AsyncClient, identifiant: str, components
 ) -> tuple[dict, dict]:
-    connection = base.connect() if base.DB_PATH.exists() else None
+    connection = _connect()
     fiche = await resolve(client, identifiant, connection)
     names = tuple(component.name for component in components)
     context = Context(
@@ -70,16 +87,18 @@ async def collect(
         if result is not None:
             results[component.name] = result
 
-    header = {
-        "nom": fiche.nom,
-        "libelle_type": "Commune" if fiche.famille == COMMUNE else fiche.type,
-        "source": f"{SOURCE} — généré le {datetime.now(UTC):%d/%m/%Y}",
-    }
-    return header, results
+    return _header(fiche), results
 
 
 def render(header: dict, results: dict) -> bytes:
     return typst.compile_fiche(header, results)
 
 
-__all__ = ["COMPONENTS", "IdentifiantInvalide", "collect", "render", "resolve"]
+__all__ = [
+    "COMPONENTS",
+    "IdentifiantInvalide",
+    "collect",
+    "describe",
+    "render",
+    "resolve",
+]
