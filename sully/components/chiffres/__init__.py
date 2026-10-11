@@ -1,5 +1,6 @@
 import math
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from ...context import Context, Result
 from ...sources import api_collectivites
@@ -7,6 +8,7 @@ from ..formats import Display, compact_euros, euros, number, percent
 from ..registry import component
 
 TICK_COUNT = 4
+HISTOGRAM_YEARS = 5
 
 
 @dataclass
@@ -41,6 +43,7 @@ class Financeur:
 class Chiffres:
     periode: str
     tiles: list[Tile]
+    histogram_periode: str
     bars: list[Bar]
     ticks: list[Tick]
     sans_date: int
@@ -83,7 +86,11 @@ async def collect(context: Context) -> Result | None:
     sans_date = sum(
         ligne["financements"] for ligne in par_annee if ligne["annee"] is None
     )
-    top, ticks = _scale([ligne["montant"] or 0 for ligne in datees])
+    current_year = datetime.now(UTC).year
+    window = range(current_year - HISTOGRAM_YEARS + 1, current_year + 1)
+    by_year = {ligne["annee"]: ligne["montant"] or 0 for ligne in datees}
+    histogram = [(annee, by_year.get(annee, 0)) for annee in window]
+    top, ticks = _scale([montant for _, montant in histogram])
 
     cofinancement = api_collectivites.cofinancement(context.connection, siren)
     cout = cofinancement["cout"] or 0
@@ -119,13 +126,10 @@ async def collect(context: Context) -> Result | None:
                 "de taux de financement",
             ),
         ],
+        histogram_periode=f"{window[0]} – {window[-1]}",
         bars=[
-            Bar(
-                ligne["annee"],
-                compact_euros(ligne["montant"] or 0),
-                (ligne["montant"] or 0) / top,
-            )
-            for ligne in datees
+            Bar(annee, compact_euros(montant), montant / top)
+            for annee, montant in histogram
         ],
         ticks=ticks,
         sans_date=sans_date,

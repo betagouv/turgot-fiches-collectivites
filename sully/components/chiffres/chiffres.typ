@@ -70,7 +70,7 @@
     columns: (1.1fr, 1fr),
     column-gutter: 10pt,
     panel(
-      [Montants reçus par année],
+      [Montants reçus par année, #data.histogram_periode],
       {
         if data.bars.len() > 0 {
           histogram(data.bars, data.ticks)
