@@ -75,7 +75,7 @@ def _scale(values: list[float]) -> tuple[float, list[Tick]]:
 @component(
     name="chiffres",
     description="Financements reçus : totaux par dispositif, montants des cinq "
-    "dernières années, répartition par financeur.",
+    "dernières années révolues, répartition par financeur.",
 )
 async def collect(context: Context) -> Result | None:
     if context.connection is None:
@@ -90,8 +90,9 @@ async def collect(context: Context) -> Result | None:
     sans_date = sum(
         ligne["financements"] for ligne in par_annee if ligne["annee"] is None
     )
+    # The current year is still running: its total would look like a drop.
     current_year = datetime.now(UTC).year
-    window = range(current_year - HISTOGRAM_YEARS + 1, current_year + 1)
+    window = range(current_year - HISTOGRAM_YEARS, current_year)
     by_year = {ligne["annee"]: ligne["montant"] or 0 for ligne in datees}
     histogram = [(annee, by_year.get(annee, 0)) for annee in window]
     top, ticks = _scale([montant for _, montant in histogram])
