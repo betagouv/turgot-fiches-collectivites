@@ -70,7 +70,7 @@ SSH du poste enregistrée.
 
 ```sh
 export SULLY_HOST=serveur               # SULLY_APP=sully par défaut ; .env convient aussi
-just setup                              # une fois : application, buildpack, base, jeton
+just setup                              # application, buildpack, base, jeton ; rejouable
 just deploy                             # pousse le commit courant
 just https                              # une fois, après le premier deploy
 just fetch                              # toutes les sources dues, en conteneur détaché

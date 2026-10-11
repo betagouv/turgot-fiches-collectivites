@@ -12,12 +12,12 @@ default:
 check-host:
     @test -n "{{ host }}" || (echo "Set SULLY_HOST=server" && exit 1)
 
-# Create the app and its database, and copy the API token from .env; run once
+# Create the app and its database, and copy the API token from .env; safe to rerun
 setup: check-host
-    {{ dokku }} apps:create {{ app }}
+    {{ dokku }} apps:exists {{ app }} 2>/dev/null || {{ dokku }} apps:create {{ app }}
     {{ dokku }} buildpacks:set {{ app }} https://github.com/heroku/heroku-buildpack-python
-    {{ dokku }} postgres:create {{ database }}
-    {{ dokku }} postgres:link {{ database }} {{ app }}
+    {{ dokku }} postgres:exists {{ database }} 2>/dev/null || {{ dokku }} postgres:create {{ database }}
+    {{ dokku }} postgres:linked {{ database }} {{ app }} 2>/dev/null || {{ dokku }} postgres:link {{ database }} {{ app }}
     @{{ dokku }} config:set --no-restart {{ app }} API_COLLECTIVITES_TOKEN="$API_COLLECTIVITES_TOKEN" > /dev/null
 
 # Deploy the current commit; uncommitted changes stay behind
