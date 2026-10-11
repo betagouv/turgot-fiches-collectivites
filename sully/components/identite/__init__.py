@@ -18,6 +18,10 @@ class Identite:
     rows: list[Row]
 
 
+def _nom(details: dict, key: str) -> str | None:
+    return (details.get(key) or {}).get("nom")
+
+
 def _rows(pairs: list[tuple[str, Display]]) -> Identite:
     return Identite([Row(label, value) for label, value in pairs if value.value])
 
@@ -25,7 +29,7 @@ def _rows(pairs: list[tuple[str, Display]]) -> Identite:
 @component(
     name="identite",
     description="Identité de la collectivité : SIREN, code INSEE, population, "
-    "superficie, densité, codes postaux.",
+    "superficie, densité, codes postaux, intercommunalité, département, région.",
     placement=Placement.CARD,
 )
 async def collect(context: Context) -> Result | None:
@@ -53,7 +57,8 @@ async def collect(context: Context) -> Result | None:
         ("Superficie", decimal(surface, "km²")),
         ("Densité", number(densite, "hab./km²")),
         ("Codes postaux", text(", ".join(fiche.codes_postaux))),
-        ("Département", text(fiche.code_departement)),
-        ("Région", text(fiche.code_region)),
+        ("Intercommunalité", text(_nom(details, "epci"))),
+        ("Département", text(_nom(details, "departement"))),
+        ("Région", text(_nom(details, "region"))),
     ]
     return Result(data=_rows(pairs))

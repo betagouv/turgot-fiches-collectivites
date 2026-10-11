@@ -1,4 +1,5 @@
-"""geo.api.gouv.fr : superficie d'une commune, et index SIREN → code INSEE.
+"""geo.api.gouv.fr : superficie et rattachements d'une commune (EPCI, département,
+région, avec leurs noms), et index SIREN → code INSEE.
 
 L'API Référentiel adresse les communes par code INSEE seulement, d'où cet index.
 """
@@ -50,7 +51,8 @@ def code_insee_de(connection: base.Connection, siren: str) -> str | None:
 
 async def commune(client: httpx.AsyncClient, code_insee: str) -> dict:
     response = await client.get(
-        f"{BASE_URL}/communes/{code_insee}", params={"fields": "nom,surface,centre"}
+        f"{BASE_URL}/communes/{code_insee}",
+        params={"fields": "nom,surface,centre,epci,departement,region"},
     )
     response.raise_for_status()
     return response.json()
