@@ -15,6 +15,21 @@ export function panel(title, body) {
   </section>`
 }
 
+// Pages embedding these elements may forbid inline `style` attributes (a strict
+// CSP without 'unsafe-inline'): markup carries values as data attributes, and
+// they are applied through the CSSOM, which CSP does not restrict.
+export function applyStyles(root) {
+  for (const element of root.querySelectorAll("[data-share]")) {
+    element.style.setProperty("--share", element.dataset.share)
+  }
+  for (const element of root.querySelectorAll("[data-fill]")) {
+    element.style.background = element.dataset.fill
+  }
+  for (const element of root.querySelectorAll("[data-outline]")) {
+    element.style.border = `1.5px solid ${element.dataset.outline}`
+  }
+}
+
 export class SullyElement extends HTMLElement {
   async connectedCallback() {
     const src = this.getAttribute("src")
@@ -30,6 +45,7 @@ export class SullyElement extends HTMLElement {
     }
     this.data = await response.json()
     this.innerHTML = this.render(this.data)
+    applyStyles(this)
     await this.afterRender?.()
   }
 

@@ -25,8 +25,8 @@ function svg(carte, geojson) {
 function legend(data) {
   const swatch = (step, outlined = false) =>
     outlined
-      ? `<span class="sully-swatch" style="border: 1.5px solid ${step.color}"></span>`
-      : `<span class="sully-swatch" style="background: ${step.color}"></span>`
+      ? `<span class="sully-swatch" data-outline="${escape(step.color)}"></span>`
+      : `<span class="sully-swatch" data-fill="${escape(step.color)}"></span>`
   const steps = data.steps.map((step) => swatch(step)).join("")
   return `<div class="sully-legend">
     ${escape(data.title)}

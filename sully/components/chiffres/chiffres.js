@@ -12,12 +12,12 @@ function tile(periode, t) {
 
 function histogram(data) {
   const ticks = data.ticks
-    .map((tick) => `<div class="sully-histogram__tick" style="--share: ${tick.share}"><span>${escape(tick.montant.label)}</span></div>`)
+    .map((tick) => `<div class="sully-histogram__tick" data-share="${tick.share}"><span>${escape(tick.montant.label)}</span></div>`)
     .join("")
   const bars = data.bars
     .map(
       (bar) =>
-        `<div class="sully-histogram__bar" style="--share: ${bar.share}" title="${escape(bar.annee)} : ${escape(bar.montant.label)}"><span>${escape(bar.annee)}</span></div>`,
+        `<div class="sully-histogram__bar" data-share="${bar.share}" title="${escape(bar.annee)} : ${escape(bar.montant.label)}"><span>${escape(bar.annee)}</span></div>`,
     )
     .join("")
   const sansDate =
