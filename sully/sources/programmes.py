@@ -7,7 +7,6 @@ seconde vague, 50 communes contre 244.
 
 import csv
 import io
-import sqlite3
 from dataclasses import dataclass
 
 import httpx
@@ -31,7 +30,7 @@ COLUMNS = ("code_insee", "programme", "libelle", "depuis")
 
 UPSERT = f"""
 INSERT INTO programme ({", ".join(COLUMNS)})
-VALUES ({", ".join(f":{c}" for c in COLUMNS)})
+VALUES ({", ".join(f"%({c})s" for c in COLUMNS)})
 ON CONFLICT (code_insee, programme) DO UPDATE SET
 libelle = excluded.libelle, depuis = excluded.depuis
 """
@@ -123,7 +122,7 @@ def rows(client: httpx.Client, programme: Programme):
     schedule=Schedule.MONTHLY,
     schema=SCHEMA,
 )
-def fetch(client: httpx.Client, connection: sqlite3.Connection) -> str:
+def fetch(client: httpx.Client, connection: base.Connection) -> str:
     counts = []
     for programme in PROGRAMMES:
         written = base.upsert(connection, UPSERT, rows(client, programme))
@@ -131,8 +130,8 @@ def fetch(client: httpx.Client, connection: sqlite3.Connection) -> str:
     return ", ".join(counts)
 
 
-def de_commune(connection: sqlite3.Connection, code_insee: str) -> list[sqlite3.Row]:
+def de_commune(connection: base.Connection, code_insee: str) -> list[dict]:
     return connection.execute(
-        "SELECT * FROM programme WHERE code_insee = ? ORDER BY programme",
+        "SELECT * FROM programme WHERE code_insee = %s ORDER BY programme",
         (code_insee,),
     ).fetchall()

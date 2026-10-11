@@ -3,19 +3,17 @@ dotations, Fonds vert, agences de l'eau, ADEME, public procurement…).
 
 Access is restricted to State services: this data must not be redistributed.
 
-The database keeps only the fields the fiches read; the raw payload is kept
-next to it, as gzipped JSON lines.
+The database keeps only the fields the fiches read.
 
 https://api.collectivites.beta.gouv.fr/api/consultation
 """
 
-import gzip
 import json
 import os
-import sqlite3
 import time
 
 import httpx
+import psycopg
 
 from . import base
 from .registry import Interrupted, Schedule, source
@@ -24,16 +22,15 @@ NAME = "api-collectivites"
 URL = "https://api.collectivites.beta.gouv.fr/consultation/v1/projets"
 TOKEN_VARIABLE = "API_COLLECTIVITES_TOKEN"
 PAGE_SIZE = 1000
-RAW_PATH = base.DB_PATH.parent / "api-collectivites.jsonl.gz"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS projet (
-    id                  INTEGER PRIMARY KEY,
+    id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     provenances         TEXT NOT NULL,
     siren               TEXT,
     nom                 TEXT,
     porteur_nom         TEXT,
-    budget_previsionnel REAL,
+    budget_previsionnel DOUBLE PRECISION,
     date_debut          TEXT,
     date_fin            TEXT,
     phase               TEXT,
@@ -44,18 +41,18 @@ CREATE TABLE IF NOT EXISTS projet (
 CREATE INDEX IF NOT EXISTS projet_siren ON projet (siren);
 
 CREATE TABLE IF NOT EXISTS projet_commune (
-    projet_id  INTEGER NOT NULL REFERENCES projet (id),
+    projet_id  BIGINT NOT NULL REFERENCES projet (id),
     code_insee TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS projet_commune_insee ON projet_commune (code_insee);
 
 CREATE TABLE IF NOT EXISTS financement (
-    projet_id         INTEGER NOT NULL REFERENCES projet (id),
+    projet_id         BIGINT NOT NULL REFERENCES projet (id),
     source            TEXT,
     date_attribution  TEXT,
     annee             INTEGER,
-    montant_demande   REAL,
-    montant_attribue  REAL,
+    montant_demande   DOUBLE PRECISION,
+    montant_attribue  DOUBLE PRECISION,
     statut            TEXT
 );
 CREATE INDEX IF NOT EXISTS financement_projet ON financement (projet_id);
@@ -66,16 +63,17 @@ INSERT INTO projet (
     provenances, siren, nom, porteur_nom, budget_previsionnel, date_debut,
     date_fin, phase, phase_statut, ouverture, thematiques
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+RETURNING id
 """
 
-INSERT_COMMUNE = "INSERT INTO projet_commune (projet_id, code_insee) VALUES (?, ?)"
+INSERT_COMMUNE = "INSERT INTO projet_commune (projet_id, code_insee) VALUES (%s, %s)"
 
 INSERT_FINANCEMENT = """
 INSERT INTO financement
     (projet_id, source, date_attribution, annee, montant_demande,
      montant_attribue, statut)
-VALUES (?, ?, ?, ?, ?, ?, ?)
+VALUES (%s, %s, %s, %s, %s, %s, %s)
 """
 
 
@@ -96,12 +94,12 @@ def _page(client: httpx.Client, cursor: str | None) -> httpx.Response:
     return response
 
 
-def _store(connection: sqlite3.Connection, projet: dict) -> None:
+def _store(cursor: psycopg.Cursor, projet: dict) -> None:
     provenances = "|".join(
         sorted(f"{p['provenance']}:{p['idSource']}" for p in projet["provenances"])
     )
     labels = projet.get("labels") or {}
-    cursor = connection.execute(
+    cursor.execute(
         INSERT_PROJET,
         (
             provenances,
@@ -119,12 +117,12 @@ def _store(connection: sqlite3.Connection, projet: dict) -> None:
             ),
         ),
     )
-    projet_id = cursor.lastrowid
-    connection.executemany(
+    projet_id = cursor.fetchone()["id"]
+    cursor.executemany(
         INSERT_COMMUNE,
         [(projet_id, code) for code in projet.get("territoireCommunes") or []],
     )
-    connection.executemany(
+    cursor.executemany(
         INSERT_FINANCEMENT,
         [
             (
@@ -141,10 +139,12 @@ def _store(connection: sqlite3.Connection, projet: dict) -> None:
     )
 
 
-def _counts(connection: sqlite3.Connection) -> tuple[int, int]:
-    projets = connection.execute("SELECT COUNT(*) FROM projet").fetchone()[0]
-    financements = connection.execute("SELECT COUNT(*) FROM financement").fetchone()[0]
-    return projets, financements
+def _counts(connection: base.Connection) -> tuple[int, int]:
+    row = connection.execute(
+        "SELECT (SELECT COUNT(*) FROM projet) AS projets, "
+        "(SELECT COUNT(*) FROM financement) AS financements"
+    ).fetchone()
+    return row["projets"], row["financements"]
 
 
 @source(
@@ -154,7 +154,7 @@ def _counts(connection: sqlite3.Connection) -> tuple[int, int]:
     schema=SCHEMA,
 )
 def fetch(
-    client: httpx.Client, connection: sqlite3.Connection, max_pages: int | None = None
+    client: httpx.Client, connection: base.Connection, max_pages: int | None = None
 ) -> str:
     token = os.environ.get(TOKEN_VARIABLE)
     if not token:
@@ -164,11 +164,7 @@ def fetch(
     if cursor is None:
         # Upstream rebuilds its base without stable identifiers, so a fresh
         # snapshot replaces the previous one instead of merging into it.
-        with connection:
-            connection.execute("DELETE FROM financement")
-            connection.execute("DELETE FROM projet_commune")
-            connection.execute("DELETE FROM projet")
-        RAW_PATH.unlink(missing_ok=True)
+        connection.execute("TRUNCATE financement, projet_commune, projet")
 
     start = time.perf_counter()
     pages = 0
@@ -180,12 +176,9 @@ def fetch(
             response = _page(authenticated, cursor)
             payload = response.json()
             cursor = payload.get("nextCursor")
-            with gzip.open(RAW_PATH, "at", encoding="utf-8", compresslevel=9) as raw:
+            with connection.transaction(), connection.cursor() as writer:
                 for projet in payload["data"]:
-                    raw.write(json.dumps(projet, ensure_ascii=False) + "\n")
-            with connection:
-                for projet in payload["data"]:
-                    _store(connection, projet)
+                    _store(writer, projet)
                 base.save_cursor(connection, NAME, cursor)
             pages += 1
             downloaded += response.num_bytes_downloaded
@@ -212,27 +205,27 @@ def fetch(
 RECEIVED = "f.statut IN ('Obtenu', 'Payé')"
 
 
-def financements_recus(connection: sqlite3.Connection, siren: str) -> list[sqlite3.Row]:
+def financements_recus(connection: base.Connection, siren: str) -> list[dict]:
     return connection.execute(
         f"""
         SELECT f.annee, f.source, f.montant_attribue,
                p.nom, p.budget_previsionnel
         FROM financement f JOIN projet p ON p.id = f.projet_id
-        WHERE p.siren = ? AND {RECEIVED}
+        WHERE p.siren = %s AND {RECEIVED}
         ORDER BY f.annee DESC NULLS LAST, f.source, p.nom
         """,
         (siren,),
     ).fetchall()
 
 
-def totaux_par_source(connection: sqlite3.Connection, siren: str) -> list[sqlite3.Row]:
+def totaux_par_source(connection: base.Connection, siren: str) -> list[dict]:
     return connection.execute(
         f"""
         SELECT f.source,
                SUM(f.montant_attribue) AS montant,
                COUNT(DISTINCT f.projet_id) AS projets
         FROM financement f JOIN projet p ON p.id = f.projet_id
-        WHERE p.siren = ? AND {RECEIVED}
+        WHERE p.siren = %s AND {RECEIVED}
         GROUP BY f.source
         ORDER BY montant DESC
         """,
@@ -240,14 +233,14 @@ def totaux_par_source(connection: sqlite3.Connection, siren: str) -> list[sqlite
     ).fetchall()
 
 
-def totaux_par_annee(connection: sqlite3.Connection, siren: str) -> list[sqlite3.Row]:
+def totaux_par_annee(connection: base.Connection, siren: str) -> list[dict]:
     return connection.execute(
         f"""
         SELECT f.annee,
                SUM(f.montant_attribue) AS montant,
                COUNT(*) AS financements
         FROM financement f JOIN projet p ON p.id = f.projet_id
-        WHERE p.siren = ? AND {RECEIVED}
+        WHERE p.siren = %s AND {RECEIVED}
         GROUP BY f.annee
         ORDER BY f.annee
         """,
@@ -255,7 +248,7 @@ def totaux_par_annee(connection: sqlite3.Connection, siren: str) -> list[sqlite3
     ).fetchall()
 
 
-def cofinancement(connection: sqlite3.Connection, siren: str) -> sqlite3.Row:
+def cofinancement(connection: base.Connection, siren: str) -> dict:
     """Attribué and budget over the projets that publish both, as upstream's
     own taux de financement does: a budget alone would deflate the rate."""
     return connection.execute(
@@ -265,10 +258,10 @@ def cofinancement(connection: sqlite3.Connection, siren: str) -> sqlite3.Row:
             SELECT p.budget_previsionnel AS budget,
                    SUM(f.montant_attribue) AS attribue
             FROM projet p JOIN financement f ON f.projet_id = p.id
-            WHERE p.siren = ? AND {RECEIVED}
+            WHERE p.siren = %s AND {RECEIVED}
               AND p.budget_previsionnel > 0 AND f.montant_attribue IS NOT NULL
             GROUP BY p.id
-        )
+        ) AS par_projet
         """,
         (siren,),
     ).fetchone()

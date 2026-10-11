@@ -3,8 +3,6 @@
 L'API Référentiel adresse les communes par code INSEE seulement, d'où cet index.
 """
 
-import sqlite3
-
 import httpx
 
 from . import base
@@ -20,7 +18,7 @@ CREATE TABLE IF NOT EXISTS siren_insee (
 """
 
 UPSERT = """
-INSERT INTO siren_insee (siren, code_insee) VALUES (:siren, :code_insee)
+INSERT INTO siren_insee (siren, code_insee) VALUES (%(siren)s, %(code_insee)s)
 ON CONFLICT (siren) DO UPDATE SET code_insee = excluded.code_insee
 """
 
@@ -31,7 +29,7 @@ ON CONFLICT (siren) DO UPDATE SET code_insee = excluded.code_insee
     schedule=Schedule.MONTHLY,
     schema=SCHEMA,
 )
-def fetch(client: httpx.Client, connection: sqlite3.Connection) -> str:
+def fetch(client: httpx.Client, connection: base.Connection) -> str:
     response = client.get(f"{BASE_URL}/communes", params={"fields": "code,siren"})
     response.raise_for_status()
     rows = (
@@ -43,9 +41,9 @@ def fetch(client: httpx.Client, connection: sqlite3.Connection) -> str:
     return f"{written} commune(s)"
 
 
-def code_insee_de(connection: sqlite3.Connection, siren: str) -> str | None:
+def code_insee_de(connection: base.Connection, siren: str) -> str | None:
     row = connection.execute(
-        "SELECT code_insee FROM siren_insee WHERE siren = ?", (siren,)
+        "SELECT code_insee FROM siren_insee WHERE siren = %s", (siren,)
     ).fetchone()
     return row["code_insee"] if row else None
 

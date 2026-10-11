@@ -1,5 +1,5 @@
 import re
-import sqlite3
+from contextlib import nullcontext
 from datetime import UTC, datetime
 
 import httpx
@@ -24,7 +24,7 @@ class IdentifiantInvalide(Exception):
 
 
 async def resolve(
-    client: httpx.AsyncClient, identifiant: str, connection: sqlite3.Connection | None
+    client: httpx.AsyncClient, identifiant: str, connection: base.Connection | None
 ) -> Fiche:
     """Trouve la collectivité derrière un code INSEE ou un SIREN.
 
@@ -55,7 +55,9 @@ async def resolve(
 
 
 def _connect():
-    return base.connect() if base.DB_PATH.exists() else None
+    """The database closes with the `with` block; without one configured, the
+    fiche keeps the components that rely on the APIs alone."""
+    return base.connect() if base.configured() else nullcontext()
 
 
 def _header(fiche: Fiche) -> dict:
@@ -68,24 +70,24 @@ def _header(fiche: Fiche) -> dict:
 
 async def describe(client: httpx.AsyncClient, identifiant: str) -> dict:
     """The fiche's header alone, without collecting any component."""
-    return _header(await resolve(client, identifiant, _connect()))
+    with _connect() as connection:
+        return _header(await resolve(client, identifiant, connection))
 
 
 async def collect(
     client: httpx.AsyncClient, identifiant: str, components
 ) -> tuple[dict, dict]:
-    connection = _connect()
-    fiche = await resolve(client, identifiant, connection)
     names = tuple(component.name for component in components)
-    context = Context(
-        client=client, fiche=fiche, connection=connection, components=names
-    )
-
     results = {}
-    for component in components:
-        result = await component.collect(context)
-        if result is not None:
-            results[component.name] = result
+    with _connect() as connection:
+        fiche = await resolve(client, identifiant, connection)
+        context = Context(
+            client=client, fiche=fiche, connection=connection, components=names
+        )
+        for component in components:
+            result = await component.collect(context)
+            if result is not None:
+                results[component.name] = result
 
     return _header(fiche), results
 

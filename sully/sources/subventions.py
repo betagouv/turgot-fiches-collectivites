@@ -1,7 +1,7 @@
 """La table des subventions d'investissement, alimentée par `dgcl` et
 `fonds_vert`."""
 
-import sqlite3
+from . import base
 
 SOURCE_DGCL = "dgcl"
 SOURCE_FONDS_VERT = "fonds_vert"
@@ -17,8 +17,8 @@ CREATE TABLE IF NOT EXISTS subvention (
     code_insee        TEXT,
     code_departement  TEXT,
     libelle           TEXT,
-    cout_total        REAL,
-    montant_accorde   REAL,
+    cout_total        DOUBLE PRECISION,
+    montant_accorde   DOUBLE PRECISION,
     PRIMARY KEY (source, source_id)
 );
 CREATE INDEX IF NOT EXISTS subvention_siren ON subvention (siren);
@@ -41,27 +41,27 @@ COLUMNS = (
 
 UPSERT = f"""
 INSERT INTO subvention ({", ".join(COLUMNS)})
-VALUES ({", ".join(f":{c}" for c in COLUMNS)})
+VALUES ({", ".join(f"%({c})s" for c in COLUMNS)})
 ON CONFLICT (source, source_id) DO UPDATE SET
 {", ".join(f"{c} = excluded.{c}" for c in COLUMNS if c not in ("source", "source_id"))}
 """
 
 
-def par_siren(connection: sqlite3.Connection, siren: str) -> list[sqlite3.Row]:
+def par_siren(connection: base.Connection, siren: str) -> list[dict]:
     return connection.execute(
-        "SELECT * FROM subvention WHERE siren = ? ORDER BY annee DESC, dispositif",
+        "SELECT * FROM subvention WHERE siren = %s ORDER BY annee DESC, dispositif",
         (siren,),
     ).fetchall()
 
 
-def totaux_par_annee(connection: sqlite3.Connection, siren: str) -> list[sqlite3.Row]:
+def totaux_par_annee(connection: base.Connection, siren: str) -> list[dict]:
     return connection.execute(
         """
         SELECT annee, dispositif,
                SUM(montant_accorde) AS montant,
                COUNT(*) AS projets
         FROM subvention
-        WHERE siren = ?
+        WHERE siren = %s
         GROUP BY annee, dispositif
         ORDER BY annee
         """,
@@ -69,16 +69,14 @@ def totaux_par_annee(connection: sqlite3.Connection, siren: str) -> list[sqlite3
     ).fetchall()
 
 
-def totaux_par_dispositif(
-    connection: sqlite3.Connection, siren: str
-) -> list[sqlite3.Row]:
+def totaux_par_dispositif(connection: base.Connection, siren: str) -> list[dict]:
     return connection.execute(
         """
         SELECT dispositif,
                SUM(montant_accorde) AS montant,
                COUNT(*) AS projets
         FROM subvention
-        WHERE siren = ?
+        WHERE siren = %s
         GROUP BY dispositif
         ORDER BY montant DESC
         """,
@@ -86,7 +84,7 @@ def totaux_par_dispositif(
     ).fetchall()
 
 
-def cofinancement(connection: sqlite3.Connection, siren: str) -> sqlite3.Row:
+def cofinancement(connection: base.Connection, siren: str) -> dict:
     """Accordé et coût des projets, restreint aux lignes qui publient un coût.
 
     Le Fonds vert ne publie que le montant engagé : l'inclure gonflerait le taux
@@ -98,27 +96,26 @@ def cofinancement(connection: sqlite3.Connection, siren: str) -> sqlite3.Row:
                SUM(cout_total) AS cout,
                COUNT(*) AS projets
         FROM subvention
-        WHERE siren = ? AND cout_total IS NOT NULL AND cout_total > 0
+        WHERE siren = %s AND cout_total IS NOT NULL AND cout_total > 0
         """,
         (siren,),
     ).fetchone()
 
 
-def taux_par_commune(connection: sqlite3.Connection, codes_insee) -> dict[str, float]:
+def taux_par_commune(connection: base.Connection, codes_insee) -> dict[str, float]:
     codes = list(codes_insee)
     if not codes:
         return {}
-    marks = ", ".join("?" * len(codes))
     rows = connection.execute(
-        f"""
+        """
         SELECT code_insee,
                SUM(montant_accorde) AS montant,
                SUM(cout_total) AS cout
         FROM subvention
-        WHERE cout_total IS NOT NULL AND cout_total > 0 AND code_insee IN ({marks})
+        WHERE cout_total IS NOT NULL AND cout_total > 0 AND code_insee = ANY(%s)
         GROUP BY code_insee
         """,
-        codes,
+        (codes,),
     ).fetchall()
     return {
         row["code_insee"]: row["montant"] / row["cout"] for row in rows if row["cout"]

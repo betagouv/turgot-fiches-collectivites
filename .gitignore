@@ -5,4 +5,4 @@ build/
 *.pdf
 __pycache__/
 tmp/
-uv.lock
+!.python-version

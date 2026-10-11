@@ -9,10 +9,19 @@ d'une commune ou d'un groupement (EPCI, syndicat, PETR…).
 
 ## Installation
 
+Les données vivent dans PostgreSQL, désigné par `DATABASE_URL`, que les
+commandes lisent dans `.env` :
+
 ```sh
+createdb sully
+echo 'DATABASE_URL=postgres://utilisateur:motdepasse@localhost:5432/sully' >> .env
+export UV_ENV_FILE=.env                # pour toutes les commandes `uv run` qui suivent
 uv sync
-uv run sully fetch
+uv run sully fetch                     # crée les tables manquantes, puis récupère
 ```
+
+Sans `DATABASE_URL`, les fiches restent servies, réduites aux composants qui ne
+lisent que les API.
 
 Typst est embarqué via sa liaison Python, il n'y a pas de binaire à installer.
 
@@ -49,6 +58,31 @@ Les données d'un composant sont son contrat avec tous les rendus : chaque valeu
 affichée y figure en `{"value": …, "label": …}`, la valeur brute et son libellé
 formaté. Les gabarits ne calculent rien ; un tiers peut reprendre la main sur la
 présentation à partir du seul JSON.
+
+## Déploiement
+
+L'application se déploie comme sur Scalingo — buildpack Python, `Procfile`,
+PostgreSQL lié — ici sur un serveur [Dokku](https://dokku.com), avec les plugins
+[dokku-postgres](https://github.com/dokku/dokku-postgres) et
+[dokku-letsencrypt](https://github.com/dokku/dokku-letsencrypt) installés, un
+domaine global réglé (`domains:set-global`, avec son wildcard DNS) et la clé
+SSH du poste enregistrée.
+
+```sh
+export SULLY_HOST=serveur               # SULLY_APP=sully par défaut ; .env convient aussi
+just setup                              # une fois : application, buildpack, base, jeton
+just deploy                             # pousse le commit courant
+just https                              # une fois, après le premier deploy
+just fetch                              # toutes les sources dues, en conteneur détaché
+just fetch api-collectivites --force    # ou une seule
+just logs                               # suit les récupérations
+just status                             # liste celles en cours
+just pull                               # remplace la base locale par celle du serveur
+```
+
+Les tables sont créées à chaque déploiement, par la phase `release` du
+`Procfile`. Les origines autorisées à embarquer les composants se règlent sur
+le serveur : `ssh dokku@serveur config:set sully SULLY_CORS_ORIGINS=…`.
 
 ## Les sources
 

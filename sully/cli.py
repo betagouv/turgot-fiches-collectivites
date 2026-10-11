@@ -36,14 +36,29 @@ def command_fiche(args) -> None:
     print(written)
 
 
+def _connect() -> base.Connection:
+    try:
+        return base.connect()
+    except base.DatabaseMissing as erreur:
+        sys.exit(str(erreur))
+
+
+def command_migrate(args) -> None:
+    with _connect() as connection:
+        base.migrate(connection)
+
+
 def command_fetch(args) -> None:
     try:
         chosen = sources.selected(args.sources)
     except sources.UnknownSource as erreur:
         sys.exit(str(erreur))
 
-    connection = base.connect()
-    with httpx.Client(timeout=300, follow_redirects=True) as client:
+    with (
+        _connect() as connection,
+        httpx.Client(timeout=300, follow_redirects=True) as client,
+    ):
+        base.migrate(connection)
         for source in chosen:
             if not args.force and not base.is_due(connection, source):
                 previous = base.last_fetch(connection, source.name)
@@ -60,7 +75,6 @@ def command_fetch(args) -> None:
                 continue
             base.record_fetch(connection, source.name, report)
             print(f"  {source.name:12} {report}")
-    print(base.DB_PATH)
 
 
 def main(argv=None):
@@ -110,6 +124,9 @@ def main(argv=None):
         "et reprend là au prochain appel",
     )
     fetch.set_defaults(run=command_fetch)
+
+    migrate = sub.add_parser("migrate", help="Crée les tables manquantes.")
+    migrate.set_defaults(run=command_migrate)
 
     args = parser.parse_args(argv)
     args.run(args)

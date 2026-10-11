@@ -5,7 +5,6 @@ https://www.data.gouv.fr/datasets/6176785207139a929a2776fe
 
 import csv
 import io
-import sqlite3
 from collections import Counter
 from hashlib import md5
 
@@ -83,7 +82,7 @@ def rows(text: str, skipped: Counter):
     schedule=Schedule.MONTHLY,
     schema=subventions.SCHEMA,
 )
-def fetch(client: httpx.Client, connection: sqlite3.Connection) -> str:
+def fetch(client: httpx.Client, connection: base.Connection) -> str:
     written = 0
     skipped = Counter()
     for resource in datagouv.resources(client, DATASET):

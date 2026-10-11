@@ -6,7 +6,6 @@ https://www.data.gouv.fr/datasets/contours-administratifs
 
 import gzip
 import json
-import sqlite3
 
 import httpx
 
@@ -34,7 +33,7 @@ COLUMNS = ("code", "nom", "departement", "epci", "geometry")
 
 UPSERT = f"""
 INSERT INTO contour ({", ".join(COLUMNS)})
-VALUES ({", ".join(f":{c}" for c in COLUMNS)})
+VALUES ({", ".join(f"%({c})s" for c in COLUMNS)})
 ON CONFLICT (code) DO UPDATE SET
 {", ".join(f"{c} = excluded.{c}" for c in COLUMNS if c != "code")}
 """
@@ -58,7 +57,7 @@ def _rows(payload: dict):
     schedule=Schedule.ONESHOT,
     schema=SCHEMA,
 )
-def fetch(client: httpx.Client, connection: sqlite3.Connection) -> str:
+def fetch(client: httpx.Client, connection: base.Connection) -> str:
     response = client.get(URL, follow_redirects=True, timeout=300)
     response.raise_for_status()
     payload = json.loads(gzip.decompress(response.content).decode("utf-8"))
@@ -80,19 +79,20 @@ def _collection(rows) -> dict:
     }
 
 
-def par_departement(connection: sqlite3.Connection, code: str) -> dict:
+def par_departement(connection: base.Connection, code: str) -> dict:
     return _collection(
         connection.execute(
-            "SELECT code, nom, geometry FROM contour WHERE departement = ? ORDER BY code",
+            "SELECT code, nom, geometry FROM contour WHERE departement = %s "
+            "ORDER BY code",
             (code,),
         )
     )
 
 
-def par_epci(connection: sqlite3.Connection, siren: str) -> dict:
+def par_epci(connection: base.Connection, siren: str) -> dict:
     return _collection(
         connection.execute(
-            "SELECT code, nom, geometry FROM contour WHERE epci = ? ORDER BY code",
+            "SELECT code, nom, geometry FROM contour WHERE epci = %s ORDER BY code",
             (siren,),
         )
     )

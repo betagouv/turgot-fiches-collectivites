@@ -1,8 +1,8 @@
-import sqlite3
 from dataclasses import dataclass, field
 
 import httpx
 
+from .sources.base import Connection
 from .sources.referentiel import Fiche
 
 
@@ -12,7 +12,7 @@ class Context:
 
     client: httpx.AsyncClient
     fiche: Fiche
-    connection: sqlite3.Connection | None
+    connection: Connection | None
     components: tuple[str, ...]
 
 

@@ -6,7 +6,6 @@ https://www.data.gouv.fr/datasets/fonds-vert-liste-des-projets-subventionnes
 import csv
 import io
 import re
-import sqlite3
 from collections import Counter
 from hashlib import md5
 
@@ -88,7 +87,7 @@ def _carries_siren(text: str) -> bool:
     schedule=Schedule.MONTHLY,
     schema=subventions.SCHEMA,
 )
-def fetch(client: httpx.Client, connection: sqlite3.Connection) -> str:
+def fetch(client: httpx.Client, connection: base.Connection) -> str:
     written = 0
     ignored = 0
     skipped = Counter()
