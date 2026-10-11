@@ -1,10 +1,24 @@
+from dataclasses import dataclass
+
 from ...context import Context, Result
 from ...sources import api_collectivites
+from ..formats import Display, euros, percent, plain, text
 from ..registry import component
 
 
-def _euros(montant) -> str:
-    return f"{round(montant):,}".replace(",", " ") + " €"
+@dataclass
+class Ligne:
+    annee: Display
+    financeur: Display
+    projet: Display
+    cout: Display
+    montant: Display
+    taux: Display
+
+
+@dataclass
+class Historique:
+    lignes: list[Ligne]
 
 
 @component(name="historique")
@@ -12,21 +26,19 @@ async def collect(context: Context) -> Result | None:
     if context.connection is None:
         return None
     lignes = []
-    for ligne in api_collectivites.financements_recus(
+    for row in api_collectivites.financements_recus(
         context.connection, context.fiche.siren
     ):
-        cout = ligne["budget_previsionnel"]
-        montant = ligne["montant_attribue"]
+        cout = row["budget_previsionnel"] or None
+        montant = row["montant_attribue"]
         lignes.append(
-            {
-                "annee": str(ligne["annee"]) if ligne["annee"] else "—",
-                "financeur": ligne["source"] or "—",
-                "libelle": ligne["nom"] or "—",
-                "cout": _euros(cout) if cout else "—",
-                "montant": _euros(montant) if montant else "—",
-                "taux": f"{montant / cout:.0%}".replace("%", " %")
-                if cout and montant
-                else "—",
-            }
+            Ligne(
+                annee=plain(row["annee"]),
+                financeur=text(row["source"]),
+                projet=text(row["nom"]),
+                cout=euros(cout),
+                montant=euros(montant),
+                taux=percent(montant / cout if cout and montant else None),
+            )
         )
-    return Result(data=lignes) if lignes else None
+    return Result(data=Historique(lignes)) if lignes else None

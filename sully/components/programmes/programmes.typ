@@ -2,14 +2,14 @@
 
 #let render(data) = panel(
   [Programmes],
-  if data.len() == 0 {
+  if data.programmes.len() == 0 {
     text(fill: luma(45%), style: "italic")[Aucun programme national recensé.]
   } else {
-    for p in data [
+    for programme in data.programmes [
       #block(below: 0.5em)[
-        #badge(p.at(0))
-        #if p.at(1) != "" [
-          #h(0.4em) #text(size: 7.5pt, fill: muted)[depuis le #p.at(1)]
+        #badge(programme.nom)
+        #if programme.depuis.value != none [
+          #h(0.4em) #text(size: 7.5pt, fill: muted)[depuis le #programme.depuis.label]
         ]
       ]
     ]

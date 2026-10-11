@@ -1,5 +1,7 @@
 import json
 import math
+from dataclasses import dataclass
+from itertools import pairwise
 
 from ...context import Context, Result
 from ...sources import contours, subventions
@@ -12,6 +14,58 @@ COULEUR_FOCUS = "#000000"
 COULEUR_SANS_DONNEE = "#e5e5e5"
 VIEWBOX_MARGIN = 0.01
 STROKE_RATIO = 0.0015
+
+
+@dataclass
+class Carte:
+    titre: str
+    fichier: str
+    communes: int
+    viewbox: list[float]
+    stroke: float
+
+
+@dataclass
+class LegendStep:
+    color: str
+    label: str
+
+
+@dataclass
+class Legend:
+    title: str
+    steps: list[LegendStep]
+    no_data: LegendStep
+    focus: LegendStep
+
+
+@dataclass
+class Carto:
+    cartes: list[Carte]
+    legend: Legend
+
+
+def _pourcent(taux: float) -> int:
+    return round(taux * 100)
+
+
+def _legend() -> Legend:
+    bornes = [None, *SEUILS_TAUX, None]
+    steps = []
+    for color, (bas, haut) in zip(PALETTE, pairwise(bornes), strict=True):
+        if bas is None:
+            label = f"< {_pourcent(haut)} %"
+        elif haut is None:
+            label = f"≥ {_pourcent(bas)} %"
+        else:
+            label = f"{_pourcent(bas)} à {_pourcent(haut)} %"
+        steps.append(LegendStep(color, label))
+    return Legend(
+        title="Taux de financement",
+        steps=steps,
+        no_data=LegendStep(COULEUR_SANS_DONNEE, "n.c."),
+        focus=LegendStep(COULEUR_FOCUS, "cette commune"),
+    )
 
 
 def _teinte(taux: float) -> str:
@@ -33,8 +87,7 @@ def _colorise(geojson: dict, code_focus: str, taux: dict[str, float]) -> dict:
             "contour": COULEUR_FOCUS if focus else "#ffffff",
         }
         feature["_focus"] = focus
-    # La bordure de la commune serait recouverte par ses voisines : elle est
-    # peinte en dernier.
+    # Neighbours would paint over the commune's outline: it goes last.
     geojson["features"].sort(key=lambda f: f.pop("_focus"))
     return geojson
 
@@ -72,17 +125,19 @@ async def collect(context: Context) -> Result | None:
         taux = subventions.taux_par_commune(context.connection, codes)
         viewbox = _project(geojson)
         cartes.append(
-            {
-                "titre": titre,
-                "fichier": fichier,
-                "communes": len(geojson["features"]),
-                "viewbox": viewbox,
-                "trait": max(viewbox[2], viewbox[3]) * STROKE_RATIO,
-            }
+            Carte(
+                titre=titre,
+                fichier=fichier,
+                communes=len(geojson["features"]),
+                viewbox=viewbox,
+                stroke=max(viewbox[2], viewbox[3]) * STROKE_RATIO,
+            )
         )
         files[fichier] = json.dumps(_colorise(geojson, fiche.code_insee, taux))
 
-    return Result(data=cartes, files=files) if cartes else None
+    if not cartes:
+        return None
+    return Result(data=Carto(cartes, _legend()), files=files)
 
 
 def _points(coordinates):

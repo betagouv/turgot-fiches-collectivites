@@ -1,11 +1,8 @@
 // Feuille de style des fiches : jetons, règles de page, composants partagés.
 
 #let blue = rgb("#000091")
-#let red = rgb("#e1000f")
 #let grey = rgb("#f6f6f6")
 #let muted = luma(40%)
-#let palette = ("#ececfe", "#cacafb", "#9a9af8", "#6a6af4", "#000091")
-#let no-data = rgb("#e5e5e5")
 
 #let theme(source: "", body) = {
   set page(

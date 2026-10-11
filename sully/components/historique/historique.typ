@@ -1,7 +1,7 @@
 #import "common.typ": blue, grey
 
 #let render(data) = {
-  heading(level: 2, [Historique des subventions (#data.len())])
+  heading(level: 2, [Historique des subventions (#data.lignes.len())])
 
   table(
     columns: (auto, auto, 1fr, auto, auto, auto),
@@ -19,13 +19,14 @@
     ),
     table.hline(y: 1, stroke: 0.5pt + blue),
     ..data
+      .lignes
       .map(l => (
-        text(size: 8pt, l.annee),
-        text(size: 8pt, l.financeur),
-        text(size: 8pt, l.libelle),
-        text(size: 8pt, l.cout),
-        text(size: 8pt, weight: "medium", l.montant),
-        text(size: 8pt, l.taux),
+        text(size: 8pt, l.annee.label),
+        text(size: 8pt, l.financeur.label),
+        text(size: 8pt, l.projet.label),
+        text(size: 8pt, l.cout.label),
+        text(size: 8pt, weight: "medium", l.montant.label),
+        text(size: 8pt, l.taux.label),
       ))
       .flatten()
   )

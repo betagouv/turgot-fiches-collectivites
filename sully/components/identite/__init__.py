@@ -1,41 +1,54 @@
+from dataclasses import dataclass
+
 from ...context import Context, Result
 from ...sources import geo
 from ...sources.referentiel import COMMUNE
+from ..formats import Display, decimal, number, text
 from ..registry import Placement, component
 
 
-def _number(value) -> str:
-    return f"{value:,}".replace(",", " ")
+@dataclass
+class Row:
+    label: str
+    value: Display
+
+
+@dataclass
+class Identite:
+    rows: list[Row]
+
+
+def _rows(pairs: list[tuple[str, Display]]) -> Identite:
+    return Identite([Row(label, value) for label, value in pairs if value.value])
 
 
 @component(name="identite", placement=Placement.CARD)
 async def collect(context: Context) -> Result | None:
     fiche = context.fiche
-    lignes = [("SIREN", fiche.siren)]
+    pairs = [("SIREN", text(fiche.siren))]
 
     if fiche.famille != COMMUNE:
-        lignes += [
-            ("Type", fiche.type),
-            ("Mode de financement", fiche.mode_financement),
-            ("Date de création", fiche.date_creation),
-            ("Départements", ", ".join(fiche.departements)),
+        pairs += [
+            ("Type", text(fiche.type)),
+            ("Mode de financement", text(fiche.mode_financement)),
+            ("Date de création", text(fiche.date_creation)),
+            ("Départements", text(", ".join(fiche.departements))),
         ]
-        return Result(data=[p for p in lignes if p[1]])
+        return Result(data=_rows(pairs))
 
     details = await geo.commune(context.client, fiche.code_insee)
     surface = details["surface"] / 100 if details.get("surface") else None
+    densite = (
+        fiche.population / surface if surface and fiche.population is not None else None
+    )
 
-    lignes.append(("Code INSEE", fiche.code_insee))
-    if fiche.population is not None:
-        lignes.append(("Population", f"{_number(fiche.population)} habitants"))
-    if surface:
-        lignes.append(("Superficie", f"{surface:.1f}".replace(".", ",") + " km²"))
-        if fiche.population is not None:
-            densite = round(fiche.population / surface)
-            lignes.append(("Densité", f"{_number(densite)} hab./km²"))
-    lignes += [
-        ("Codes postaux", ", ".join(fiche.codes_postaux)),
-        ("Département", fiche.code_departement),
-        ("Région", fiche.code_region),
+    pairs += [
+        ("Code INSEE", text(fiche.code_insee)),
+        ("Population", number(fiche.population, "habitants")),
+        ("Superficie", decimal(surface, "km²")),
+        ("Densité", number(densite, "hab./km²")),
+        ("Codes postaux", text(", ".join(fiche.codes_postaux))),
+        ("Département", text(fiche.code_departement)),
+        ("Région", text(fiche.code_region)),
     ]
-    return Result(data=[p for p in lignes if p[1]])
+    return Result(data=_rows(pairs))

@@ -1,23 +1,34 @@
 #import "@preview/mercator:0.1.2": render-map
-#import "common.typ": muted, no-data, palette, panel
+#import "common.typ": muted, panel
 
-#let legend = {
+#let swatch(step, outlined: false) = rect(
+  width: 12pt,
+  height: 5pt,
+  fill: if outlined { white } else { rgb(step.color) },
+  stroke: if outlined { 1pt + rgb(step.color) } else { none },
+)
+
+#let legend(data) = {
   set text(size: 6.5pt, fill: muted)
-  [Taux de financement]
+  data.title
   v(0.2em)
   stack(
     dir: ltr,
-    ..palette.map(c => rect(width: 12pt, height: 5pt, fill: rgb(c), stroke: none)),
+    ..data.steps.map(swatch),
     h(5pt),
-    rect(width: 12pt, height: 5pt, fill: no-data, stroke: none),
+    swatch(data.no_data),
     h(5pt),
-    rect(width: 12pt, height: 5pt, fill: white, stroke: 1pt + black),
+    swatch(data.focus, outlined: true),
   )
   v(0.15em)
-  box(width: 60pt)[0 #h(1fr) 50 %+] + h(5pt) + [n.c.] + h(16pt) + [cette commune]
+  box(width: 12pt * data.steps.len())[#data.steps.first().label #h(1fr) #data.steps.last().label]
+  h(5pt)
+  data.no_data.label
+  h(10pt)
+  data.focus.label
 }
 
-#let map(spec) = panel(
+#let map(spec, legend-data) = panel(
   [
     #spec.titre
     #h(0.4em)
@@ -31,7 +42,7 @@
       json.encode((
         fill: "{couleur}",
         stroke: "{contour}",
-        stroke_width: spec.trait,
+        stroke_width: spec.stroke,
         viewbox: spec.viewbox,
       )),
       width: 100%,
@@ -39,15 +50,15 @@
       fit: "contain",
     )
     v(0.3em)
-    legend
+    legend(legend-data)
   },
 )
 
 #let render(data) = {
   heading(level: 2, [Cartographie])
   grid(
-    columns: (1fr,) * data.len(),
+    columns: (1fr,) * data.cartes.len(),
     column-gutter: 10pt,
-    ..data.map(map),
+    ..data.cartes.map(carte => map(carte, data.legend)),
   )
 }

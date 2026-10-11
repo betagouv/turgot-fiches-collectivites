@@ -3,15 +3,10 @@ from dataclasses import dataclass
 
 from ...context import Context, Result
 from ...sources import api_collectivites
+from ..formats import Display, compact_euros, euros, number, percent
 from ..registry import component
 
 TICK_COUNT = 4
-
-
-@dataclass
-class Display:
-    value: float | int | None
-    label: str
 
 
 @dataclass
@@ -50,29 +45,6 @@ class Chiffres:
     ticks: list[Tick]
     sans_date: int
     financeurs: list[Financeur]
-
-
-def _grouped(value: float) -> str:
-    return f"{round(value):,}".replace(",", " ")
-
-
-def euros(value: float) -> Display:
-    return Display(value, f"{_grouped(value)} €")
-
-
-def compact_euros(value: float) -> Display:
-    if value >= 1_000_000:
-        amount = f"{value / 1_000_000:.1f}".rstrip("0").rstrip(".").replace(".", ",")
-        return Display(value, f"{amount} M€")
-    if value >= 1_000:
-        return Display(value, f"{_grouped(value / 1_000)} k€")
-    return Display(value, f"{_grouped(value)} €")
-
-
-def percent(value: float | None) -> Display:
-    if value is None:
-        return Display(None, "—")
-    return Display(value, f"{value:.0%}".replace("%", " %"))
 
 
 def _nice_step(maximum: float) -> float:
@@ -130,7 +102,7 @@ async def collect(context: Context) -> Result | None:
             Tile(
                 euros(total),
                 "reçus, tous financeurs",
-                Display(projets, str(projets)),
+                number(projets),
                 "projets financés",
             ),
             Tile(euros(detr), "de DETR", euros(dsil), "de DSIL"),
