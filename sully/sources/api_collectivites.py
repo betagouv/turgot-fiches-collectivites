@@ -118,10 +118,14 @@ def _store(cursor: psycopg.Cursor, projet: dict) -> None:
         ),
     )
     projet_id = cursor.fetchone()["id"]
-    cursor.executemany(
-        INSERT_COMMUNE,
-        [(projet_id, code) for code in projet.get("territoireCommunes") or []],
-    )
+    # Upstream sometimes packs a whole territory into one comma-separated item.
+    codes = [
+        code.strip()
+        for item in projet.get("territoireCommunes") or []
+        for code in item.split(",")
+        if code.strip()
+    ]
+    cursor.executemany(INSERT_COMMUNE, [(projet_id, code) for code in codes])
     cursor.executemany(
         INSERT_FINANCEMENT,
         [
