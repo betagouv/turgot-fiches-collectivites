@@ -18,6 +18,7 @@ from ..components import registry as components
 EXTENSION = "typ"
 COMMON = Path(components.__file__).parent / "common.typ"
 ROOT = "fiche.typ"
+FONTS = Path(__file__).parent.parent.parent / "fonts"
 
 TEMPLATE = """#import "common.typ": cards, header, theme
 {imports}
@@ -65,4 +66,4 @@ def compile_fiche(header: dict, results: dict) -> bytes:
             )
         )
         (build / ROOT).write_text(_document(cards, sections))
-        return typst.compile(build / ROOT)
+        return typst.compile(build / ROOT, font_paths=[FONTS])

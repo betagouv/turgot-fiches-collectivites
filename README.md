@@ -16,6 +16,10 @@ uv run sully fetch
 
 Typst est embarqué via sa liaison Python, il n'y a pas de binaire à installer.
 
+Les PDF sont composés en Marianne, dont les OTF officiels (version 1.007) sont
+versionnés dans `fonts/`. Leurs conditions d'utilisation en réservent l'usage
+aux services de l'État. Le HTML, lui, charge Marianne avec le CSS du DSFR.
+
 ## Utilisation
 
 ```sh
