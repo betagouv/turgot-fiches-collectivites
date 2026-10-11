@@ -22,7 +22,12 @@ def _rows(pairs: list[tuple[str, Display]]) -> Identite:
     return Identite([Row(label, value) for label, value in pairs if value.value])
 
 
-@component(name="identite", placement=Placement.CARD)
+@component(
+    name="identite",
+    description="Identité de la collectivité : SIREN, code INSEE, population, "
+    "superficie, densité, codes postaux.",
+    placement=Placement.CARD,
+)
 async def collect(context: Context) -> Result | None:
     fiche = context.fiche
     pairs = [("SIREN", text(fiche.siren))]

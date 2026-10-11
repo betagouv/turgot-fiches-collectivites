@@ -15,7 +15,11 @@ class Competences:
     competences: list[Competence]
 
 
-@component(name="competences")
+@component(
+    name="competences",
+    description="Compétences exercées par un groupement, selon la nomenclature "
+    "Banatic.",
+)
 async def collect(context: Context) -> Result | None:
     competences = context.fiche.competences
     if not competences:

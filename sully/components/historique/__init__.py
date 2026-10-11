@@ -21,7 +21,11 @@ class Historique:
     lignes: list[Ligne]
 
 
-@component(name="historique")
+@component(
+    name="historique",
+    description="Liste des financements reçus, projet par projet, avec leur "
+    "coût et leur taux de financement.",
+)
 async def collect(context: Context) -> Result | None:
     if context.connection is None:
         return None

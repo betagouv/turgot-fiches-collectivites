@@ -19,7 +19,12 @@ class Programmes:
     programmes: list[Programme]
 
 
-@component(name="programmes", placement=Placement.CARD)
+@component(
+    name="programmes",
+    description="Programmes nationaux dont relève la commune : Action cœur de "
+    "ville, Petites villes de demain, Territoires d'industrie, Villages d'avenir.",
+    placement=Placement.CARD,
+)
 async def collect(context: Context) -> Result | None:
     if context.fiche.famille != COMMUNE or context.connection is None:
         return None

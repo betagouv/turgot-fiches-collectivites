@@ -72,7 +72,11 @@ def _scale(values: list[float]) -> tuple[float, list[Tick]]:
     return top, ticks
 
 
-@component(name="chiffres")
+@component(
+    name="chiffres",
+    description="Financements reçus : totaux par dispositif, montants des cinq "
+    "dernières années, répartition par financeur.",
+)
 async def collect(context: Context) -> Result | None:
     if context.connection is None:
         return None

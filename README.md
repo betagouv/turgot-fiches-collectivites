@@ -32,10 +32,19 @@ uv run uvicorn sully.main:app --reload
 
 | Endpoint | Rôle |
 | --- | --- |
+| `GET /components` | les composants : nom, description, accès, placement |
 | `GET /fiches/{identifiant}.pdf` | la fiche en PDF, `?component=a,b` pour choisir |
+| `GET /fiches/{identifiant}.json` | les données de tous les composants, même filtre |
+| `GET /fiches/{identifiant}/{composant}.json` | les données d'un seul composant |
+| `GET /fiches/{identifiant}/{composant}/{fichier}` | un fichier produit par un composant, le GeoJSON des cartes par exemple |
 | `GET /api/recherche?q=` | recherche par nom, communes et groupements |
 | `GET /api/communes/{code_insee}` | fiche brute d'une commune |
 | `GET /api/groupements/{siren}` | fiche brute d'un groupement |
+
+Les données d'un composant sont son contrat avec tous les rendus : chaque valeur
+affichée y figure en `{"value": …, "label": …}`, la valeur brute et son libellé
+formaté. Les gabarits ne calculent rien ; un tiers peut reprendre la main sur la
+présentation à partir du seul JSON.
 
 ## Les sources
 

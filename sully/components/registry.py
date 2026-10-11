@@ -18,6 +18,7 @@ class Placement(StrEnum):
 @dataclass(frozen=True)
 class Component:
     name: str
+    description: str
     placement: Placement
     access: Access
     folder: Path
@@ -36,12 +37,14 @@ class UnknownComponent(Exception):
 
 def component(
     name: str,
+    description: str,
     placement: Placement = Placement.SECTION,
     access: Access = Access.PUBLIC,
 ):
     def decorate(collect: Callable) -> Callable:
         COMPONENTS[name] = Component(
             name=name,
+            description=description,
             placement=placement,
             access=access,
             folder=Path(inspect.getfile(collect)).parent,
