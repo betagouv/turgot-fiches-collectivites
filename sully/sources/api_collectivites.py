@@ -216,7 +216,8 @@ def financements_recus(connection: base.Connection, siren: str) -> list[dict]:
                p.nom, p.budget_previsionnel
         FROM financement f JOIN projet p ON p.id = f.projet_id
         WHERE p.siren = %s AND {RECEIVED}
-        ORDER BY f.annee DESC NULLS LAST, f.source, p.nom
+        ORDER BY f.annee DESC NULLS LAST,
+                 f.source COLLATE "fr-x-icu", p.nom COLLATE "fr-x-icu"
         """,
         (siren,),
     ).fetchall()
