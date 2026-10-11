@@ -6,6 +6,7 @@ from itertools import pairwise
 from ...context import Context, Result
 from ...sources import contours, subventions
 from ...sources.referentiel import COMMUNE
+from ..formats import percent
 from ..registry import component
 
 PALETTE = ("#ececfe", "#cacafb", "#9a9af8", "#6a6af4", "#000091")
@@ -19,7 +20,8 @@ STROKE_RATIO = 0.0015
 @dataclass
 class Carte:
     titre: str
-    fichier: str
+    geojson: str
+    projected: str
     communes: int
     viewbox: list[float]
     stroke: float
@@ -82,7 +84,9 @@ def _colorise(geojson: dict, code_focus: str, taux: dict[str, float]) -> dict:
         connu = taux.get(code)
         focus = code == code_focus
         feature["properties"] = {
+            "code": code,
             "nom": proprietes.get("nom", ""),
+            "taux": percent(connu).label,
             "couleur": COULEUR_SANS_DONNEE if connu is None else _teinte(connu),
             "contour": COULEUR_FOCUS if focus else "#ffffff",
         }
@@ -103,41 +107,37 @@ async def collect(context: Context) -> Result | None:
         return None
 
     territoires = [
-        (
-            "Département",
-            "departement.geojson",
-            contours.par_departement,
-            fiche.code_departement,
-        )
+        ("Département", "departement", contours.par_departement, fiche.code_departement)
     ]
     if fiche.code_epci:
         territoires.append(
-            (
-                "Intercommunalité",
-                "intercommunalite.geojson",
-                contours.par_epci,
-                fiche.code_epci,
-            )
+            ("Intercommunalité", "intercommunalite", contours.par_epci, fiche.code_epci)
         )
 
     cartes, files = [], {}
-    for titre, fichier, recupere, cle in territoires:
+    for titre, base, recupere, cle in territoires:
         geojson = recupere(context.connection, cle)
         if not geojson["features"]:
             continue
         codes = [f["properties"]["code"] for f in geojson["features"]]
         taux = subventions.taux_par_commune(context.connection, codes)
+        _colorise(geojson, fiche.code_insee, taux)
+        # Third parties get standard WGS84 GeoJSON; renderers get it projected,
+        # so they only draw.
+        standard, projected = f"{base}.geojson", f"{base}.projected.json"
+        files[standard] = json.dumps(geojson)
         viewbox = _project(geojson)
+        files[projected] = json.dumps(geojson)
         cartes.append(
             Carte(
                 titre=titre,
-                fichier=fichier,
+                geojson=standard,
+                projected=projected,
                 communes=len(geojson["features"]),
                 viewbox=viewbox,
                 stroke=max(viewbox[2], viewbox[3]) * STROKE_RATIO,
             )
         )
-        files[fichier] = json.dumps(_colorise(geojson, fiche.code_insee, taux))
 
     if not cartes:
         return None

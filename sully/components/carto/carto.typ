@@ -38,7 +38,7 @@
     // stroke_width rejects a `{property}` template: a string there drops the
     // whole style, fill included.
     render-map(
-      read(spec.fichier, encoding: none),
+      read(spec.projected, encoding: none),
       json.encode((
         fill: "{couleur}",
         stroke: "{contour}",
