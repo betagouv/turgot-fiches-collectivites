@@ -11,15 +11,19 @@ function pathData(geometry) {
   return polygons.flatMap((polygon) => polygon.map(ring)).join("")
 }
 
-function svg(carte, geojson) {
-  const paths = geojson.features
+function svg(carte, geojson, focus, outline) {
+  // The commune goes last, so its neighbours do not paint over its outline.
+  const isFocus = (feature) => feature.properties.code === focus
+  const features = [...geojson.features].sort((a, b) => isFocus(a) - isFocus(b))
+  const paths = features
     .map((feature) => {
       const p = feature.properties
-      const focus = p.contour !== "#ffffff" ? ' class="focus"' : ""
-      return `<path d="${pathData(feature.geometry)}" fill="${p.couleur}" stroke="${p.contour}" fill-rule="evenodd"${focus}><title>${escape(p.nom)} — ${escape(p.taux)}</title></path>`
+      const focused = isFocus(feature)
+      const stroke = focused ? outline : "#ffffff"
+      return `<path d="${pathData(feature.geometry)}" fill="${p.couleur}" stroke="${stroke}" fill-rule="evenodd"${focused ? ' class="focus"' : ""}><title>${escape(p.nom)} — ${escape(p.taux)}</title></path>`
     })
     .join("")
-  return `<svg class="map"viewBox="${carte.viewbox.join(" ")}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${escape(carte.titre)}">${paths}</svg>`
+  return `<svg class="map" viewBox="${carte.viewbox.join(" ")}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${escape(carte.titre)}">${paths}</svg>`
 }
 
 function legend(data) {
@@ -58,7 +62,13 @@ customElements.define(
         this.data.cartes.map(async (carte, index) => {
           const response = await fetch(`${this.filesUrl}/${carte.projected}`)
           const geojson = await response.json()
-          this.querySelector(`[data-map="${index}"]`).innerHTML = svg(carte, geojson)
+          const { focus, legend } = this.data
+          this.querySelector(`[data-map="${index}"]`).innerHTML = svg(
+            carte,
+            geojson,
+            focus,
+            legend.focus.color,
+          )
         }),
       )
     }

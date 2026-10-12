@@ -45,6 +45,7 @@ class Legend:
 class Carto:
     cartes: list[Carte]
     legend: Legend
+    focus: str
 
 
 def _pourcent(taux: float) -> int:
@@ -77,22 +78,19 @@ def _teinte(taux: float) -> str:
     return PALETTE[-1]
 
 
-def _colorise(geojson: dict, code_focus: str, taux: dict[str, float]) -> dict:
+def _colorise(geojson: dict, taux: dict[str, float]) -> dict:
+    """Colour each commune by its taux. The map stays the same whichever commune
+    the fiche is about: renderers outline that one from `Carto.focus`."""
     for feature in geojson["features"]:
         proprietes = feature["properties"]
         code = proprietes.get("code")
         connu = taux.get(code)
-        focus = code == code_focus
         feature["properties"] = {
             "code": code,
             "nom": proprietes.get("nom", ""),
             "taux": percent(connu).label,
             "couleur": COULEUR_SANS_DONNEE if connu is None else _teinte(connu),
-            "contour": COULEUR_FOCUS if focus else "#ffffff",
         }
-        feature["_focus"] = focus
-    # Neighbours would paint over the commune's outline: it goes last.
-    geojson["features"].sort(key=lambda f: f.pop("_focus"))
     return geojson
 
 
@@ -111,19 +109,21 @@ async def collect(context: Context) -> Result | None:
     ]
     if fiche.code_epci:
         territoires.append(
-            ("Intercommunalité", "intercommunalite", contours.par_epci, fiche.code_epci)
+            ("Intercommunalité", "epci", contours.par_epci, fiche.code_epci)
         )
 
     cartes, files = [], {}
-    for titre, base, recupere, cle in territoires:
+    for titre, territoire, recupere, cle in territoires:
         geojson = recupere(context.connection, cle)
         if not geojson["features"]:
             continue
         codes = [f["properties"]["code"] for f in geojson["features"]]
         taux = api_collectivites.taux_par_commune(context.connection, codes)
-        _colorise(geojson, fiche.code_insee, taux)
-        # Third parties get standard WGS84 GeoJSON; renderers get it projected,
-        # so they only draw.
+        _colorise(geojson, taux)
+        # Named after the territory, the files are the same for all its
+        # communes. Third parties get standard WGS84 GeoJSON; renderers get it
+        # projected, so they only draw.
+        base = f"{territoire}-{cle}"
         standard, projected = f"{base}.geojson", f"{base}.projected.json"
         files[standard] = json.dumps(geojson)
         viewbox = _project(geojson)
@@ -141,7 +141,7 @@ async def collect(context: Context) -> Result | None:
 
     if not cartes:
         return None
-    return Result(data=Carto(cartes, _legend()), files=files)
+    return Result(data=Carto(cartes, _legend(), focus=fiche.code_insee), files=files)
 
 
 def _points(coordinates):
