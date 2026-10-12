@@ -9,15 +9,15 @@ d'une commune ou d'un groupement (EPCI, syndicat, PETR…).
 
 ## Installation
 
-Les données vivent dans PostgreSQL, désigné par `DATABASE_URL`, que les
-commandes lisent dans `.env` :
+Les données vivent dans PostgreSQL, désigné par `DATABASE_URL`. Les recettes
+[just](https://just.systems) lisent `.env` :
 
 ```sh
 createdb sully
 echo 'DATABASE_URL=postgres://utilisateur:motdepasse@localhost:5432/sully' >> .env
-export UV_ENV_FILE=.env                # pour toutes les commandes `uv run` qui suivent
 uv sync
-uv run sully fetch                     # crée les tables manquantes, puis récupère
+just fetch                             # crée les tables manquantes, puis récupère
+just                                   # liste les recettes, locales et `remote`
 ```
 
 Sans `DATABASE_URL`, les fiches restent servies, réduites aux composants qui ne
@@ -32,15 +32,15 @@ aux services de l'État. Le HTML, lui, charge Marianne avec le CSS du DSFR.
 ## Utilisation
 
 ```sh
-uv run sully fiche 64008                      # écrit 64008.pdf
-uv run sully fiche 216400085 -o ahaxe.pdf
-uv run sully fiche 64008 -c identite,historique
+just fiche 64008                      # écrit 64008.pdf
+just fiche 216400085 -o ahaxe.pdf
+just fiche 64008 -c identite,historique
 ```
 
-En HTTP :
+En HTTP, la page d'accueil décrit les endpoints et les composants :
 
 ```sh
-uv run uvicorn sully.main:app --reload
+just serve                            # http://127.0.0.1:8001
 ```
 
 | Endpoint | Rôle |
@@ -50,9 +50,6 @@ uv run uvicorn sully.main:app --reload
 | `GET /fiches/{identifiant}.json` | les données de tous les composants, même filtre |
 | `GET /fiches/{identifiant}/{composant}.json` | les données d'un seul composant |
 | `GET /fiches/{identifiant}/{composant}/{fichier}` | un fichier produit par un composant, le GeoJSON des cartes par exemple |
-| `GET /api/recherche?q=` | recherche par nom, communes et groupements |
-| `GET /api/communes/{code_insee}` | fiche brute d'une commune |
-| `GET /api/groupements/{siren}` | fiche brute d'un groupement |
 
 Les données d'un composant sont son contrat avec tous les rendus : chaque valeur
 affichée y figure en `{"value": …, "label": …}`, la valeur brute et son libellé
@@ -69,15 +66,15 @@ domaine global réglé (`domains:set-global`, avec son wildcard DNS) et la clé
 SSH du poste enregistrée.
 
 ```sh
-export SULLY_HOST=serveur               # SULLY_APP=sully par défaut ; .env convient aussi
-just setup                              # application, buildpack, base, jeton ; rejouable
-just deploy                             # pousse le commit courant
-just https                              # une fois, après le premier deploy
-just fetch                              # toutes les sources dues, en conteneur détaché
-just fetch api-collectivites --force    # ou une seule
-just logs                               # suit les récupérations
-just status                             # liste celles en cours
-just pull                               # remplace la base locale par celle du serveur
+export SULLY_HOST=serveur                    # SULLY_APP=sully par défaut ; .env convient aussi
+just remote setup                            # application, buildpack, base, jeton ; rejouable
+just remote deploy                           # pousse le commit courant
+just remote https                            # une fois, après le premier deploy
+just remote fetch                            # toutes les sources dues, en conteneur détaché
+just remote fetch api-collectivites --force  # ou une seule
+just remote logs                             # suit les récupérations
+just remote status                           # liste celles en cours
+just remote pull                             # remplace la base locale par celle du serveur
 ```
 
 Les tables sont créées à chaque déploiement, par la phase `release` du
@@ -89,9 +86,9 @@ Chaque source déclare son rythme. `sully fetch` ne récupère que ce qui est d�
 `--force` passe outre.
 
 ```sh
-uv run sully fetch                 # tout ce qui est dû
-uv run sully fetch dgcl,programmes
-uv run sully fetch contours --force
+just fetch                 # tout ce qui est dû
+just fetch dgcl,programmes
+just fetch contours --force
 ```
 
 | Source | Rythme | Contenu |

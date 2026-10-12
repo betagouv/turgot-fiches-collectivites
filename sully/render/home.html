@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr" data-fr-scheme="system">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fiches collectivités</title>
+  <link rel="stylesheet" href="$dsfr">
+</head>
+<body>
+  <main class="fr-container fr-my-4w">
+    <h1>Fiches collectivités</h1>
+    <p class="fr-text--lead">Tableau de bord sur les dotations aux collectivités,
+      en PDF, en JSON ou en web components à intégrer dans une autre
+      application.</p>
+    <p>Une fiche se demande par code INSEE de commune ou par SIREN de commune
+      ou de groupement. Exemples :
+      <a href="/fiches/35238.html">Rennes</a> (<a href="/fiches/35238.pdf">PDF</a>,
+      <a href="/fiches/35238.json">JSON</a>),
+      <a href="/fiches/243500139.html">Rennes Métropole</a>,
+      <a href="/fiches/64008.html">Ahaxe-Alciette-Bascassan</a>.</p>
+
+    <h2 class="fr-mt-6w">Endpoints</h2>
+    <div class="fr-table"><table>
+      <thead><tr><th>Endpoint</th><th>Rôle</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET /fiches/{identifiant}.html</code></td><td>la fiche en page web</td></tr>
+        <tr><td><code>GET /fiches/{identifiant}.pdf</code></td><td>la fiche en PDF</td></tr>
+        <tr><td><code>GET /fiches/{identifiant}.json</code></td><td>les données de tous les composants</td></tr>
+        <tr><td><code>GET /fiches/{identifiant}/{composant}.json</code></td><td>les données d'un composant</td></tr>
+        <tr><td><code>GET /fiches/{identifiant}/{composant}.html</code></td><td>un composant seul, en page web</td></tr>
+        <tr><td><code>GET /fiches/{identifiant}/{composant}/{fichier}</code></td><td>un fichier produit par un composant, le GeoJSON des cartes par exemple</td></tr>
+        <tr><td><code>GET /components</code></td><td>la liste des composants, en JSON</td></tr>
+      </tbody>
+    </table></div>
+    <p><code>?component=a,b</code> restreint une fiche entière (HTML, PDF, JSON) aux
+      composants choisis. Chaque valeur affichée figure dans le JSON en
+      <code>{"value": …, "label": …}</code> : la valeur brute et son libellé
+      formaté. Le détail des paramètres et des réponses est dans
+      <a href="/docs">la documentation OpenAPI</a>.</p>
+
+    <h2 class="fr-mt-6w">Composants</h2>
+    <div class="fr-table"><table>
+      <thead><tr><th>Nom</th><th>Contenu</th><th>Placement</th></tr></thead>
+      <tbody>$components</tbody>
+    </table></div>
+
+    <h2 class="fr-mt-6w">Intégrer un composant</h2>
+    <p>Chaque composant est un web component qui charge lui-même son JSON. Pour
+      l'intégrer dans une autre application :</p>
+    <ol>
+      <li>charger dans la page le CSS du DSFR et <code>sully.css</code> : les
+        composants n'apportent pas leurs styles ;</li>
+      <li>importer le module du composant et placer son élément, comme
+        ci-dessous.</li>
+    </ol>
+    <pre><code>&lt;link rel="stylesheet" href="https://sully.example/assets/sully.css"&gt;
+&lt;script type="module" src="https://sully.example/assets/components/identite.js"&gt;&lt;/script&gt;
+&lt;sully-identite src="https://sully.example/fiches/35238/identite.json"&gt;&lt;/sully-identite&gt;</code></pre>
+  </main>
+</body>
+</html>

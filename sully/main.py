@@ -1,6 +1,5 @@
 import mimetypes
 from contextlib import asynccontextmanager
-from dataclasses import asdict
 from pathlib import Path
 
 import httpx
@@ -11,7 +10,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from . import components
 from .fiche import IdentifiantInvalide, collect, describe, render
 from .render import html
-from .sources.referentiel import NotFound, Referentiel
+from .sources.referentiel import NotFound
 
 mimetypes.add_type("application/geo+json", ".geojson")
 
@@ -23,7 +22,6 @@ SHARED_ASSETS = {"common.js", "sully.css"}
 async def lifespan(app: FastAPI):
     async with httpx.AsyncClient(timeout=120) as client:
         app.state.client = client
-        app.state.referentiel = Referentiel(client)
         yield
 
 
@@ -70,28 +68,9 @@ async def _result(identifiant: str, name: str):
     return results[name]
 
 
-@app.get("/api/recherche")
-async def recherche(q: str):
-    if not q.strip():
-        return {"communes": [], "groupements": []}
-    found = await app.state.referentiel.search(q)
-    return {famille: [asdict(hit) for hit in hits] for famille, hits in found.items()}
-
-
-@app.get("/api/communes/{code_insee}")
-async def commune(code_insee: str):
-    try:
-        return asdict(await app.state.referentiel.commune(code_insee))
-    except NotFound:
-        raise HTTPException(404, f"Commune {code_insee} inconnue du référentiel.")
-
-
-@app.get("/api/groupements/{siren}")
-async def groupement(siren: str):
-    try:
-        return asdict(await app.state.referentiel.groupement(siren))
-    except NotFound:
-        raise HTTPException(404, f"Groupement {siren} inconnu du référentiel.")
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+async def home():
+    return html.home(components.COMPONENTS.values())
 
 
 @app.get("/components")

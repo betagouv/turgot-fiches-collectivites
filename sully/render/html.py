@@ -1,14 +1,19 @@
-"""The HTML page of a fiche: a shell placing one <sully-*> element per component.
+"""The HTML pages: the home page, and the page of a fiche, a shell placing one
+<sully-*> element per component.
 
 Each element fetches its component's JSON itself; this module only lays out
 the page.
 """
 
 from html import escape
+from pathlib import Path
+from string import Template
 
 from ..components import Placement
 
 DSFR = "https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.2/dist/dsfr.min.css"
+
+HOME = Template((Path(__file__).parent / "home.html").read_text(encoding="utf-8"))
 
 PAGE = """<!doctype html>
 <html lang="fr" data-fr-scheme="system">
@@ -33,6 +38,15 @@ PAGE = """<!doctype html>
 </body>
 </html>
 """
+
+
+def home(components) -> str:
+    rows = "".join(
+        f"<tr><td><code>{c.name}</code></td><td>{escape(c.description)}</td>"
+        f"<td>{escape(c.placement)}</td></tr>"
+        for c in components
+    )
+    return HOME.substitute(dsfr=DSFR, components=rows)
 
 
 def _element(identifiant: str, name: str) -> str:

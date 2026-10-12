@@ -32,14 +32,6 @@ class Groupement:
 
 
 @dataclass
-class SearchHit:
-    id: str
-    nom: str
-    type: str
-    famille: str
-
-
-@dataclass
 class Fiche:
     """Communes and groupements share one shape so the front decodes one type."""
 
@@ -85,27 +77,12 @@ class Referentiel:
     def __init__(self, client: httpx.AsyncClient):
         self.client = client
 
-    async def _get(self, path: str, **params):
-        response = await self.client.get(f"{BASE_URL}{path}", params=params)
+    async def _get(self, path: str):
+        response = await self.client.get(f"{BASE_URL}{path}")
         if response.status_code == 404:
             raise NotFound(path)
         response.raise_for_status()
         return response.json()
-
-    async def search(self, query: str) -> dict[str, list[SearchHit]]:
-        payload = await self._get("/recherche", q=query)
-        return {
-            famille: [
-                SearchHit(
-                    id=hit.get("id", ""),
-                    nom=hit.get("nom", ""),
-                    type=hit.get("type", ""),
-                    famille=hit.get("famille", famille),
-                )
-                for hit in payload.get(famille, [])
-            ]
-            for famille in ("communes", "groupements")
-        }
 
     async def commune(self, code_insee: str) -> Fiche:
         payload = await self._get(f"/communes/{code_insee}")
