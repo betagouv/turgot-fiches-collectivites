@@ -253,6 +253,34 @@ def totaux_par_annee(connection: base.Connection, siren: str) -> list[dict]:
     ).fetchall()
 
 
+def taux_par_commune(connection: base.Connection, codes_insee) -> dict[str, float]:
+    """Taux de financement of the projets each commune carries, counted as
+    `cofinancement` does."""
+    codes = list(codes_insee)
+    if not codes:
+        return {}
+    rows = connection.execute(
+        f"""
+        SELECT c.code_insee, SUM(attribue) AS montant, SUM(budget) AS cout
+        FROM (
+            SELECT p.siren, p.budget_previsionnel AS budget,
+                   SUM(f.montant_attribue) AS attribue
+            FROM projet p JOIN financement f ON f.projet_id = p.id
+            WHERE p.siren IN (
+                      SELECT siren FROM collectivite WHERE code_insee = ANY(%s)
+                  )
+              AND {RECEIVED}
+              AND p.budget_previsionnel > 0 AND f.montant_attribue IS NOT NULL
+            GROUP BY p.id
+        ) AS par_projet
+        JOIN collectivite c ON c.siren = par_projet.siren
+        GROUP BY c.code_insee
+        """,
+        (codes,),
+    ).fetchall()
+    return {row["code_insee"]: row["montant"] / row["cout"] for row in rows}
+
+
 def cofinancement(connection: base.Connection, siren: str) -> dict:
     """Attribué and budget over the projets that publish both, as upstream's
     own taux de financement does: a budget alone would deflate the rate."""

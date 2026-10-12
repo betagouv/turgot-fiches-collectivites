@@ -89,7 +89,7 @@ Chaque source déclare son rythme. `sully fetch` ne récupère que ce qui est d�
 
 ```sh
 just fetch                 # tout ce qui est dû
-just fetch dgcl,programmes
+just fetch geoapi,programmes
 just fetch contours --force
 ```
 
@@ -99,8 +99,6 @@ just fetch contours --force
 | `banatic` | mensuel | BANATIC : groupements et compétences exercées |
 | `api-collectivites` | quotidien | projets et financements consolidés, accès restreint |
 | `contours` | oneshot | contours communaux simplifiés à 100 m, 35 014 communes |
-| `dgcl` | mensuel | DETR, DSIL et DPV, 8 millésimes, 205 651 lignes |
-| `fonds-vert` | mensuel | Fonds vert, 25 621 lignes |
 | `programmes` | mensuel | ACV, PVD, Territoires d'industrie, Villages d'avenir |
 
 `geoapi` et `banatic` remplissent une même table `collectivite`, indexée par
@@ -108,13 +106,9 @@ SIREN, et remplacent à chaque passage leur instantané précédent : une commun
 fusionnée ou un groupement dissous en disparaît. L'export BANATIC, 1,5 Go
 décompressé, est lu en flux, en deux minutes environ.
 
-Les récupérations sont idempotentes : chaque subvention est identifiée par son
-millésime, son dispositif, son SIREN, son intitulé et son rang d'occurrence — la
-DGCL ne publiant aucun identifiant de ligne.
+Les financements (DETR, DSIL, DPV, Fonds vert, agences de l'eau, ADEME,
+FEDER…) viennent tous d'`api-collectivites`, qui consolide ces sources.
 
-Deux écarts assumés : les lignes sans SIREN de bénéficiaire sont écartées, ce qui
-retire de fait toute la DSID (la DGCL ne publie pas le SIREN des départements) ;
-et `fonds-vert-p113-2024-export.csv` est ignoré, faute de colonne SIREN ou SIRET.
 Pour ACV la source est la Caisse des Dépôts et non l'ANCT, dont la liste ne
 couvre que la seconde vague, 50 communes contre 244.
 

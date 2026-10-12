@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from itertools import pairwise
 
 from ...context import Context, Result
-from ...sources import contours, subventions
+from ...sources import api_collectivites, contours
 from ...sources.collectivites import COMMUNE
 from ..formats import percent
 from ..registry import component
@@ -120,7 +120,7 @@ async def collect(context: Context) -> Result | None:
         if not geojson["features"]:
             continue
         codes = [f["properties"]["code"] for f in geojson["features"]]
-        taux = subventions.taux_par_commune(context.connection, codes)
+        taux = api_collectivites.taux_par_commune(context.connection, codes)
         _colorise(geojson, fiche.code_insee, taux)
         # Third parties get standard WGS84 GeoJSON; renderers get it projected,
         # so they only draw.

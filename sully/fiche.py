@@ -9,7 +9,7 @@ from .sources.collectivites import COMMUNE, Fiche
 
 SOURCE = (
     "Sources : geo.api.gouv.fr, BANATIC, API Collectivités, "
-    "contours et subventions publiés sur data.gouv.fr"
+    "contours et programmes publiés sur data.gouv.fr"
 )
 
 CODE_INSEE = re.compile(r"\d{5}|2[AB]\d{3}")

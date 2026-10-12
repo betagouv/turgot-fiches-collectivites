@@ -9,11 +9,8 @@ from . import (
     banatic,
     collectivites,
     contours,
-    dgcl,
-    fonds_vert,
     geoapi,
     programmes,
-    subventions,
 )
 from .registry import SOURCES, Source, UnknownSource, schemas, selected, source
 
@@ -25,12 +22,9 @@ __all__ = [
     "banatic",
     "collectivites",
     "contours",
-    "dgcl",
-    "fonds_vert",
     "geoapi",
     "programmes",
     "schemas",
     "selected",
     "source",
-    "subventions",
 ]
