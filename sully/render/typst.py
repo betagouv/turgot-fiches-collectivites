@@ -12,7 +12,6 @@ from tempfile import TemporaryDirectory
 
 import typst
 
-from ..components import Placement
 from ..components import registry as components
 
 EXTENSION = "typ"
@@ -20,7 +19,7 @@ COMMON = Path(components.__file__).parent / "common.typ"
 ROOT = "fiche.typ"
 FONTS = Path(__file__).parent.parent.parent / "fonts"
 
-TEMPLATE = """#import "common.typ": cards, header, theme
+TEMPLATE = """#import "common.typ": header, pair, theme
 {imports}
 
 #let data = json("data.json")
@@ -29,27 +28,31 @@ TEMPLATE = """#import "common.typ": cards, header, theme
 
 #header(data.nom, data.libelle_type)
 
-#cards(({cards}))
-{sections}
+{body}
 """
 
 
-def _document(cards: list[str], sections: list[str]) -> str:
-    imports = "\n".join(
-        f'#import "{name}.{EXTENSION}" as {name}' for name in cards + sections
-    )
-    calls = "".join(f"{name}.render(data.components.{name}), " for name in cards)
-    body = "\n".join(f"#{name}.render(data.components.{name})" for name in sections)
-    return TEMPLATE.format(imports=imports, cards=calls, sections=body)
+def _call(name: str) -> str:
+    return f"{name}.render(data.components.{name})"
+
+
+def _line(line: tuple[components.Component, ...]) -> str:
+    # A component alone stays outside any grid: grid cells never break across
+    # pages, and a long table must.
+    if len(line) == 1:
+        return f"#{_call(line[0].name)}"
+    return f"#pair(({', '.join(_call(c.name) for c in line)}))"
+
+
+def _document(names: list[str]) -> str:
+    imports = "\n".join(f'#import "{name}.{EXTENSION}" as {name}' for name in names)
+    lines = components.rows(components.COMPONENTS[name] for name in names)
+    body = "\n".join(_line(line) for line in lines)
+    return TEMPLATE.format(imports=imports, body=body)
 
 
 def compile_fiche(header: dict, results: dict) -> bytes:
     """`results` associe un nom de composant à son `Result`, dans l'ordre voulu."""
-    cards, sections = [], []
-    for name in results:
-        placement = components.COMPONENTS[name].placement
-        (cards if placement is Placement.CARD else sections).append(name)
-
     with TemporaryDirectory() as tmp:
         build = Path(tmp)
         shutil.copy(COMMON, build / "common.typ")
@@ -65,5 +68,5 @@ def compile_fiche(header: dict, results: dict) -> bytes:
                 {**header, "components": data}, default=asdict, ensure_ascii=False
             )
         )
-        (build / ROOT).write_text(_document(cards, sections))
+        (build / ROOT).write_text(_document(list(results)))
         return typst.compile(build / ROOT, font_paths=[FONTS])

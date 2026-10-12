@@ -45,7 +45,7 @@ just serve                            # http://127.0.0.1:8001
 
 | Endpoint | Rôle |
 | --- | --- |
-| `GET /components` | les composants : nom, description, accès, placement |
+| `GET /components` | les composants : nom, description, accès, largeur |
 | `GET /fiches/{identifiant}.pdf` | la fiche en PDF, `?component=a,b` pour choisir |
 | `GET /fiches/{identifiant}.json` | les données de tous les composants, même filtre |
 | `GET /fiches/{identifiant}/{composant}.json` | les données d'un seul composant |
@@ -117,7 +117,7 @@ sully/
 │   ├── registry.py       @source(name, label, schedule, schema)
 │   └── base.py           connexion, schémas, suivi des récupérations
 ├── components/   un paquet par composant de la fiche
-│   ├── registry.py       @component(name, placement, access)
+│   ├── registry.py       @component(name, width, access)
 │   ├── common.typ        jetons, règles de page, éléments partagés
 │   └── <nom>/            __init__.py (sa collecte) + <nom>.typ (son rendu)
 ├── render/       une cible = un assembleur ; typst.py écrit le gabarit racine
@@ -127,16 +127,18 @@ sully/
 Un composant se déclare par décorateur, sur la fonction qui le collecte :
 
 ```python
-@component(name="identite", placement=Placement.CARD)
+@component(name="identite", width=Width.NARROW)
 async def collect(context: Context) -> Result | None
 ```
 
-`placement` vaut `CARD` pour la rangée du haut ou `SECTION` pour la pleine
-largeur ; `access` vaut `PUBLIC` ou `RESTRICTED`, les composants restreints
-étant écartés quand l'appelant n'est pas authentifié. Une collecte qui renvoie
-`None` fait disparaître son composant de la page.
+`width` dit la place dont le contenu a besoin : `NARROW` tient dans une colonne
+étroite, `LARGE` (par défaut) demande la pleine largeur. Les pages suivent
+l'ordre demandé, et deux composants `NARROW` qui se suivent partagent une ligne,
+en PDF comme en HTML. `access` vaut `PUBLIC` ou `RESTRICTED`, les composants
+restreints étant écartés quand l'appelant n'est pas authentifié. Une collecte
+qui renvoie `None` fait disparaître son composant de la page.
 
-L'ordre d'apparition est déclaré une fois dans `components/__init__.py`, et
+L'ordre par défaut est déclaré une fois dans `components/__init__.py`, et
 vérifié contre le registre : il ne dépend pas de l'ordre des imports.
 
 Les imports Typst étant statiques, le gabarit racine est écrit à la compilation

@@ -17,11 +17,12 @@ from .registry import (
     COMPONENTS,
     Access,
     Component,
-    Placement,
     UnknownComponent,
+    Width,
     component,
     names,
     order,
+    rows,
     selected,
 )
 
@@ -38,10 +39,11 @@ __all__ = [
     "COMPONENTS",
     "Access",
     "Component",
-    "Placement",
     "UnknownComponent",
+    "Width",
     "component",
     "names",
     "order",
+    "rows",
     "selected",
 ]

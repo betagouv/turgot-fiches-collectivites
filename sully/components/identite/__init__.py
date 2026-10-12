@@ -4,7 +4,7 @@ from ...context import Context, Result
 from ...sources import geo
 from ...sources.referentiel import COMMUNE
 from ..formats import Display, decimal, number, text
-from ..registry import Placement, component
+from ..registry import Width, component
 
 
 @dataclass
@@ -30,7 +30,7 @@ def _rows(pairs: list[tuple[str, Display]]) -> Identite:
     name="identite",
     description="Identité de la collectivité : SIREN, code INSEE, population, "
     "superficie, densité, codes postaux, intercommunalité, département, région.",
-    placement=Placement.CARD,
+    width=Width.NARROW,
 )
 async def collect(context: Context) -> Result | None:
     fiche = context.fiche

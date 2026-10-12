@@ -10,16 +10,16 @@ class Access(StrEnum):
     RESTRICTED = "restricted"
 
 
-class Placement(StrEnum):
-    CARD = "card"
-    SECTION = "section"
+class Width(StrEnum):
+    NARROW = "narrow"
+    LARGE = "large"
 
 
 @dataclass(frozen=True)
 class Component:
     name: str
     description: str
-    placement: Placement
+    width: Width
     access: Access
     folder: Path
     collect: Callable
@@ -38,14 +38,14 @@ class UnknownComponent(Exception):
 def component(
     name: str,
     description: str,
-    placement: Placement = Placement.SECTION,
+    width: Width = Width.LARGE,
     access: Access = Access.PUBLIC,
 ):
     def decorate(collect: Callable) -> Callable:
         COMPONENTS[name] = Component(
             name=name,
             description=description,
-            placement=placement,
+            width=width,
             access=access,
             folder=Path(inspect.getfile(collect)).parent,
             collect=collect,
@@ -90,3 +90,21 @@ def selected(
     if authenticated:
         return chosen
     return tuple(c for c in chosen if c.access is Access.PUBLIC)
+
+
+def rows(chosen) -> list[tuple[Component, ...]]:
+    """The lines of a page, in the given order: two narrow components in a row
+    share a line, any other component has one to itself."""
+    lines = []
+    for component in chosen:
+        previous = lines[-1] if lines else ()
+        pairs = (
+            component.width is Width.NARROW
+            and len(previous) == 1
+            and previous[0].width is Width.NARROW
+        )
+        if pairs:
+            lines[-1] = (*previous, component)
+        else:
+            lines.append((component,))
+    return lines

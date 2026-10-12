@@ -80,7 +80,7 @@ async def list_components():
             "name": component.name,
             "description": component.description,
             "access": component.access,
-            "placement": component.placement,
+            "width": component.width,
         }
         for component in components.COMPONENTS.values()
     ]

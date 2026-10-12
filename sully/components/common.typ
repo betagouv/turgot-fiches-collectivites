@@ -61,10 +61,8 @@
   v(0.7em)
 }
 
-#let cards(elements) = if elements.len() > 0 {
-  grid(
-    columns: if elements.len() == 1 { (1fr,) } else { (1.15fr, 1fr) },
-    column-gutter: 10pt,
-    ..elements,
-  )
-}
+#let pair(elements) = grid(
+  columns: (1.15fr, 1fr),
+  column-gutter: 10pt,
+  ..elements,
+)

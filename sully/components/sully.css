@@ -10,16 +10,15 @@
   margin-bottom: 1.5rem;
 }
 
-.sully-cards {
+.sully-lines > * {
+  display: block;
+  margin-bottom: 2rem;
+}
+
+.sully-lines > .sully-pair {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
   gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.sully-sections > * {
-  display: block;
-  margin-bottom: 2rem;
 }
 
 .sully-panel {
