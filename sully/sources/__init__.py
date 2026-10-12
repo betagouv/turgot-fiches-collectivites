@@ -6,10 +6,12 @@ Importer ce paquet enregistre les sources auprès du registre.
 
 from . import (
     api_collectivites,
+    banatic,
+    collectivites,
     contours,
     dgcl,
     fonds_vert,
-    geo,
+    geoapi,
     programmes,
     subventions,
 )
@@ -20,10 +22,12 @@ __all__ = [
     "Source",
     "UnknownSource",
     "api_collectivites",
+    "banatic",
+    "collectivites",
     "contours",
     "dgcl",
     "fonds_vert",
-    "geo",
+    "geoapi",
     "programmes",
     "schemas",
     "selected",

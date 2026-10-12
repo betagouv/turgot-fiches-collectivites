@@ -78,8 +78,6 @@ def _scale(values: list[float]) -> tuple[float, list[Tick]]:
     "dernières années révolues, répartition par financeur.",
 )
 async def collect(context: Context) -> Result | None:
-    if context.connection is None:
-        return None
     siren = context.fiche.siren
     par_source = api_collectivites.totaux_par_source(context.connection, siren)
     if not par_source:

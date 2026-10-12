@@ -27,8 +27,6 @@ class Historique:
     "coût et leur taux de financement.",
 )
 async def collect(context: Context) -> Result | None:
-    if context.connection is None:
-        return None
     lignes = []
     for row in api_collectivites.financements_recus(
         context.connection, context.fiche.siren

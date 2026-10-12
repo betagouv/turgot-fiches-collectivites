@@ -5,7 +5,7 @@ from itertools import pairwise
 
 from ...context import Context, Result
 from ...sources import contours, subventions
-from ...sources.referentiel import COMMUNE
+from ...sources.collectivites import COMMUNE
 from ..formats import percent
 from ..registry import component
 
@@ -103,7 +103,7 @@ def _colorise(geojson: dict, code_focus: str, taux: dict[str, float]) -> dict:
 )
 async def collect(context: Context) -> Result | None:
     fiche = context.fiche
-    if fiche.famille != COMMUNE or context.connection is None:
+    if fiche.famille != COMMUNE:
         return None
 
     territoires = [

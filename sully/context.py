@@ -1,18 +1,15 @@
 from dataclasses import dataclass, field
 
-import httpx
-
 from .sources.base import Connection
-from .sources.referentiel import Fiche
+from .sources.collectivites import Fiche
 
 
 @dataclass
 class Context:
     """What a component has at hand to collect what it displays."""
 
-    client: httpx.AsyncClient
     fiche: Fiche
-    connection: Connection | None
+    connection: Connection
     components: tuple[str, ...]
 
 

@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 
 from ...context import Context, Result
+from ...sources import collectivites
 from ..registry import component
 
 
 @dataclass
 class Competence:
-    code: str
     nom: str
 
 
@@ -21,7 +21,7 @@ class Competences:
     "Banatic.",
 )
 async def collect(context: Context) -> Result | None:
-    competences = context.fiche.competences
-    if not competences:
+    noms = collectivites.competences(context.connection, context.fiche.siren)
+    if not noms:
         return None
-    return Result(data=Competences([Competence(c.code, c.nom) for c in competences]))
+    return Result(data=Competences([Competence(nom) for nom in noms]))

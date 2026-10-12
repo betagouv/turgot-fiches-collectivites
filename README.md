@@ -1,8 +1,10 @@
 # Sully
 
-POC de fiche collectivité, générée en PDF à partir de l'[API Référentiel
-Collectivités](https://api.collectivites.beta.gouv.fr/referentiel), de
-[geo.api.gouv.fr](https://geo.api.gouv.fr) et de plusieurs jeux data.gouv.
+POC de fiche collectivité, en PDF, en JSON ou en web components, construite à
+partir de [geo.api.gouv.fr](https://geo.api.gouv.fr), de
+[BANATIC](https://www.banatic.interieur.gouv.fr), de l'[API
+Collectivités](https://api.collectivites.beta.gouv.fr) et de plusieurs jeux
+data.gouv.
 
 Une fiche se demande par code INSEE de commune ou par SIREN, qu'il s'agisse
 d'une commune ou d'un groupement (EPCI, syndicat, PETR…).
@@ -20,8 +22,8 @@ just fetch                             # crée les tables manquantes, puis récu
 just                                   # liste les recettes, locales et `remote`
 ```
 
-Sans `DATABASE_URL`, les fiches restent servies, réduites aux composants qui ne
-lisent que les API.
+Une fiche se construit entièrement depuis la base, sans appel réseau ; seul le
+premier PDF télécharge le paquet Typst des cartes.
 
 Typst est embarqué via sa liaison Python, il n'y a pas de binaire à installer.
 
@@ -93,11 +95,18 @@ just fetch contours --force
 
 | Source | Rythme | Contenu |
 | --- | --- | --- |
+| `geoapi` | mensuel | geo.api.gouv.fr : communes, population, superficie, rattachements |
+| `banatic` | mensuel | BANATIC : groupements et compétences exercées |
+| `api-collectivites` | quotidien | projets et financements consolidés, accès restreint |
 | `contours` | oneshot | contours communaux simplifiés à 100 m, 35 014 communes |
 | `dgcl` | mensuel | DETR, DSIL et DPV, 8 millésimes, 205 651 lignes |
 | `fonds-vert` | mensuel | Fonds vert, 25 621 lignes |
-| `siren` | mensuel | index SIREN → code INSEE, 34 875 communes |
 | `programmes` | mensuel | ACV, PVD, Territoires d'industrie, Villages d'avenir |
+
+`geoapi` et `banatic` remplissent une même table `collectivite`, indexée par
+SIREN, et remplacent à chaque passage leur instantané précédent : une commune
+fusionnée ou un groupement dissous en disparaît. L'export BANATIC, 1,5 Go
+décompressé, est lu en flux, en deux minutes environ.
 
 Les récupérations sont idempotentes : chaque subvention est identifiée par son
 millésime, son dispositif, son SIREN, son intitulé et son rang d'occurrence — la
@@ -153,43 +162,17 @@ une liste séparée par des virgules ; sans l'option, tous sont rendus.
 
 | Composant | Contenu |
 | --- | --- |
-| `identite` | SIREN, code INSEE, population, superficie, densité, codes |
+| `identite` | SIREN, code INSEE, population, superficie, densité, rattachements |
 | `programmes` | ACV, PVD, Territoires d'industrie, Villages d'avenir |
 | `carto` | les deux choroplèthes, colorées par taux de financement |
 | `chiffres` | tuiles, histogramme annuel, répartition par dispositif |
 | `historique` | l'historique ligne à ligne des financements reçus |
 | `competences` | compétences Banatic, pour un groupement |
 
-Un composant écarté n'est pas seulement masqué : ses requêtes et ses appels
-réseau sont évités.
+Un composant écarté n'est pas seulement masqué : ses requêtes sont évitées.
 
 ## Comment un identifiant est résolu
 
-Un code INSEE désigne une commune et s'adresse directement. Un SIREN peut
-désigner l'une ou l'autre : l'API adresse les groupements par SIREN mais pas les
-communes, donc le groupement est tenté d'abord, puis l'index SIREN → INSEE.
-
-## Limites connues de l'API Collectivités
-
-En alpha, plusieurs données annoncées sont absentes ou fausses :
-
-- `population` et `nbCommunes` des groupements sont erronées (Rennes Métropole
-  à 7 040 habitants) : elles ne sont pas reprises dans la fiche ;
-- `/groupements/competences` répond 404, la route étant avalée par
-  `/groupements/{siren}` ;
-- la page de documentation ne liste que 6 des 14 routes réellement exposées. Les
-  absentes sont utiles : `/groupements/{siren}/membres` (communes membres),
-  `/groupements/competences/categories` (les 14 catégories Banatic),
-  `/communes/{insee}/competences` (compétences avec leur catégorie), plus
-  `/sites`, `/thematiques`, `/interventions` et `/leviers` ;
-- une commune ne porte que les codes de son département et de sa région, pas
-  leurs noms ;
-- le type d'un groupement est affiché tel quel (`METRO`, `SIVU`…), faute de
-  nomenclature accessible ;
-- ni géométrie, ni maire, ni gentilé, ni superficie — d'où le recours à
-  geo.api.gouv.fr et aux contours data.gouv ;
-- pas d'entrée par SIREN pour les communes, d'où l'index.
-
-Les projets et financements du territoire sont exposés par une autre API du même
-service (`/territoires/{code}/projets`), qui demande un jeton. Une trace n'y
-porte ni exercice ni dispositif distinct : elle ne remplace pas l'import DGCL.
+Un code INSEE désigne une commune, un SIREN une commune ou un groupement : les
+deux se cherchent dans la table `collectivite`. Le type d'un groupement est
+affiché tel quel (`METRO`, `SIVU`…), comme BANATIC le publie.

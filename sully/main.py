@@ -1,8 +1,7 @@
 import mimetypes
-from contextlib import asynccontextmanager
+from contextlib import contextmanager
 from pathlib import Path
 
-import httpx
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
@@ -10,7 +9,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from . import components
 from .fiche import IdentifiantInvalide, collect, describe, render
 from .render import html
-from .sources.referentiel import NotFound
+from .sources.collectivites import NotFound
 
 mimetypes.add_type("application/geo+json", ".geojson")
 
@@ -18,14 +17,7 @@ ASSETS = Path(components.__file__).parent
 SHARED_ASSETS = {"common.js", "sully.css"}
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    async with httpx.AsyncClient(timeout=120) as client:
-        app.state.client = client
-        yield
-
-
-app = FastAPI(title="Sully", lifespan=lifespan)
+app = FastAPI(title="Sully")
 # Consumers embed the components from their own origin: module scripts and the
 # JSON they fetch are cross-origin requests. Every response is a public,
 # cookie-free read, so any origin may make them.
@@ -39,9 +31,10 @@ def _chosen(requested: str | None):
         raise HTTPException(400, str(erreur))
 
 
-async def _resolving(identifiant: str, awaitable):
+@contextmanager
+def _resolving(identifiant: str):
     try:
-        return await awaitable
+        yield
     except IdentifiantInvalide as erreur:
         raise HTTPException(400, str(erreur))
     except NotFound:
@@ -50,12 +43,14 @@ async def _resolving(identifiant: str, awaitable):
 
 async def _collect(identifiant: str, requested: str | None):
     chosen = _chosen(requested)
-    return await _resolving(identifiant, collect(app.state.client, identifiant, chosen))
+    with _resolving(identifiant):
+        return await collect(identifiant, chosen)
 
 
 async def _page(identifiant: str, requested: str | None) -> HTMLResponse:
     chosen = _chosen(requested)
-    header = await _resolving(identifiant, describe(app.state.client, identifiant))
+    with _resolving(identifiant):
+        header = describe(identifiant)
     return HTMLResponse(html.page(header, identifiant, chosen))
 
 

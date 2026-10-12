@@ -35,10 +35,6 @@ class DatabaseMissing(Exception):
     pass
 
 
-def configured() -> bool:
-    return bool(os.environ.get(URL_VARIABLE))
-
-
 def connect() -> Connection:
     url = os.environ.get(URL_VARIABLE)
     if not url:

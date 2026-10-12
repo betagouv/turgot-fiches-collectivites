@@ -9,13 +9,12 @@ import httpx
 from . import components, sources
 from .fiche import IdentifiantInvalide, collect, render
 from .sources import base
-from .sources.referentiel import NotFound
+from .sources.collectivites import NotFound
 from .sources.registry import Interrupted
 
 
 async def build(identifiant: str, output_path: Path, chosen) -> Path:
-    async with httpx.AsyncClient(timeout=120) as client:
-        header, results = await collect(client, identifiant, chosen)
+    header, results = await collect(identifiant, chosen)
     output_path.write_bytes(render(header, results))
     return output_path
 
@@ -29,7 +28,7 @@ def command_fiche(args) -> None:
     output_path = args.output or Path(f"{args.identifiant}.pdf")
     try:
         written = asyncio.run(build(args.identifiant, output_path, chosen))
-    except IdentifiantInvalide as erreur:
+    except (IdentifiantInvalide, base.DatabaseMissing) as erreur:
         sys.exit(str(erreur))
     except NotFound:
         sys.exit(f"Aucune collectivité connue pour {args.identifiant}.")

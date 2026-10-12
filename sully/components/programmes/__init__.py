@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from ...context import Context, Result
 from ...sources import programmes
-from ...sources.referentiel import COMMUNE
+from ...sources.collectivites import COMMUNE
 from ..formats import Display, long_date
 from ..registry import Width, component
 
@@ -26,7 +26,7 @@ class Programmes:
     width=Width.NARROW,
 )
 async def collect(context: Context) -> Result | None:
-    if context.fiche.famille != COMMUNE or context.connection is None:
+    if context.fiche.famille != COMMUNE:
         return None
     rows = programmes.de_commune(context.connection, context.fiche.code_insee)
     return Result(
