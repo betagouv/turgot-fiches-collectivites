@@ -9,6 +9,7 @@ customElements.define(
   "fico-fiche",
   class extends HTMLElement {
     async connectedCallback() {
+      this.classList.add("fico")
       const src = new URL(this.getAttribute("src"), document.baseURI)
       const response = await fetch(src)
       if (!response.ok) {
@@ -31,16 +32,16 @@ customElements.define(
         return child
       }
 
-      this.innerHTML = `<header class="fico-header">
+      this.innerHTML = `<header class="fr-mb-3w">
           <h1 class="fr-mb-1w">${escape(fiche.nom)}</h1>
           <p class="fr-badge fr-badge--info fr-badge--no-icon">${escape(fiche.libelle_type)}</p>
         </header>
-        <div class="fico-lines"></div>
-        <footer class="fico-muted">${escape(fiche.source)}</footer>`
-      const lines = this.querySelector(".fico-lines")
+        <div class="lines"></div>
+        <footer class="muted fr-text--xs">${escape(fiche.source)}</footer>`
+      const lines = this.querySelector(".lines")
       for (const components of fiche.lines) {
         const line = document.createElement("div")
-        line.className = "fico-line"
+        line.className = "line fr-mb-4w"
         line.append(...components.map(element))
         lines.append(line)
       }

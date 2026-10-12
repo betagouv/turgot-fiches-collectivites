@@ -1,187 +1,158 @@
-/* What the DSFR does not cover. Tokens mirror common.typ, which mirrors the DSFR. */
+/* What the DSFR does not cover, in DSFR colour tokens so the dark theme follows.
+   Every rule is scoped under .fico, the class each element puts on itself. */
 
-:root {
-  --fico-blue: #000091;
-  --fico-grey: #f6f6f6;
-  --fico-muted: #666;
-}
+.fico {
+  .line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
 
-.fico-header {
-  margin-bottom: 1.5rem;
-}
+  /* Each component grows in proportion to its share of the line; below 20rem
+     it wraps to a line of its own. */
+  .line > * {
+    display: block;
+    flex: var(--width, 1) 1 0;
+    min-width: min(20rem, 100%);
+  }
 
-.fico-line {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
+  /* Panels side by side keep the height of the tallest. */
+  .fr-callout {
+    height: 100%;
+  }
 
-/* Each component grows in proportion to its share of the line; below 20rem it
-   wraps to a line of its own. */
-.fico-line > * {
-  display: block;
-  flex: var(--width, 1) 1 0;
-  min-width: min(20rem, 100%);
-}
+  .muted {
+    color: var(--text-mention-grey);
+  }
 
-.fico-panel {
-  background: var(--fico-grey);
-  border-left: 2px solid var(--fico-blue);
-  padding: 0.75rem 1rem;
-  height: 100%;
-}
+  .definitions {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.2rem 1.2rem;
+    margin: 0;
 
-.fico-panel__title {
-  font-size: 1rem;
-  margin: 0 0 0.75rem;
-}
+    dt {
+      color: var(--text-mention-grey);
+    }
 
-.fico-definitions {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.2rem 1.2rem;
-  margin: 0;
-}
+    dd {
+      margin: 0;
+      font-weight: 500;
+    }
+  }
 
-.fico-definitions dt {
-  color: var(--fico-muted);
-}
+  /* Chiffres */
 
-.fico-definitions dd {
-  margin: 0;
-  font-weight: 500;
-}
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
 
-.fico-muted {
-  color: var(--fico-muted);
-  font-size: 0.8rem;
-}
+  .charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+    gap: 1rem;
+  }
 
-/* Chiffres */
+  .histogram {
+    position: relative;
+    height: 9rem;
+    margin: 0.5rem 0 1.5rem 3.5rem;
+  }
 
-.fico-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
+  .histogram-tick {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--share) * 100%);
+    border-top: 1px solid var(--border-default-grey);
 
-.fico-tile__value {
-  font-size: 1.4rem;
-  font-weight: 700;
-  margin: 0.5rem 0 0;
-}
+    span {
+      position: absolute;
+      right: calc(100% + 0.4rem);
+      transform: translateY(-50%);
+      font-size: 0.7rem;
+      color: var(--text-mention-grey);
+      white-space: nowrap;
+    }
+  }
 
-.fico-tile__secondary {
-  font-size: 1.15rem;
-  font-weight: 700;
-  margin: 0.5rem 0 0;
-}
+  .histogram-bars {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.6rem;
+  }
 
-.fico-charts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
-  gap: 1rem;
-}
+  .histogram-bar {
+    position: relative;
+    flex: 1;
+    height: calc(var(--share) * 100%);
+    background: var(--background-action-high-blue-france);
 
-.fico-histogram {
-  position: relative;
-  height: 9rem;
-  margin: 0.5rem 0 1.5rem 3.5rem;
-}
+    span {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.7rem;
+      color: var(--text-mention-grey);
+    }
+  }
 
-.fico-histogram__tick {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(var(--share) * 100%);
-  border-top: 1px solid #ddd;
-}
+  .amounts {
+    width: 100%;
 
-.fico-histogram__tick span {
-  position: absolute;
-  right: calc(100% + 0.4rem);
-  transform: translateY(-50%);
-  font-size: 0.7rem;
-  color: var(--fico-muted);
-  white-space: nowrap;
-}
+    td:last-child {
+      text-align: right;
+      font-weight: 500;
+    }
+  }
 
-.fico-histogram__bars {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: flex-end;
-  gap: 0.6rem;
-}
+  /* Carto */
 
-.fico-histogram__bar {
-  position: relative;
-  flex: 1;
-  height: calc(var(--share) * 100%);
-  background: var(--fico-blue);
-}
+  .maps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+    gap: 1rem;
+  }
 
-.fico-histogram__bar span {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.7rem;
-  color: var(--fico-muted);
-}
+  .map {
+    display: block;
+    width: 100%;
+    height: 18rem;
 
-.fico-amounts {
-  width: 100%;
-}
+    path {
+      vector-effect: non-scaling-stroke;
+      stroke-width: 0.6px;
+    }
 
-.fico-amounts td:last-child {
-  text-align: right;
-  font-weight: 500;
-}
+    path.focus {
+      stroke-width: 2px;
+    }
 
-/* Carto */
+    path:hover {
+      opacity: 0.75;
+    }
+  }
 
-.fico-maps {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
-  gap: 1rem;
-}
+  .legend {
+    color: var(--text-mention-grey);
+  }
 
-.fico-map {
-  display: block;
-  width: 100%;
-  height: 18rem;
-}
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.2rem;
+  }
 
-.fico-map path {
-  vector-effect: non-scaling-stroke;
-  stroke-width: 0.6px;
-}
-
-.fico-map path.fico-map__focus {
-  stroke-width: 2px;
-}
-
-.fico-map path:hover {
-  opacity: 0.75;
-}
-
-.fico-legend {
-  font-size: 0.75rem;
-  color: var(--fico-muted);
-}
-
-.fico-legend__row {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-top: 0.2rem;
-}
-
-.fico-swatch {
-  display: inline-block;
-  width: 1rem;
-  height: 0.5rem;
+  .swatch {
+    display: inline-block;
+    width: 1rem;
+    height: 0.5rem;
+  }
 }

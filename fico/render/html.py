@@ -5,7 +5,7 @@ from html import escape
 from pathlib import Path
 from string import Template
 
-DSFR = "https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.2/dist/dsfr.min.css"
+DSFR = "https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.15.3/dist/dsfr.min.css"
 
 HOME = Template((Path(__file__).parent / "home.html").read_text(encoding="utf-8"))
 

@@ -15,22 +15,22 @@ function svg(carte, geojson) {
   const paths = geojson.features
     .map((feature) => {
       const p = feature.properties
-      const focus = p.contour !== "#ffffff" ? ' class="fico-map__focus"' : ""
+      const focus = p.contour !== "#ffffff" ? ' class="focus"' : ""
       return `<path d="${pathData(feature.geometry)}" fill="${p.couleur}" stroke="${p.contour}" fill-rule="evenodd"${focus}><title>${escape(p.nom)} — ${escape(p.taux)}</title></path>`
     })
     .join("")
-  return `<svg class="fico-map" viewBox="${carte.viewbox.join(" ")}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${escape(carte.titre)}">${paths}</svg>`
+  return `<svg class="map"viewBox="${carte.viewbox.join(" ")}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${escape(carte.titre)}">${paths}</svg>`
 }
 
 function legend(data) {
   const swatch = (step, outlined = false) =>
     outlined
-      ? `<span class="fico-swatch" data-outline="${escape(step.color)}"></span>`
-      : `<span class="fico-swatch" data-fill="${escape(step.color)}"></span>`
+      ? `<span class="swatch" data-outline="${escape(step.color)}"></span>`
+      : `<span class="swatch" data-fill="${escape(step.color)}"></span>`
   const steps = data.steps.map((step) => swatch(step)).join("")
-  return `<div class="fico-legend">
+  return `<div class="legend fr-text--xs">
     ${escape(data.title)}
-    <div class="fico-legend__row">
+    <div class="legend-row">
       <span>${escape(data.steps[0].label)}</span><span>${steps}</span><span>${escape(data.steps.at(-1).label)}</span>
       ${swatch(data.no_data)} ${escape(data.no_data.label)}
       ${swatch(data.focus, true)} ${escape(data.focus.label)}
@@ -50,7 +50,7 @@ customElements.define(
           ),
         )
         .join("")
-      return `<h2>Cartographie</h2><div class="fico-maps">${maps}</div>`
+      return `<h2>Cartographie</h2><div class="maps">${maps}</div>`
     }
 
     async afterRender() {

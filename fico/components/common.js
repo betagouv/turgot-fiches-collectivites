@@ -10,8 +10,8 @@ export function escape(value) {
 }
 
 export function panel(title, body) {
-  return `<section class="fico-panel">
-    <h3 class="fico-panel__title">${escape(title)}</h3>
+  return `<section class="fr-callout fr-p-2w fr-mb-0">
+    <h3 class="fr-h6 fr-mb-2w">${escape(title)}</h3>
     ${body}
   </section>`
 }
@@ -33,6 +33,7 @@ export function applyStyles(root) {
 
 export class FicoElement extends HTMLElement {
   async connectedCallback() {
+    this.classList.add("fico")
     if (this.data === undefined) {
       const response = await fetch(this.getAttribute("src"))
       // A 404 means the component has nothing to show for this collectivité.
