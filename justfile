@@ -1,47 +1,23 @@
 set dotenv-load
 
-host := env("SULLY_HOST", "")
-app := env("SULLY_APP", "sully")
-database := app + "-db"
-dokku := "ssh dokku@" + host
-
-default:
-    @just --list
+mod remote
 
 [private]
-check-host:
-    @test -n "{{ host }}" || (echo "Set SULLY_HOST=server" && exit 1)
+default:
+    @just --list --list-submodules
 
-# Create the app and its database, and copy the API token from .env; safe to rerun
-setup: check-host
-    {{ dokku }} apps:exists {{ app }} 2>/dev/null || {{ dokku }} apps:create {{ app }}
-    {{ dokku }} buildpacks:set {{ app }} https://github.com/heroku/heroku-buildpack-python
-    {{ dokku }} postgres:exists {{ database }} 2>/dev/null || {{ dokku }} postgres:create {{ database }}
-    {{ dokku }} postgres:linked {{ database }} {{ app }} 2>/dev/null || {{ dokku }} postgres:link {{ database }} {{ app }}
-    @{{ dokku }} config:set --no-restart {{ app }} API_COLLECTIVITES_TOKEN="$API_COLLECTIVITES_TOKEN" > /dev/null
+# Serve the API with reload
+serve port="8001":
+    uv run uvicorn sully.main:app --reload --port {{ port }}
 
-# Deploy the current commit; uncommitted changes stay behind
-deploy: check-host
-    git push dokku@{{ host }}:{{ app }} HEAD:master
+# Fetch the due sources into the local database, e.g. `just fetch dgcl --force`
+fetch *args:
+    uv run sully fetch {{ args }}
 
-# Serve the app over HTTPS with a Let's Encrypt certificate; needs a first deploy
-https: check-host
-    {{ dokku }} letsencrypt:enable {{ app }}
+# Render a fiche to PDF, e.g. `just fiche 35238 -c identite,carto`
+fiche *args:
+    uv run sully fiche {{ args }}
 
-# Run `sully fetch` in a detached container, e.g. `just fetch api-collectivites --force`
-fetch *args: check-host
-    {{ dokku }} run:detached {{ app }} python -m sully.cli fetch {{ args }}
-
-# Follow the output of the fetch containers
-logs: check-host
-    {{ dokku }} run:logs {{ app }} -t
-
-# List the running fetch containers
-status: check-host
-    {{ dokku }} run:list {{ app }}
-
-# Replace the local database with the server's
-pull: check-host
-    mkdir -p tmp
-    {{ dokku }} postgres:export {{ database }} > tmp/{{ database }}.dump
-    pg_restore --clean --if-exists --no-owner --no-acl -d "$DATABASE_URL" tmp/{{ database }}.dump
+lint:
+    uv run ruff check sully
+    uv run ruff format --check sully
