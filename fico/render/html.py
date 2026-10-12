@@ -21,12 +21,7 @@ PAGE = """<!doctype html>
 </head>
 <body>
   <main class="fr-container fr-my-4w">
-    <header class="fico-header">
-      <h1 class="fr-mb-1w">{nom}</h1>
-      <p class="fr-badge fr-badge--info fr-badge--no-icon">{libelle_type}</p>
-    </header>
     <fico-fiche src="{src}"></fico-fiche>
-    <footer class="fico-muted">{source}</footer>
   </main>
 </body>
 </html>
@@ -46,8 +41,6 @@ def page(header: dict, identifiant: str, chosen) -> str:
     names = ",".join(c.name for c in chosen)
     return PAGE.format(
         nom=escape(header["nom"]),
-        libelle_type=escape(header["libelle_type"]),
-        source=escape(header["source"]),
         dsfr=DSFR,
         src=escape(f"/fiches/{identifiant}.json?component={names}"),
     )
