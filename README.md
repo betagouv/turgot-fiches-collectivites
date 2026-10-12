@@ -81,8 +81,7 @@ just pull                               # remplace la base locale par celle du s
 ```
 
 Les tables sont créées à chaque déploiement, par la phase `release` du
-`Procfile`. Les origines autorisées à embarquer les composants se règlent sur
-le serveur : `ssh dokku@serveur config:set sully SULLY_CORS_ORIGINS=…`.
+`Procfile`.
 
 ## Les sources
 

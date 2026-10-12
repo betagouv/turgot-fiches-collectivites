@@ -1,5 +1,4 @@
 import mimetypes
-import os
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from pathlib import Path
@@ -18,9 +17,6 @@ mimetypes.add_type("application/geo+json", ".geojson")
 
 ASSETS = Path(components.__file__).parent
 SHARED_ASSETS = {"common.js", "sully.css"}
-CORS_ORIGINS = os.environ.get(
-    "SULLY_CORS_ORIGINS", "http://127.0.0.1:8000,http://localhost:8000"
-).split(",")
 
 
 @asynccontextmanager
@@ -33,8 +29,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Sully", lifespan=lifespan)
 # Consumers embed the components from their own origin: module scripts and the
-# JSON they fetch are cross-origin requests.
-app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["GET"])
+# JSON they fetch are cross-origin requests. Every response is a public,
+# cookie-free read, so any origin may make them.
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"])
 
 
 def _chosen(requested: str | None):
