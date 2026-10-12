@@ -61,8 +61,8 @@
   v(0.7em)
 }
 
-#let pair(elements) = grid(
-  columns: (1.15fr, 1fr),
+#let row(widths, elements) = grid(
+  columns: widths.map(width => width * 1fr),
   column-gutter: 10pt,
   ..elements,
 )

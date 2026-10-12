@@ -36,7 +36,7 @@ PAGE = """<!doctype html>
 def home(components) -> str:
     rows = "".join(
         f"<tr><td><code>{c.name}</code></td><td>{escape(c.description)}</td>"
-        f"<td>{escape(c.width)}</td></tr>"
+        f"<td>{c.width}</td></tr>"
         for c in components
     )
     return HOME.substitute(dsfr=DSFR, components=rows)

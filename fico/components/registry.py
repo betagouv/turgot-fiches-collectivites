@@ -2,6 +2,7 @@ import inspect
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
+from fractions import Fraction
 from pathlib import Path
 
 
@@ -10,16 +11,11 @@ class Access(StrEnum):
     RESTRICTED = "restricted"
 
 
-class Width(StrEnum):
-    NARROW = "narrow"
-    LARGE = "large"
-
-
 @dataclass(frozen=True)
 class Component:
     name: str
     description: str
-    width: Width
+    width: Fraction
     access: Access
     folder: Path
     collect: Callable
@@ -38,14 +34,19 @@ class UnknownComponent(Exception):
 def component(
     name: str,
     description: str,
-    width: Width = Width.LARGE,
+    width: str = "1",
     access: Access = Access.PUBLIC,
 ):
+    """`width` is the share of a line the content needs, as "1/3", "1/2" or "1"."""
+    share = Fraction(width)
+    if not 0 < share <= 1:
+        raise ValueError(f"{name} : largeur {width} hors de ]0, 1].")
+
     def decorate(collect: Callable) -> Callable:
         COMPONENTS[name] = Component(
             name=name,
             description=description,
-            width=width,
+            width=share,
             access=access,
             folder=Path(inspect.getfile(collect)).parent,
             collect=collect,
@@ -93,18 +94,14 @@ def selected(
 
 
 def rows(chosen) -> list[tuple[Component, ...]]:
-    """The lines of a page, in the given order: two narrow components in a row
-    share a line, any other component has one to itself."""
-    lines = []
+    """The lines of a page, in the given order: each component joins the current
+    line while their widths add up to one at most, otherwise starts the next."""
+    lines, used = [], Fraction(0)
     for component in chosen:
-        previous = lines[-1] if lines else ()
-        pairs = (
-            component.width is Width.NARROW
-            and len(previous) == 1
-            and previous[0].width is Width.NARROW
-        )
-        if pairs:
-            lines[-1] = (*previous, component)
+        if lines and used + component.width <= 1:
+            lines[-1] = (*lines[-1], component)
+            used += component.width
         else:
             lines.append((component,))
+            used = component.width
     return lines

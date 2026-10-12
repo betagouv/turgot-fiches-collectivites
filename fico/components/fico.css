@@ -10,15 +10,19 @@
   margin-bottom: 1.5rem;
 }
 
-.fico-lines > * {
-  display: block;
+.fico-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
   margin-bottom: 2rem;
 }
 
-.fico-lines > .fico-pair {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
-  gap: 1rem;
+/* Each component grows in proportion to its share of the line; below 20rem it
+   wraps to a line of its own. */
+.fico-line > * {
+  display: block;
+  flex: var(--width, 1) 1 0;
+  min-width: min(20rem, 100%);
 }
 
 .fico-panel {

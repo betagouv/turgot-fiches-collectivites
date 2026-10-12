@@ -19,7 +19,7 @@ COMMON = Path(components.__file__).parent / "common.typ"
 ROOT = "fiche.typ"
 FONTS = Path(__file__).parent.parent.parent / "fonts"
 
-TEMPLATE = """#import "common.typ": header, pair, theme
+TEMPLATE = """#import "common.typ": header, row, theme
 {imports}
 
 #let data = json("data.json")
@@ -41,7 +41,9 @@ def _line(line: tuple[components.Component, ...]) -> str:
     # pages, and a long table must.
     if len(line) == 1:
         return f"#{_call(line[0].name)}"
-    return f"#pair(({', '.join(_call(c.name) for c in line)}))"
+    widths = ", ".join(str(float(c.width)) for c in line)
+    calls = ", ".join(_call(c.name) for c in line)
+    return f"#row(({widths},), ({calls},))"
 
 
 def _document(names: list[str]) -> str:

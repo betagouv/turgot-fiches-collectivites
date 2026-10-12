@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from ...context import Context, Result
 from ...sources.collectivites import COMMUNE
 from ..formats import Display, decimal, number, text
-from ..registry import Width, component
+from ..registry import component
 
 
 @dataclass
@@ -25,7 +25,7 @@ def _rows(pairs: list[tuple[str, Display]]) -> Identite:
     name="identite",
     description="Identité de la collectivité : SIREN, code INSEE, population, "
     "superficie, densité, codes postaux, intercommunalité, département, région.",
-    width=Width.NARROW,
+    width="1/2",
 )
 async def collect(context: Context) -> Result | None:
     fiche = context.fiche

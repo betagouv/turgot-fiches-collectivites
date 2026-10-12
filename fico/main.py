@@ -75,7 +75,7 @@ async def list_components():
             "name": component.name,
             "description": component.description,
             "access": component.access,
-            "width": component.width,
+            "width": str(component.width),
         }
         for component in components.COMPONENTS.values()
     ]
@@ -98,7 +98,9 @@ async def fiche_json(identifiant: str, component: str | None = None):
     return {
         **header,
         "components": {name: r.data for name, r in results.items()},
-        "lines": [[c.name for c in line] for line in lines],
+        "lines": [
+            [{"name": c.name, "width": str(c.width)} for c in line] for line in lines
+        ],
     }
 
 

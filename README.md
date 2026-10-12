@@ -130,14 +130,15 @@ fico/
 Un composant se déclare par décorateur, sur la fonction qui le collecte :
 
 ```python
-@component(name="identite", width=Width.NARROW)
+@component(name="identite", width="1/2")
 async def collect(context: Context) -> Result | None
 ```
 
-`width` dit la place dont le contenu a besoin : `NARROW` tient dans une colonne
-étroite, `LARGE` (par défaut) demande la pleine largeur. Les pages suivent
-l'ordre demandé, et deux composants `NARROW` qui se suivent partagent une ligne,
-en PDF comme en HTML. `access` vaut `PUBLIC` ou `RESTRICTED`, les composants
+`width` dit la part de ligne dont le contenu a besoin : `"1/4"`, `"1/3"`,
+`"1/2"`, `"1"` (par défaut)… Les pages suivent l'ordre demandé, et chaque
+composant rejoint la ligne en cours tant que leurs parts n'en dépassent pas une
+entière, en PDF comme en HTML ; une ligne incomplète est répartie au prorata.
+`access` vaut `PUBLIC` ou `RESTRICTED`, les composants
 restreints étant écartés quand l'appelant n'est pas authentifié. Une collecte
 qui renvoie `None` fait disparaître son composant de la page.
 

@@ -20,24 +20,22 @@ customElements.define(
       )
 
       const base = src.pathname.replace(/\.json$/, "")
-      const element = (name) => {
+      const element = ({ name, width }) => {
         const child = document.createElement(`fico-${name}`)
         child.setAttribute("src", new URL(`${base}/${name}.json`, src))
         child.data = fiche.components[name]
+        const [numerator, denominator = 1] = width.split("/").map(Number)
+        child.style.setProperty("--width", numerator / denominator)
         return child
       }
 
       const lines = document.createElement("div")
       lines.className = "fico-lines"
-      for (const line of fiche.lines) {
-        if (line.length === 1) {
-          lines.append(element(line[0]))
-          continue
-        }
-        const pair = document.createElement("div")
-        pair.className = "fico-pair"
-        pair.append(...line.map(element))
-        lines.append(pair)
+      for (const components of fiche.lines) {
+        const line = document.createElement("div")
+        line.className = "fico-line"
+        line.append(...components.map(element))
+        lines.append(line)
       }
       this.replaceChildren(lines)
     }

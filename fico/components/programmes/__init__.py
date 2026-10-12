@@ -4,7 +4,7 @@ from ...context import Context, Result
 from ...sources import programmes
 from ...sources.collectivites import COMMUNE
 from ..formats import Display, long_date
-from ..registry import Width, component
+from ..registry import component
 
 
 @dataclass
@@ -23,7 +23,7 @@ class Programmes:
     name="programmes",
     description="Programmes nationaux dont relève la commune : Action cœur de "
     "ville, Petites villes de demain, Territoires d'industrie, Villages d'avenir.",
-    width=Width.NARROW,
+    width="1/2",
 )
 async def collect(context: Context) -> Result | None:
     if context.fiche.famille != COMMUNE:
