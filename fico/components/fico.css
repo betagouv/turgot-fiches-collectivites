@@ -1,93 +1,93 @@
 /* What the DSFR does not cover. Tokens mirror common.typ, which mirrors the DSFR. */
 
 :root {
-  --sully-blue: #000091;
-  --sully-grey: #f6f6f6;
-  --sully-muted: #666;
+  --fico-blue: #000091;
+  --fico-grey: #f6f6f6;
+  --fico-muted: #666;
 }
 
-.sully-header {
+.fico-header {
   margin-bottom: 1.5rem;
 }
 
-.sully-lines > * {
+.fico-lines > * {
   display: block;
   margin-bottom: 2rem;
 }
 
-.sully-lines > .sully-pair {
+.fico-lines > .fico-pair {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
   gap: 1rem;
 }
 
-.sully-panel {
-  background: var(--sully-grey);
-  border-left: 2px solid var(--sully-blue);
+.fico-panel {
+  background: var(--fico-grey);
+  border-left: 2px solid var(--fico-blue);
   padding: 0.75rem 1rem;
   height: 100%;
 }
 
-.sully-panel__title {
+.fico-panel__title {
   font-size: 1rem;
   margin: 0 0 0.75rem;
 }
 
-.sully-definitions {
+.fico-definitions {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 0.2rem 1.2rem;
   margin: 0;
 }
 
-.sully-definitions dt {
-  color: var(--sully-muted);
+.fico-definitions dt {
+  color: var(--fico-muted);
 }
 
-.sully-definitions dd {
+.fico-definitions dd {
   margin: 0;
   font-weight: 500;
 }
 
-.sully-muted {
-  color: var(--sully-muted);
+.fico-muted {
+  color: var(--fico-muted);
   font-size: 0.8rem;
 }
 
 /* Chiffres */
 
-.sully-tiles {
+.fico-tiles {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   gap: 0.75rem;
   margin-bottom: 1rem;
 }
 
-.sully-tile__value {
+.fico-tile__value {
   font-size: 1.4rem;
   font-weight: 700;
   margin: 0.5rem 0 0;
 }
 
-.sully-tile__secondary {
+.fico-tile__secondary {
   font-size: 1.15rem;
   font-weight: 700;
   margin: 0.5rem 0 0;
 }
 
-.sully-charts {
+.fico-charts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
   gap: 1rem;
 }
 
-.sully-histogram {
+.fico-histogram {
   position: relative;
   height: 9rem;
   margin: 0.5rem 0 1.5rem 3.5rem;
 }
 
-.sully-histogram__tick {
+.fico-histogram__tick {
   position: absolute;
   left: 0;
   right: 0;
@@ -95,16 +95,16 @@
   border-top: 1px solid #ddd;
 }
 
-.sully-histogram__tick span {
+.fico-histogram__tick span {
   position: absolute;
   right: calc(100% + 0.4rem);
   transform: translateY(-50%);
   font-size: 0.7rem;
-  color: var(--sully-muted);
+  color: var(--fico-muted);
   white-space: nowrap;
 }
 
-.sully-histogram__bars {
+.fico-histogram__bars {
   position: absolute;
   inset: 0;
   display: flex;
@@ -112,71 +112,71 @@
   gap: 0.6rem;
 }
 
-.sully-histogram__bar {
+.fico-histogram__bar {
   position: relative;
   flex: 1;
   height: calc(var(--share) * 100%);
-  background: var(--sully-blue);
+  background: var(--fico-blue);
 }
 
-.sully-histogram__bar span {
+.fico-histogram__bar span {
   position: absolute;
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
   font-size: 0.7rem;
-  color: var(--sully-muted);
+  color: var(--fico-muted);
 }
 
-.sully-amounts {
+.fico-amounts {
   width: 100%;
 }
 
-.sully-amounts td:last-child {
+.fico-amounts td:last-child {
   text-align: right;
   font-weight: 500;
 }
 
 /* Carto */
 
-.sully-maps {
+.fico-maps {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
   gap: 1rem;
 }
 
-.sully-map {
+.fico-map {
   display: block;
   width: 100%;
   height: 18rem;
 }
 
-.sully-map path {
+.fico-map path {
   vector-effect: non-scaling-stroke;
   stroke-width: 0.6px;
 }
 
-.sully-map path.sully-map__focus {
+.fico-map path.fico-map__focus {
   stroke-width: 2px;
 }
 
-.sully-map path:hover {
+.fico-map path:hover {
   opacity: 0.75;
 }
 
-.sully-legend {
+.fico-legend {
   font-size: 0.75rem;
-  color: var(--sully-muted);
+  color: var(--fico-muted);
 }
 
-.sully-legend__row {
+.fico-legend__row {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   margin-top: 0.2rem;
 }
 
-.sully-swatch {
+.fico-swatch {
   display: inline-block;
   width: 1rem;
   height: 0.5rem;

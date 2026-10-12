@@ -48,20 +48,20 @@
     <p>Chaque composant est un web component qui charge lui-même son JSON. Pour
       l'intégrer dans une autre application :</p>
     <ol>
-      <li>charger dans la page le CSS du DSFR et <code>sully.css</code> : les
+      <li>charger dans la page le CSS du DSFR et <code>fico.css</code> : les
         composants n'apportent pas leurs styles ;</li>
       <li>importer le module du composant et placer son élément, comme
         ci-dessous.</li>
     </ol>
-    <pre><code>&lt;link rel="stylesheet" href="https://sully.example/assets/sully.css"&gt;
-&lt;script type="module" src="https://sully.example/assets/components/identite.js"&gt;&lt;/script&gt;
-&lt;sully-identite src="https://sully.example/fiches/35238/identite.json"&gt;&lt;/sully-identite&gt;</code></pre>
-    <p>Pour une fiche entière, <code>&lt;sully-fiche&gt;</code> charge les composants
+    <pre><code>&lt;link rel="stylesheet" href="https://fico.example/assets/fico.css"&gt;
+&lt;script type="module" src="https://fico.example/assets/components/identite.js"&gt;&lt;/script&gt;
+&lt;fico-identite src="https://fico.example/fiches/35238/identite.json"&gt;&lt;/fico-identite&gt;</code></pre>
+    <p>Pour une fiche entière, <code>&lt;fico-fiche&gt;</code> charge les composants
       choisis en un seul appel et les dispose comme le PDF : deux composants
       étroits qui se suivent partagent une ligne, un composant sans données
       disparaît.</p>
-    <pre><code>&lt;script type="module" src="https://sully.example/assets/fiche.js"&gt;&lt;/script&gt;
-&lt;sully-fiche src="https://sully.example/fiches/35238.json?component=identite,programmes,historique"&gt;&lt;/sully-fiche&gt;</code></pre>
+    <pre><code>&lt;script type="module" src="https://fico.example/assets/fiche.js"&gt;&lt;/script&gt;
+&lt;fico-fiche src="https://fico.example/fiches/35238.json?component=identite,programmes,historique"&gt;&lt;/fico-fiche&gt;</code></pre>
   </main>
 </body>
 </html>

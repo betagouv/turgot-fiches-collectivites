@@ -1,5 +1,5 @@
 """The HTML pages: the home page, and the page of a fiche, a shell around one
-<sully-fiche> element that loads and lays out the components itself."""
+<fico-fiche> element that loads and lays out the components itself."""
 
 from html import escape
 from pathlib import Path
@@ -16,17 +16,17 @@ PAGE = """<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{nom}</title>
   <link rel="stylesheet" href="{dsfr}">
-  <link rel="stylesheet" href="/assets/sully.css">
+  <link rel="stylesheet" href="/assets/fico.css">
   <script type="module" src="/assets/fiche.js"></script>
 </head>
 <body>
   <main class="fr-container fr-my-4w">
-    <header class="sully-header">
+    <header class="fico-header">
       <h1 class="fr-mb-1w">{nom}</h1>
       <p class="fr-badge fr-badge--info fr-badge--no-icon">{libelle_type}</p>
     </header>
-    <sully-fiche src="{src}"></sully-fiche>
-    <footer class="sully-muted">{source}</footer>
+    <fico-fiche src="{src}"></fico-fiche>
+    <footer class="fico-muted">{source}</footer>
   </main>
 </body>
 </html>

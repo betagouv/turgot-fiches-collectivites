@@ -1,7 +1,7 @@
 set dotenv-load
 
-host := env("SULLY_HOST", "")
-app := env("SULLY_APP", "sully")
+host := env("FICO_HOST", "")
+app := env("FICO_APP", "fico")
 database := app + "-db"
 dokku := "ssh dokku@" + host
 
@@ -11,7 +11,7 @@ default:
 
 [private]
 check-host:
-    @test -n "{{ host }}" || (echo "Set SULLY_HOST=server" && exit 1)
+    @test -n "{{ host }}" || (echo "Set FICO_HOST=server" && exit 1)
 
 # Create the app and its database, and copy the API token from .env; safe to rerun
 setup: check-host
@@ -29,9 +29,9 @@ deploy: check-host
 https: check-host
     {{ dokku }} letsencrypt:enable {{ app }}
 
-# Run `sully fetch` in a detached container, e.g. `just remote fetch api-collectivites --force`
+# Run `fico fetch` in a detached container, e.g. `just remote fetch api-collectivites --force`
 fetch *args: check-host
-    {{ dokku }} run:detached {{ app }} python -m sully.cli fetch {{ args }}
+    {{ dokku }} run:detached {{ app }} python -m fico.cli fetch {{ args }}
 
 # Follow the output of the fetch containers
 logs: check-host

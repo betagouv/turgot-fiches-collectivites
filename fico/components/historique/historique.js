@@ -1,10 +1,10 @@
-import { SullyElement, escape } from "/assets/common.js"
+import { FicoElement, escape } from "/assets/common.js"
 
 const COLUMNS = ["Année", "Dotation", "Projet", "Coût", "Subvention", "Taux"]
 
 customElements.define(
-  "sully-historique",
-  class extends SullyElement {
+  "fico-historique",
+  class extends FicoElement {
     render(data) {
       const head = COLUMNS.map((column) => `<th scope="col">${column}</th>`).join("")
       const rows = data.lignes

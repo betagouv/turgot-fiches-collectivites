@@ -14,10 +14,10 @@ from .sources.collectivites import NotFound
 mimetypes.add_type("application/geo+json", ".geojson")
 
 ASSETS = Path(components.__file__).parent
-SHARED_ASSETS = {"common.js", "fiche.js", "sully.css"}
+SHARED_ASSETS = {"common.js", "fiche.js", "fico.css"}
 
 
-app = FastAPI(title="Sully")
+app = FastAPI(title="Fico")
 # Consumers embed the components from their own origin: module scripts and the
 # JSON they fetch are cross-origin requests. Every response is a public,
 # cookie-free read, so any origin may make them.

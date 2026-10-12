@@ -1,4 +1,4 @@
-// Base of every <sully-*> element: fetch the component's JSON from `src`, unless
+// Base of every <fico-*> element: fetch the component's JSON from `src`, unless
 // `data` was set before the element joined the page, then lay it out with
 // `render`. The data is already computed and formatted server side; elements
 // only build markup.
@@ -10,8 +10,8 @@ export function escape(value) {
 }
 
 export function panel(title, body) {
-  return `<section class="sully-panel">
-    <h3 class="sully-panel__title">${escape(title)}</h3>
+  return `<section class="fico-panel">
+    <h3 class="fico-panel__title">${escape(title)}</h3>
     ${body}
   </section>`
 }
@@ -31,7 +31,7 @@ export function applyStyles(root) {
   }
 }
 
-export class SullyElement extends HTMLElement {
+export class FicoElement extends HTMLElement {
   async connectedCallback() {
     if (this.data === undefined) {
       const response = await fetch(this.getAttribute("src"))

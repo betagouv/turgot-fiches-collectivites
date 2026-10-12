@@ -78,7 +78,7 @@ def command_fetch(args) -> None:
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        prog="sully",
+        prog="fico",
         description="Fiches de collectivité et données qui les nourrissent.",
     )
     sub = parser.add_subparsers(dest="command", required=True)

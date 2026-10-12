@@ -1,4 +1,4 @@
-# Sully
+# Fico
 
 POC de fiche collectivité, en PDF, en JSON ou en web components, construite à
 partir de [geo.api.gouv.fr](https://geo.api.gouv.fr), de
@@ -15,8 +15,8 @@ Les données vivent dans PostgreSQL, désigné par `DATABASE_URL`. Les recettes
 [just](https://just.systems) lisent `.env` :
 
 ```sh
-createdb sully
-echo 'DATABASE_URL=postgres://utilisateur:motdepasse@localhost:5432/sully' >> .env
+createdb fico
+echo 'DATABASE_URL=postgres://utilisateur:motdepasse@localhost:5432/fico' >> .env
 uv sync
 just fetch                             # crée les tables manquantes, puis récupère
 just                                   # liste les recettes, locales et `remote`
@@ -68,7 +68,7 @@ domaine global réglé (`domains:set-global`, avec son wildcard DNS) et la clé
 SSH du poste enregistrée.
 
 ```sh
-export SULLY_HOST=serveur                    # SULLY_APP=sully par défaut ; .env convient aussi
+export FICO_HOST=serveur                    # FICO_APP=fico par défaut ; .env convient aussi
 just remote setup                            # application, buildpack, base, jeton ; rejouable
 just remote deploy                           # pousse le commit courant
 just remote https                            # une fois, après le premier deploy
@@ -84,7 +84,7 @@ Les tables sont créées à chaque déploiement, par la phase `release` du
 
 ## Les sources
 
-Chaque source déclare son rythme. `sully fetch` ne récupère que ce qui est dû,
+Chaque source déclare son rythme. `fico fetch` ne récupère que ce qui est dû,
 `--force` passe outre.
 
 ```sh
@@ -115,7 +115,7 @@ couvre que la seconde vague, 50 communes contre 244.
 ## Organisation du code
 
 ```
-sully/
+fico/
 ├── sources/      une donnée consommée = un module : origine, table, requêtes
 │   ├── registry.py       @source(name, label, schedule, schema)
 │   └── base.py           connexion, schémas, suivi des récupérations
