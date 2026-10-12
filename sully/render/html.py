@@ -1,15 +1,9 @@
-"""The HTML pages: the home page, and the page of a fiche, a shell placing one
-<sully-*> element per component.
-
-Each element fetches its component's JSON itself; this module only lays out
-the page.
-"""
+"""The HTML pages: the home page, and the page of a fiche, a shell around one
+<sully-fiche> element that loads and lays out the components itself."""
 
 from html import escape
 from pathlib import Path
 from string import Template
-
-from ..components import rows
 
 DSFR = "https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.14.2/dist/dsfr.min.css"
 
@@ -23,7 +17,7 @@ PAGE = """<!doctype html>
   <title>{nom}</title>
   <link rel="stylesheet" href="{dsfr}">
   <link rel="stylesheet" href="/assets/sully.css">
-{scripts}
+  <script type="module" src="/assets/fiche.js"></script>
 </head>
 <body>
   <main class="fr-container fr-my-4w">
@@ -31,7 +25,7 @@ PAGE = """<!doctype html>
       <h1 class="fr-mb-1w">{nom}</h1>
       <p class="fr-badge fr-badge--info fr-badge--no-icon">{libelle_type}</p>
     </header>
-    <div class="sully-lines">{lines}</div>
+    <sully-fiche src="{src}"></sully-fiche>
     <footer class="sully-muted">{source}</footer>
   </main>
 </body>
@@ -48,29 +42,12 @@ def home(components) -> str:
     return HOME.substitute(dsfr=DSFR, components=rows)
 
 
-def _element(identifiant: str, name: str) -> str:
-    src = f"/fiches/{escape(identifiant)}/{name}.json"
-    return f'<sully-{name} src="{src}"></sully-{name}>'
-
-
-def _line(identifiant: str, line) -> str:
-    elements = "".join(_element(identifiant, c.name) for c in line)
-    if len(line) == 1:
-        return elements
-    return f'<div class="sully-pair">{elements}</div>'
-
-
 def page(header: dict, identifiant: str, chosen) -> str:
-    scripts = "\n".join(
-        f'  <script type="module" src="/assets/components/{c.name}.js"></script>'
-        for c in chosen
-    )
-    lines = "".join(_line(identifiant, line) for line in rows(chosen))
+    names = ",".join(c.name for c in chosen)
     return PAGE.format(
         nom=escape(header["nom"]),
         libelle_type=escape(header["libelle_type"]),
         source=escape(header["source"]),
         dsfr=DSFR,
-        scripts=scripts,
-        lines=lines,
+        src=escape(f"/fiches/{identifiant}.json?component={names}"),
     )

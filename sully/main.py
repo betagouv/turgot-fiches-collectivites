@@ -14,7 +14,7 @@ from .sources.collectivites import NotFound
 mimetypes.add_type("application/geo+json", ".geojson")
 
 ASSETS = Path(components.__file__).parent
-SHARED_ASSETS = {"common.js", "sully.css"}
+SHARED_ASSETS = {"common.js", "fiche.js", "sully.css"}
 
 
 app = FastAPI(title="Sully")
@@ -94,7 +94,12 @@ async def fiche_pdf(identifiant: str, component: str | None = None):
 @app.get("/fiches/{identifiant}.json")
 async def fiche_json(identifiant: str, component: str | None = None):
     header, results = await _collect(identifiant, component)
-    return {**header, "components": {name: r.data for name, r in results.items()}}
+    lines = components.rows(components.COMPONENTS[name] for name in results)
+    return {
+        **header,
+        "components": {name: r.data for name, r in results.items()},
+        "lines": [[c.name for c in line] for line in lines],
+    }
 
 
 @app.get("/fiches/{identifiant}/{name}.json")

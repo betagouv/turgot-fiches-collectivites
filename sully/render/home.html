@@ -56,6 +56,12 @@
     <pre><code>&lt;link rel="stylesheet" href="https://sully.example/assets/sully.css"&gt;
 &lt;script type="module" src="https://sully.example/assets/components/identite.js"&gt;&lt;/script&gt;
 &lt;sully-identite src="https://sully.example/fiches/35238/identite.json"&gt;&lt;/sully-identite&gt;</code></pre>
+    <p>Pour une fiche entière, <code>&lt;sully-fiche&gt;</code> charge les composants
+      choisis en un seul appel et les dispose comme le PDF : deux composants
+      étroits qui se suivent partagent une ligne, un composant sans données
+      disparaît.</p>
+    <pre><code>&lt;script type="module" src="https://sully.example/assets/fiche.js"&gt;&lt;/script&gt;
+&lt;sully-fiche src="https://sully.example/fiches/35238.json?component=identite,programmes,historique"&gt;&lt;/sully-fiche&gt;</code></pre>
   </main>
 </body>
 </html>
