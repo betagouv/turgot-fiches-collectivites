@@ -51,7 +51,6 @@ just serve                            # http://127.0.0.1:8001
 | `GET /fiches/{identifiant}.pdf` | la fiche en PDF, `?component=a,b` pour choisir |
 | `GET /fiches/{identifiant}.json` | les données de tous les composants, même filtre, et leurs lignes de mise en page |
 | `GET /fiches/{identifiant}/{composant}.json` | les données d'un seul composant |
-| `GET /fiches/{identifiant}/{composant}/{fichier}` | un fichier produit par un composant, le GeoJSON des cartes par exemple |
 
 Les données d'un composant sont son contrat avec tous les rendus : chaque valeur
 affichée y figure en `{"value": …, "label": …}`, la valeur brute et son libellé

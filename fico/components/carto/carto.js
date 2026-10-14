@@ -1,6 +1,6 @@
 import { FicoElement, escape, panel } from "/assets/common.js"
 
-// The projected file is already in map units: x is the projected longitude,
+// Projected coordinates are already in map units: x is the projected longitude,
 // y the latitude, negated because SVG's y axis points down.
 function ring(points) {
   return "M" + points.map(([x, y]) => `${x},${-y}`).join("L") + "Z"
@@ -11,10 +11,10 @@ function pathData(geometry) {
   return polygons.flatMap((polygon) => polygon.map(ring)).join("")
 }
 
-function svg(carte, geojson, focus, outline) {
+function svg(carte, focus, outline) {
   // The commune goes last, so its neighbours do not paint over its outline.
   const isFocus = (feature) => feature.properties.code === focus
-  const features = [...geojson.features].sort((a, b) => isFocus(a) - isFocus(b))
+  const features = [...carte.projected.features].sort((a, b) => isFocus(a) - isFocus(b))
   const paths = features
     .map((feature) => {
       const p = feature.properties
@@ -47,30 +47,14 @@ customElements.define(
   class extends FicoElement {
     render(data) {
       const maps = data.cartes
-        .map((carte, index) =>
+        .map((carte) =>
           panel(
             `${carte.titre} — ${carte.communes} communes`,
-            `<div data-map="${index}"></div>${legend(data.legend)}`,
+            `${svg(carte, data.focus, data.legend.focus.color)}${legend(data.legend)}`,
           ),
         )
         .join("")
       return `<h2>Cartographie</h2><div class="maps">${maps}</div>`
-    }
-
-    async afterRender() {
-      await Promise.all(
-        this.data.cartes.map(async (carte, index) => {
-          const response = await fetch(`${this.filesUrl}/${carte.projected}`)
-          const geojson = await response.json()
-          const { focus, legend } = this.data
-          this.querySelector(`[data-map="${index}"]`).innerHTML = svg(
-            carte,
-            geojson,
-            focus,
-            legend.focus.color,
-          )
-        }),
-      )
     }
   },
 )

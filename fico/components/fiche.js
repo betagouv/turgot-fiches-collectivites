@@ -22,10 +22,8 @@ customElements.define(
         names.map((name) => import(new URL(`/assets/components/${name}.js`, src))),
       )
 
-      const base = src.pathname.replace(/\.json$/, "")
       const element = ({ name, width }) => {
         const child = document.createElement(`fico-${name}`)
-        child.setAttribute("src", new URL(`${base}/${name}.json`, src))
         child.data = fiche.components[name]
         const [numerator, denominator = 1] = width.split("/").map(Number)
         child.style.setProperty("--width", numerator / denominator)

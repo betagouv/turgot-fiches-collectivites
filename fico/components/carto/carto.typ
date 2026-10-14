@@ -47,13 +47,13 @@
     )
     // The commune is drawn again on top, alone, with the same frame: its
     // outline is never covered by a neighbour.
-    let territoire = json(spec.projected)
+    let territoire = spec.projected
     let commune = (
       type: "FeatureCollection",
       features: territoire.features.filter(f => f.properties.code == focus),
     )
     box(width: 100%, height: 5.8cm, {
-      draw(read(spec.projected, encoding: none), (fill: "{couleur}", stroke: "#ffffff"))
+      draw(bytes(json.encode(territoire)), (fill: "{couleur}", stroke: "#ffffff"))
       place(top + left, draw(
         bytes(json.encode(commune)),
         (fill: "none", stroke: legend-data.focus.color),

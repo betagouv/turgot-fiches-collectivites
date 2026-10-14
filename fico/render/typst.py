@@ -58,11 +58,9 @@ def compile_fiche(header: dict, results: dict) -> bytes:
     with TemporaryDirectory() as tmp:
         build = Path(tmp)
         shutil.copy(COMMON, build / "common.typ")
-        for name, result in results.items():
+        for name in results:
             component = components.COMPONENTS[name]
             shutil.copy(component.template(EXTENSION), build / f"{name}.{EXTENSION}")
-            for filename, content in result.files.items():
-                (build / filename).write_text(content)
 
         data = {name: result.data for name, result in results.items()}
         (build / "data.json").write_text(

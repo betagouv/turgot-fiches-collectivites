@@ -49,11 +49,5 @@ export class FicoElement extends HTMLElement {
     }
     this.innerHTML = this.render(this.data)
     applyStyles(this)
-    await this.afterRender?.()
-  }
-
-  // Base URL of the files a component produces, next to its JSON.
-  get filesUrl() {
-    return this.getAttribute("src").replace(/\.json$/, "")
   }
 }

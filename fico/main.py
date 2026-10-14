@@ -1,17 +1,15 @@
-import mimetypes
 from contextlib import contextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 
 from . import components
 from .fiche import IdentifiantInvalide, collect, describe, render
 from .render import html
 from .sources.collectivites import NotFound
-
-mimetypes.add_type("application/geo+json", ".geojson")
 
 ASSETS = Path(components.__file__).parent
 SHARED_ASSETS = {"common.js", "fiche.js", "fico.css"}
@@ -22,6 +20,7 @@ app = FastAPI(title="Fico")
 # JSON they fetch are cross-origin requests. Every response is a public,
 # cookie-free read, so any origin may make them.
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"])
+app.add_middleware(GZipMiddleware)
 
 
 def _chosen(requested: str | None):
@@ -107,15 +106,6 @@ def fiche_json(identifiant: str, component: str | None = None):
 @app.get("/fiches/{identifiant}/{name}.json")
 def component_json(identifiant: str, name: str):
     return _result(identifiant, name).data
-
-
-@app.get("/fiches/{identifiant}/{name}/{filename}")
-def component_file(identifiant: str, name: str, filename: str):
-    result = _result(identifiant, name)
-    if filename not in result.files:
-        raise HTTPException(404, f"Le composant {name} ne produit pas {filename}.")
-    media_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
-    return Response(content=result.files[filename], media_type=media_type)
 
 
 @app.get("/fiches/{identifiant}.html", response_class=HTMLResponse)

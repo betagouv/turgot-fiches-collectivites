@@ -1,4 +1,3 @@
-import json
 import math
 from dataclasses import dataclass
 from itertools import pairwise
@@ -20,8 +19,7 @@ STROKE_RATIO = 0.0015
 @dataclass
 class Carte:
     titre: str
-    geojson: str
-    projected: str
+    projected: dict
     communes: int
     viewbox: list[float]
     stroke: float
@@ -104,35 +102,23 @@ def collect(context: Context) -> Result | None:
     if fiche.famille != COMMUNE:
         return None
 
-    territoires = [
-        ("Département", "departement", contours.par_departement, fiche.code_departement)
-    ]
+    territoires = [("Département", contours.par_departement, fiche.code_departement)]
     if fiche.code_epci:
-        territoires.append(
-            ("Intercommunalité", "epci", contours.par_epci, fiche.code_epci)
-        )
+        territoires.append(("Intercommunalité", contours.par_epci, fiche.code_epci))
 
-    cartes, files = [], {}
-    for titre, territoire, recupere, cle in territoires:
+    cartes = []
+    for titre, recupere, cle in territoires:
         geojson = recupere(context.connection, cle)
         if not geojson["features"]:
             continue
         codes = [f["properties"]["code"] for f in geojson["features"]]
         taux = api_collectivites.taux_par_commune(context.connection, codes)
         _colorise(geojson, taux)
-        # Named after the territory, the files are the same for all its
-        # communes. Third parties get standard WGS84 GeoJSON; renderers get it
-        # projected, so they only draw.
-        base = f"{territoire}-{cle}"
-        standard, projected = f"{base}.geojson", f"{base}.projected.json"
-        files[standard] = json.dumps(geojson)
         viewbox = _project(geojson)
-        files[projected] = json.dumps(geojson)
         cartes.append(
             Carte(
                 titre=titre,
-                geojson=standard,
-                projected=projected,
+                projected=geojson,
                 communes=len(geojson["features"]),
                 viewbox=viewbox,
                 stroke=max(viewbox[2], viewbox[3]) * STROKE_RATIO,
@@ -141,7 +127,7 @@ def collect(context: Context) -> Result | None:
 
     if not cartes:
         return None
-    return Result(data=Carto(cartes, _legend(), focus=fiche.code_insee), files=files)
+    return Result(data=Carto(cartes, _legend(), focus=fiche.code_insee))
 
 
 def _points(coordinates):

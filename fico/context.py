@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from .sources.base import Connection
 from .sources.collectivites import Fiche
@@ -15,11 +15,10 @@ class Context:
 
 @dataclass
 class Result:
-    """What a component produces: its data, and the files its templates read.
+    """What a component produces.
 
     `data` is the component's contract with every renderer: values are computed
     here, templates only lay them out.
     """
 
     data: object
-    files: dict[str, str] = field(default_factory=dict)
