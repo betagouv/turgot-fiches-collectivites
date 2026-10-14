@@ -31,8 +31,6 @@ CREATE TABLE IF NOT EXISTS projet (
     nom                 TEXT,
     porteur_nom         TEXT,
     budget_previsionnel DOUBLE PRECISION,
-    date_debut          TEXT,
-    date_fin            TEXT,
     phase               TEXT,
     phase_statut        TEXT,
     ouverture           TEXT,
@@ -49,7 +47,6 @@ CREATE INDEX IF NOT EXISTS projet_commune_insee ON projet_commune (code_insee);
 CREATE TABLE IF NOT EXISTS financement (
     projet_id         BIGINT NOT NULL REFERENCES projet (id),
     source            TEXT,
-    date_attribution  TEXT,
     annee             INTEGER,
     montant_demande   DOUBLE PRECISION,
     montant_attribue  DOUBLE PRECISION,
@@ -60,10 +57,10 @@ CREATE INDEX IF NOT EXISTS financement_projet ON financement (projet_id);
 
 INSERT_PROJET = """
 INSERT INTO projet (
-    provenances, siren, nom, porteur_nom, budget_previsionnel, date_debut,
-    date_fin, phase, phase_statut, ouverture, thematiques
+    provenances, siren, nom, porteur_nom, budget_previsionnel, phase,
+    phase_statut, ouverture, thematiques
 )
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
 RETURNING id
 """
 
@@ -71,9 +68,8 @@ INSERT_COMMUNE = "INSERT INTO projet_commune (projet_id, code_insee) VALUES (%s,
 
 INSERT_FINANCEMENT = """
 INSERT INTO financement
-    (projet_id, source, date_attribution, annee, montant_demande,
-     montant_attribue, statut)
-VALUES (%s, %s, %s, %s, %s, %s, %s)
+    (projet_id, source, annee, montant_demande, montant_attribue, statut)
+VALUES (%s, %s, %s, %s, %s, %s)
 """
 
 
@@ -107,8 +103,6 @@ def _store(cursor: psycopg.Cursor, projet: dict) -> None:
             projet.get("nom"),
             projet.get("porteurNom"),
             projet.get("budgetPrevisionnel"),
-            projet.get("dateDebut"),
-            projet.get("dateFin"),
             projet.get("phase"),
             projet.get("phaseStatut"),
             projet.get("ouverture"),
@@ -132,7 +126,6 @@ def _store(cursor: psycopg.Cursor, projet: dict) -> None:
             (
                 projet_id,
                 f.get("source"),
-                f.get("dateAttribution"),
                 int(f["dateAttribution"][:4]) if f.get("dateAttribution") else None,
                 f.get("montantDemande"),
                 f.get("montantAttribue"),

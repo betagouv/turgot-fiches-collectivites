@@ -75,30 +75,8 @@ def plain(value: float | None) -> Display:
     return Display(value, str(value))
 
 
-def _parse_date(value: str) -> date | None:
-    try:
-        return date.fromisoformat(value[:10])
-    except ValueError:
-        pass
-    parts = value.split("/")
-    if len(parts) != 3 or not all(part.isdigit() for part in parts):
-        return None
-    day, month, year = (int(part) for part in parts)
-    try:
-        return date(year, month, day)
-    except ValueError:
-        return None
-
-
-def long_date(value: str | None) -> Display:
-    """Accepts ISO (`2024-09-01`) and French (`01/09/2024`) dates; the value is
-    normalised to ISO, anything unparsable is shown as is."""
-    if not value:
+def long_date(value: date | None) -> Display:
+    if value is None:
         return Display(None, "—")
-    parsed = _parse_date(value.strip())
-    if parsed is None:
-        return Display(value, value)
-    day = "1er" if parsed.day == 1 else str(parsed.day)
-    return Display(
-        parsed.isoformat(), f"{day} {MONTHS[parsed.month - 1]} {parsed.year}"
-    )
+    day = "1er" if value.day == 1 else str(value.day)
+    return Display(value.isoformat(), f"{day} {MONTHS[value.month - 1]} {value.year}")

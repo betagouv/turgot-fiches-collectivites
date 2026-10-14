@@ -8,6 +8,7 @@ seconde vague, 50 communes contre 244.
 import csv
 import io
 from dataclasses import dataclass
+from datetime import date
 
 import httpx
 
@@ -21,7 +22,7 @@ CREATE TABLE IF NOT EXISTS programme (
     code_insee TEXT NOT NULL,
     programme  TEXT NOT NULL,
     libelle    TEXT,
-    depuis     TEXT,
+    depuis     DATE,
     PRIMARY KEY (code_insee, programme)
 );
 """
@@ -37,13 +38,19 @@ libelle = excluded.libelle, depuis = excluded.depuis
 
 
 @dataclass(frozen=True)
+class ColonneDate:
+    nom: str
+    format: str
+
+
+@dataclass(frozen=True)
 class Programme:
     code: str
     nom: str
     dataset: str
     colonne_libelle: str
     ressource: str | None = None
-    colonne_date: str | None = None
+    colonne_date: ColonneDate | None = None
 
 
 PROGRAMMES = (
@@ -52,14 +59,14 @@ PROGRAMMES = (
         nom="Action cœur de ville",
         dataset="5fa9901c66cff095591963e8",
         colonne_libelle="lib_acv",
-        colonne_date="date_signature",
+        colonne_date=ColonneDate("date_signature", "%Y-%m-%d"),
     ),
     Programme(
         code="PVD",
         nom="Petites villes de demain",
         dataset="5fc1259b703620ed60a49d97",
         colonne_libelle="lib_com",
-        colonne_date="date_signature",
+        colonne_date=ColonneDate("date_signature", "%d/%m/%Y"),
     ),
     Programme(
         code="TI",
@@ -94,6 +101,16 @@ def _resource(client: httpx.Client, programme: Programme) -> dict:
     return files[0]
 
 
+def _depuis(row: dict, programme: Programme) -> date | None:
+    colonne = programme.colonne_date
+    if colonne is None:
+        return None
+    text = (row.get(colonne.nom) or "").strip()
+    if not text:
+        return None
+    return date.strptime(text, colonne.format)
+
+
 def rows(client: httpx.Client, programme: Programme):
     resource = _resource(client, programme)
     response = client.get(resource["url"], follow_redirects=True)
@@ -110,9 +127,7 @@ def rows(client: httpx.Client, programme: Programme):
             "code_insee": code_insee,
             "programme": programme.code,
             "libelle": (row.get(programme.colonne_libelle) or "").strip(),
-            "depuis": (row.get(programme.colonne_date) or "").strip()
-            if programme.colonne_date
-            else "",
+            "depuis": _depuis(row, programme),
         }
 
 
