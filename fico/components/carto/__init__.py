@@ -99,7 +99,7 @@ def _colorise(geojson: dict, taux: dict[str, float]) -> dict:
     description="Cartes du département et de l'intercommunalité de la commune, "
     "colorées par taux de financement.",
 )
-async def collect(context: Context) -> Result | None:
+def collect(context: Context) -> Result | None:
     fiche = context.fiche
     if fiche.famille != COMMUNE:
         return None

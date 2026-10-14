@@ -25,7 +25,7 @@ class Programmes:
     "ville, Petites villes de demain, Territoires d'industrie, Villages d'avenir.",
     width="1/2",
 )
-async def collect(context: Context) -> Result | None:
+def collect(context: Context) -> Result | None:
     if context.fiche.famille != COMMUNE:
         return None
     rows = programmes.de_commune(context.connection, context.fiche.code_insee)

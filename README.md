@@ -131,7 +131,7 @@ Un composant se déclare par décorateur, sur la fonction qui le collecte :
 
 ```python
 @component(name="identite", width="1/2")
-async def collect(context: Context) -> Result | None
+def collect(context: Context) -> Result | None
 ```
 
 `width` dit la part de ligne dont le contenu a besoin : `"1/4"`, `"1/3"`,

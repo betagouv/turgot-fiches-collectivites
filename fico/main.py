@@ -41,21 +41,21 @@ def _resolving(identifiant: str):
         raise HTTPException(404, f"Aucune collectivité connue pour {identifiant}.")
 
 
-async def _collect(identifiant: str, requested: str | None):
+def _collect(identifiant: str, requested: str | None):
     chosen = _chosen(requested)
     with _resolving(identifiant):
-        return await collect(identifiant, chosen)
+        return collect(identifiant, chosen)
 
 
-async def _page(identifiant: str, requested: str | None) -> HTMLResponse:
+def _page(identifiant: str, requested: str | None) -> HTMLResponse:
     chosen = _chosen(requested)
     with _resolving(identifiant):
         header = describe(identifiant)
     return HTMLResponse(html.page(header, identifiant, chosen))
 
 
-async def _result(identifiant: str, name: str):
-    _, results = await _collect(identifiant, name)
+def _result(identifiant: str, name: str):
+    _, results = _collect(identifiant, name)
     if name not in results:
         raise HTTPException(
             404, f"Le composant {name} n'a rien à montrer pour {identifiant}."
@@ -82,8 +82,8 @@ async def list_components():
 
 
 @app.get("/fiches/{identifiant}.pdf")
-async def fiche_pdf(identifiant: str, component: str | None = None):
-    header, results = await _collect(identifiant, component)
+def fiche_pdf(identifiant: str, component: str | None = None):
+    header, results = _collect(identifiant, component)
     return Response(
         content=render(header, results),
         media_type="application/pdf",
@@ -92,8 +92,8 @@ async def fiche_pdf(identifiant: str, component: str | None = None):
 
 
 @app.get("/fiches/{identifiant}.json")
-async def fiche_json(identifiant: str, component: str | None = None):
-    header, results = await _collect(identifiant, component)
+def fiche_json(identifiant: str, component: str | None = None):
+    header, results = _collect(identifiant, component)
     lines = components.rows(components.COMPONENTS[name] for name in results)
     return {
         **header,
@@ -105,13 +105,13 @@ async def fiche_json(identifiant: str, component: str | None = None):
 
 
 @app.get("/fiches/{identifiant}/{name}.json")
-async def component_json(identifiant: str, name: str):
-    return (await _result(identifiant, name)).data
+def component_json(identifiant: str, name: str):
+    return _result(identifiant, name).data
 
 
 @app.get("/fiches/{identifiant}/{name}/{filename}")
-async def component_file(identifiant: str, name: str, filename: str):
-    result = await _result(identifiant, name)
+def component_file(identifiant: str, name: str, filename: str):
+    result = _result(identifiant, name)
     if filename not in result.files:
         raise HTTPException(404, f"Le composant {name} ne produit pas {filename}.")
     media_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
@@ -119,13 +119,13 @@ async def component_file(identifiant: str, name: str, filename: str):
 
 
 @app.get("/fiches/{identifiant}.html", response_class=HTMLResponse)
-async def fiche_html(identifiant: str, component: str | None = None):
-    return await _page(identifiant, component)
+def fiche_html(identifiant: str, component: str | None = None):
+    return _page(identifiant, component)
 
 
 @app.get("/fiches/{identifiant}/{name}.html", response_class=HTMLResponse)
-async def component_html(identifiant: str, name: str):
-    return await _page(identifiant, name)
+def component_html(identifiant: str, name: str):
+    return _page(identifiant, name)
 
 
 @app.get("/assets/components/{name}.js")

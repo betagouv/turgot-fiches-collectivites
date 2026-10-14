@@ -27,7 +27,7 @@ def _rows(pairs: list[tuple[str, Display]]) -> Identite:
     "superficie, densité, codes postaux, intercommunalité, département, région.",
     width="1/2",
 )
-async def collect(context: Context) -> Result | None:
+def collect(context: Context) -> Result | None:
     fiche = context.fiche
     pairs = [("SIREN", text(fiche.siren))]
 

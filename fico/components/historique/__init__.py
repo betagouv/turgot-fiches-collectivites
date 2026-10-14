@@ -26,7 +26,7 @@ class Historique:
     description="Liste des financements reçus, projet par projet, avec leur "
     "coût et leur taux de financement.",
 )
-async def collect(context: Context) -> Result | None:
+def collect(context: Context) -> Result | None:
     lignes = []
     for row in api_collectivites.financements_recus(
         context.connection, context.fiche.siren

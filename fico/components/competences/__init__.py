@@ -20,7 +20,7 @@ class Competences:
     description="Compétences exercées par un groupement, selon la nomenclature "
     "Banatic.",
 )
-async def collect(context: Context) -> Result | None:
+def collect(context: Context) -> Result | None:
     noms = collectivites.competences(context.connection, context.fiche.siren)
     if not noms:
         return None

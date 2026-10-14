@@ -46,14 +46,14 @@ def describe(identifiant: str) -> dict:
         return _header(resolve(connection, identifiant))
 
 
-async def collect(identifiant: str, components) -> tuple[dict, dict]:
+def collect(identifiant: str, components) -> tuple[dict, dict]:
     names = tuple(component.name for component in components)
     results = {}
     with base.connect() as connection:
         fiche = resolve(connection, identifiant)
         context = Context(fiche=fiche, connection=connection, components=names)
         for component in components:
-            result = await component.collect(context)
+            result = component.collect(context)
             if result is not None:
                 results[component.name] = result
 
