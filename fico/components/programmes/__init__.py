@@ -20,7 +20,6 @@ class Programmes:
 
 
 @component(
-    name="programmes",
     description="Programmes nationaux dont relève la commune : Action cœur de "
     "ville, Petites villes de demain, Territoires d'industrie, Villages d'avenir.",
     width="1/2",

@@ -22,7 +22,6 @@ def _rows(pairs: list[tuple[str, Display]]) -> Identite:
 
 
 @component(
-    name="identite",
     description="Identité de la collectivité : SIREN, code INSEE, population, "
     "superficie, densité, codes postaux, intercommunalité, département, région.",
     width="1/2",

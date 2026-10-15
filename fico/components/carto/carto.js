@@ -1,4 +1,4 @@
-import { FicoElement, escape, panel } from "/assets/common.js"
+import { escape, panel } from "/assets/common.js"
 
 // Projected coordinates are already in map units: x is the projected longitude,
 // y the latitude, negated because SVG's y axis points down.
@@ -11,16 +11,16 @@ function pathData(geometry) {
   return polygons.flatMap((polygon) => polygon.map(ring)).join("")
 }
 
-function svg(carte, focus, outline) {
+function svg(carte) {
   // The commune goes last, so its neighbours do not paint over its outline.
-  const isFocus = (feature) => feature.properties.code === focus
+  const isFocus = (feature) => feature.properties.code === carte.focus
   const features = [...carte.projected.features].sort((a, b) => isFocus(a) - isFocus(b))
   const paths = features
     .map((feature) => {
       const p = feature.properties
       const focused = isFocus(feature)
-      const stroke = focused ? outline : "#ffffff"
-      return `<path d="${pathData(feature.geometry)}" fill="${p.couleur}" stroke="${stroke}" fill-rule="evenodd"${focused ? ' class="focus"' : ""}><title>${escape(p.nom)} — ${escape(p.taux)}</title></path>`
+      const stroke = focused ? carte.legend.focus.color : "#ffffff"
+      return `<path d="${pathData(feature.geometry)}" fill="${p.couleur}" stroke="${stroke}" fill-rule="evenodd"${focused ? ' class="focus"' : ""}><title>${escape(p.nom)} — ${escape(p.valeur)}</title></path>`
     })
     .join("")
   return `<svg class="map" viewBox="${carte.viewbox.join(" ")}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${escape(carte.titre)}">${paths}</svg>`
@@ -42,19 +42,6 @@ function legend(data) {
   </div>`
 }
 
-customElements.define(
-  "fico-carto",
-  class extends FicoElement {
-    render(data) {
-      const maps = data.cartes
-        .map((carte) =>
-          panel(
-            `${carte.titre} — ${carte.communes} communes`,
-            `${svg(carte, data.focus, data.legend.focus.color)}${legend(data.legend)}`,
-          ),
-        )
-        .join("")
-      return `<h2>Cartographie</h2><div class="maps">${maps}</div>`
-    }
-  },
-)
+export function map(carte) {
+  return panel(`${carte.titre} — ${carte.communes} communes`, `${svg(carte)}${legend(carte.legend)}`)
+}

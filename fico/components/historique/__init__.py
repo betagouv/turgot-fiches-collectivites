@@ -22,7 +22,6 @@ class Historique:
 
 
 @component(
-    name="historique",
     description="Liste des financements reçus, projet par projet, avec leur "
     "coût et leur taux de financement.",
 )

@@ -73,7 +73,6 @@ def _scale(values: list[float]) -> tuple[float, list[Tick]]:
 
 
 @component(
-    name="chiffres",
     description="Financements reçus : totaux par dispositif, montants des cinq "
     "dernières années révolues, répartition par financeur.",
 )

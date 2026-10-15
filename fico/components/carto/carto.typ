@@ -28,16 +28,16 @@
   data.focus.label
 }
 
-#let map(spec, legend-data, focus) = panel(
+#let map(carte) = panel(
   [
-    #spec.titre
+    #carte.titre
     #h(0.4em)
-    #text(size: 7.5pt, fill: luma(45%), weight: "regular")[#spec.communes communes]
+    #text(size: 7.5pt, fill: luma(45%), weight: "regular")[#carte.communes communes]
   ],
   {
     // stroke_width rejects a `{property}` template: a string there drops the
     // whole style, fill included.
-    let frame = (stroke_width: spec.stroke, viewbox: spec.viewbox)
+    let frame = (stroke_width: carte.stroke, viewbox: carte.viewbox)
     let draw(geojson, style) = render-map(
       geojson,
       json.encode(style + frame),
@@ -47,28 +47,19 @@
     )
     // The commune is drawn again on top, alone, with the same frame: its
     // outline is never covered by a neighbour.
-    let territoire = spec.projected
+    let territoire = carte.projected
     let commune = (
       type: "FeatureCollection",
-      features: territoire.features.filter(f => f.properties.code == focus),
+      features: territoire.features.filter(f => f.properties.code == carte.focus),
     )
     box(width: 100%, height: 5.8cm, {
       draw(bytes(json.encode(territoire)), (fill: "{couleur}", stroke: "#ffffff"))
       place(top + left, draw(
         bytes(json.encode(commune)),
-        (fill: "none", stroke: legend-data.focus.color),
+        (fill: "none", stroke: carte.legend.focus.color),
       ))
     })
     v(0.3em)
-    legend(legend-data)
+    legend(carte.legend)
   },
 )
-
-#let render(data) = {
-  heading(level: 2, [Cartographie])
-  grid(
-    columns: (1fr,) * data.cartes.len(),
-    column-gutter: 10pt,
-    ..data.cartes.map(carte => map(carte, data.legend, data.focus)),
-  )
-}

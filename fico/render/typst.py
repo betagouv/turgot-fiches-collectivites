@@ -32,8 +32,13 @@ TEMPLATE = """#import "common.typ": header, row, theme
 """
 
 
+def _alias(name: str) -> str:
+    # A Typst identifier takes hyphens, not dots.
+    return name.replace(".", "-")
+
+
 def _call(name: str) -> str:
-    return f"{name}.render(data.components.{name})"
+    return f'{_alias(name)}.render(data.components.at("{name}"))'
 
 
 def _line(line: tuple[components.Component, ...]) -> str:
@@ -47,7 +52,9 @@ def _line(line: tuple[components.Component, ...]) -> str:
 
 
 def _document(names: list[str]) -> str:
-    imports = "\n".join(f'#import "{name}.{EXTENSION}" as {name}' for name in names)
+    imports = "\n".join(
+        f'#import "{name}.{EXTENSION}" as {_alias(name)}' for name in names
+    )
     lines = components.rows(components.COMPONENTS[name] for name in names)
     body = "\n".join(_line(line) for line in lines)
     return TEMPLATE.format(imports=imports, body=body)
@@ -59,8 +66,12 @@ def compile_fiche(header: dict, results: dict) -> bytes:
         build = Path(tmp)
         shutil.copy(COMMON, build / "common.typ")
         for name in results:
-            component = components.COMPONENTS[name]
-            shutil.copy(component.template(EXTENSION), build / f"{name}.{EXTENSION}")
+            target = build / f"{name}.{EXTENSION}"
+            shutil.copy(components.template(name, EXTENSION), target)
+            for module in components.ancestors(name):
+                shared = components.template(module, EXTENSION)
+                if shared.exists():
+                    shutil.copy(shared, build / f"{module}.{EXTENSION}")
 
         data = {name: result.data for name, result in results.items()}
         (build / "data.json").write_text(

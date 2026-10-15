@@ -16,7 +16,6 @@ class Competences:
 
 
 @component(
-    name="competences",
     description="Compétences exercées par un groupement, selon la nomenclature "
     "Banatic.",
 )

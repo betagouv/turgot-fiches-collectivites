@@ -120,11 +120,10 @@ def component_html(identifiant: str, name: str):
 
 @app.get("/assets/components/{name}.js")
 async def component_script(name: str):
-    if name not in components.COMPONENTS:
-        raise HTTPException(404, f"Composant inconnu : {name}.")
-    return FileResponse(
-        components.COMPONENTS[name].template("js"), media_type="text/javascript"
-    )
+    script = components.template(name, "js")
+    if name not in components.modules() or not script.exists():
+        raise HTTPException(404, f"Module inconnu : {name}.")
+    return FileResponse(script, media_type="text/javascript")
 
 
 @app.get("/assets/{filename}")

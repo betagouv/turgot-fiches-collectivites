@@ -1,28 +1,28 @@
+"""Cartes choroplèthes : les communes d'un territoire colorées selon une valeur,
+d'après une échelle de seuils."""
+
 import math
+from collections.abc import Callable
 from dataclasses import dataclass
 from itertools import pairwise
 
-from ...context import Context, Result
-from ...sources import api_collectivites, contours
-from ...sources.collectivites import COMMUNE
-from ..formats import percent
-from ..registry import component
+from ..formats import Display
 
-PALETTE = ("#ececfe", "#cacafb", "#9a9af8", "#6a6af4", "#000091")
-SEUILS_TAUX = (0.15, 0.25, 0.35, 0.50)
 COULEUR_FOCUS = "#000000"
 COULEUR_SANS_DONNEE = "#e5e5e5"
 VIEWBOX_MARGIN = 0.01
 STROKE_RATIO = 0.0015
 
 
-@dataclass
-class Carte:
+@dataclass(frozen=True)
+class Echelle:
+    """`couleurs` has one more entry than `seuils`: below the first, between
+    each pair, above the last."""
+
     titre: str
-    projected: dict
-    communes: int
-    viewbox: list[float]
-    stroke: float
+    couleurs: tuple[str, ...]
+    seuils: tuple[float, ...]
+    format: Callable[[float | None], Display]
 
 
 @dataclass
@@ -40,94 +40,79 @@ class Legend:
 
 
 @dataclass
-class Carto:
-    cartes: list[Carte]
+class Carte:
+    titre: str
+    projected: dict
+    communes: int
+    viewbox: list[float]
+    stroke: float
     legend: Legend
     focus: str
 
 
-def _pourcent(taux: float) -> int:
-    return round(taux * 100)
-
-
-def _legend() -> Legend:
-    bornes = [None, *SEUILS_TAUX, None]
+def _legend(echelle: Echelle) -> Legend:
+    bornes = [None, *echelle.seuils, None]
     steps = []
-    for color, (bas, haut) in zip(PALETTE, pairwise(bornes), strict=True):
+    for color, (bas, haut) in zip(echelle.couleurs, pairwise(bornes), strict=True):
         if bas is None:
-            label = f"< {_pourcent(haut)} %"
+            label = f"< {echelle.format(haut).label}"
         elif haut is None:
-            label = f"≥ {_pourcent(bas)} %"
+            label = f"≥ {echelle.format(bas).label}"
         else:
-            label = f"{_pourcent(bas)} à {_pourcent(haut)} %"
+            label = f"{echelle.format(bas).label} à {echelle.format(haut).label}"
         steps.append(LegendStep(color, label))
     return Legend(
-        title="Taux de financement",
+        title=echelle.titre,
         steps=steps,
         no_data=LegendStep(COULEUR_SANS_DONNEE, "n.c."),
         focus=LegendStep(COULEUR_FOCUS, "cette commune"),
     )
 
 
-def _teinte(taux: float) -> str:
-    for rang, seuil in enumerate(SEUILS_TAUX):
-        if taux < seuil:
-            return PALETTE[rang]
-    return PALETTE[-1]
+def _teinte(echelle: Echelle, valeur: float) -> str:
+    for rang, seuil in enumerate(echelle.seuils):
+        if valeur < seuil:
+            return echelle.couleurs[rang]
+    return echelle.couleurs[-1]
 
 
-def _colorise(geojson: dict, taux: dict[str, float]) -> dict:
-    """Colour each commune by its taux. The map stays the same whichever commune
-    the fiche is about: renderers outline that one from `Carto.focus`."""
+def _colorise(geojson: dict, valeurs: dict[str, float], echelle: Echelle) -> None:
+    """The map stays the same whichever commune the fiche is about: renderers
+    outline that one from `Carte.focus`."""
     for feature in geojson["features"]:
         proprietes = feature["properties"]
         code = proprietes.get("code")
-        connu = taux.get(code)
+        connue = valeurs.get(code)
         feature["properties"] = {
             "code": code,
             "nom": proprietes.get("nom", ""),
-            "taux": percent(connu).label,
-            "couleur": COULEUR_SANS_DONNEE if connu is None else _teinte(connu),
+            "valeur": echelle.format(connue).label,
+            "couleur": COULEUR_SANS_DONNEE
+            if connue is None
+            else _teinte(echelle, connue),
         }
-    return geojson
 
 
-@component(
-    name="carto",
-    description="Cartes du département et de l'intercommunalité de la commune, "
-    "colorées par taux de financement.",
-)
-def collect(context: Context) -> Result | None:
-    fiche = context.fiche
-    if fiche.famille != COMMUNE:
-        return None
-
-    territoires = [("Département", contours.par_departement, fiche.code_departement)]
-    if fiche.code_epci:
-        territoires.append(("Intercommunalité", contours.par_epci, fiche.code_epci))
-
-    cartes = []
-    for titre, recupere, cle in territoires:
-        geojson = recupere(context.connection, cle)
-        if not geojson["features"]:
-            continue
-        codes = [f["properties"]["code"] for f in geojson["features"]]
-        taux = api_collectivites.taux_par_commune(context.connection, codes)
-        _colorise(geojson, taux)
-        viewbox = _project(geojson)
-        cartes.append(
-            Carte(
-                titre=titre,
-                projected=geojson,
-                communes=len(geojson["features"]),
-                viewbox=viewbox,
-                stroke=max(viewbox[2], viewbox[3]) * STROKE_RATIO,
-            )
-        )
-
-    if not cartes:
-        return None
-    return Result(data=Carto(cartes, _legend(), focus=fiche.code_insee))
+def choroplethe(
+    titre: str,
+    geojson: dict,
+    valeurs: dict[str, float],
+    echelle: Echelle,
+    focus: str,
+) -> Carte:
+    """Colour, project and frame the communes of `geojson` by their value in
+    `valeurs`, keyed by code INSEE."""
+    _colorise(geojson, valeurs, echelle)
+    viewbox = _project(geojson)
+    return Carte(
+        titre=titre,
+        projected=geojson,
+        communes=len(geojson["features"]),
+        viewbox=viewbox,
+        stroke=max(viewbox[2], viewbox[3]) * STROKE_RATIO,
+        legend=_legend(echelle),
+        focus=focus,
+    )
 
 
 def _points(coordinates):

@@ -152,13 +152,15 @@ sources ni les collectes ne bougent.
 ## Choix des composants
 
 `--component` en ligne de commande, `?component=` en HTTP, les deux attendant
-une liste séparée par des virgules ; sans l'option, tous sont rendus.
+une liste séparée par des virgules ; sans l'option, tous sont rendus. `carto.*`
+désigne tous les composants sous `carto`.
 
 | Composant | Contenu |
 | --- | --- |
 | `identite` | SIREN, code INSEE, population, superficie, densité, rattachements |
 | `programmes` | ACV, PVD, Territoires d'industrie, Villages d'avenir |
-| `carto` | les deux choroplèthes, colorées par taux de financement |
+| `carto.financements.departement` | les communes du département, colorées par taux de financement |
+| `carto.financements.interco` | les communes de l'intercommunalité, colorées par taux de financement |
 | `chiffres` | tuiles, histogramme annuel, répartition par dispositif |
 | `historique` | l'historique ligne à ligne des financements reçus |
 | `competences` | compétences Banatic, pour un groupement |

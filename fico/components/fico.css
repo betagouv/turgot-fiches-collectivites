@@ -114,12 +114,6 @@
 
   /* Carto */
 
-  .maps {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
-    gap: 1rem;
-  }
-
   .map {
     display: block;
     width: 100%;
