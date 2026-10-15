@@ -1,7 +1,4 @@
-// Base of every <fico-*> element: fetch the component's JSON from `src`, unless
-// `data` was set before the element joined the page, then lay it out with
-// `render`. The data is already computed and formatted server side; elements
-// only build markup.
+// Helpers shared by the components' modules.
 
 const ENTITIES = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }
 
@@ -28,26 +25,5 @@ export function applyStyles(root) {
   }
   for (const element of root.querySelectorAll("[data-outline]")) {
     element.style.border = `1.5px solid ${element.dataset.outline}`
-  }
-}
-
-export class FicoElement extends HTMLElement {
-  async connectedCallback() {
-    this.classList.add("fico")
-    if (this.data === undefined) {
-      const response = await fetch(this.getAttribute("src"))
-      // A 404 means the component has nothing to show for this collectivité.
-      if (response.status === 404) {
-        this.remove()
-        return
-      }
-      if (!response.ok) {
-        this.innerHTML = `<p class="fr-error-text">Chargement impossible (${response.status}).</p>`
-        return
-      }
-      this.data = await response.json()
-    }
-    this.innerHTML = this.render(this.data)
-    applyStyles(this)
   }
 }

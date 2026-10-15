@@ -21,7 +21,7 @@ PAGE = """<!doctype html>
 </head>
 <body>
   <main class="fr-container fr-my-4w">
-    <fico-fiche src="{src}"></fico-fiche>
+    <fico-fiche collectivite="{collectivite}" components="{components}"></fico-fiche>
   </main>
 </body>
 </html>
@@ -38,9 +38,9 @@ def home(components) -> str:
 
 
 def page(header: dict, identifiant: str, chosen) -> str:
-    names = ",".join(c.name for c in chosen)
     return PAGE.format(
         nom=escape(header["nom"]),
         dsfr=DSFR,
-        src=escape(f"/fiches/{identifiant}.json?component={names}"),
+        collectivite=escape(identifiant),
+        components=escape(",".join(c.name for c in chosen)),
     )

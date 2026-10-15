@@ -49,18 +49,18 @@
     <ol>
       <li>charger dans la page le CSS du DSFR et <code>fico.css</code> : les
         composants n'apportent pas leurs styles ;</li>
-      <li>importer le module du composant et placer son élément, comme
-        ci-dessous.</li>
+      <li>importer <code>component.js</code> et placer un élément
+        <code>&lt;fico-component&gt;</code> par composant, comme ci-dessous.</li>
     </ol>
     <pre><code>&lt;link rel="stylesheet" href="https://fico.example/assets/fico.css"&gt;
-&lt;script type="module" src="https://fico.example/assets/components/identite.js"&gt;&lt;/script&gt;
-&lt;fico-identite src="https://fico.example/fiches/35238/identite.json"&gt;&lt;/fico-identite&gt;</code></pre>
+&lt;script type="module" src="https://fico.example/assets/component.js"&gt;&lt;/script&gt;
+&lt;fico-component name="identite" collectivite="35238"&gt;&lt;/fico-component&gt;</code></pre>
     <p>Pour une fiche entière, <code>&lt;fico-fiche&gt;</code> charge les composants
       choisis en un seul appel et les dispose comme le PDF : deux composants
       étroits qui se suivent partagent une ligne, un composant sans données
       disparaît.</p>
     <pre><code>&lt;script type="module" src="https://fico.example/assets/fiche.js"&gt;&lt;/script&gt;
-&lt;fico-fiche src="https://fico.example/fiches/35238.json?component=identite,programmes,historique"&gt;&lt;/fico-fiche&gt;</code></pre>
+&lt;fico-fiche collectivite="35238" components="identite,programmes,historique"&gt;&lt;/fico-fiche&gt;</code></pre>
   </main>
 </body>
 </html>

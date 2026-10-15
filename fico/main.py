@@ -12,7 +12,7 @@ from .render import html
 from .sources.collectivites import NotFound
 
 ASSETS = Path(components.__file__).parent
-SHARED_ASSETS = {"common.js", "fiche.js", "fico.css"}
+SHARED_ASSETS = {"common.js", "component.js", "fiche.js", "fico.css"}
 
 
 app = FastAPI(title="Fico")

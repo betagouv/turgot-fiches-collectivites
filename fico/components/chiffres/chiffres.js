@@ -1,4 +1,4 @@
-import { FicoElement, escape, panel } from "/assets/common.js"
+import { escape, panel } from "/assets/common.js"
 
 function tile(periode, t) {
   return `<div class="fr-callout fr-p-2w fr-mb-0">
@@ -34,16 +34,11 @@ function financeurs(data) {
   return `<table class="amounts"><tbody>${rows}</tbody></table>`
 }
 
-customElements.define(
-  "fico-chiffres",
-  class extends FicoElement {
-    render(data) {
-      return `<h2>Financements reçus</h2>
-        <div class="tiles">${data.tiles.map((t) => tile(data.periode, t)).join("")}</div>
-        <div class="charts">
-          ${panel(`Montants reçus par année, ${data.histogram_periode}`, histogram(data))}
-          ${panel("Répartition par financeur", financeurs(data))}
-        </div>`
-    }
-  },
-)
+export function render(data) {
+  return `<h2>Financements reçus</h2>
+    <div class="tiles">${data.tiles.map((t) => tile(data.periode, t)).join("")}</div>
+    <div class="charts">
+      ${panel(`Montants reçus par année, ${data.histogram_periode}`, histogram(data))}
+      ${panel("Répartition par financeur", financeurs(data))}
+    </div>`
+}
