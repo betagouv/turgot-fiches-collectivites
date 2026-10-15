@@ -210,17 +210,21 @@ def fetch(
 RECEIVED = "f.statut IN ('Obtenu', 'Payé')"
 
 
-def financements_recus(connection: base.Connection, siren: str) -> list[dict]:
+def financements_recus(
+    connection: base.Connection, siren: str, since: int | None = None
+) -> list[dict]:
+    """From `since` on when given, the financements without a year included."""
     return connection.execute(
         f"""
         SELECT f.annee, f.source, f.montant_attribue,
                p.nom, p.budget_previsionnel
         FROM financement f JOIN projet p ON p.id = f.projet_id
-        WHERE p.siren = %s AND {RECEIVED}
+        WHERE p.siren = %(siren)s AND {RECEIVED}
+          AND (%(since)s::int IS NULL OR f.annee IS NULL OR f.annee >= %(since)s)
         ORDER BY f.annee DESC NULLS LAST,
                  f.source COLLATE "fr-x-icu", p.nom COLLATE "fr-x-icu"
         """,
-        (siren,),
+        {"siren": siren, "since": since},
     ).fetchall()
 
 

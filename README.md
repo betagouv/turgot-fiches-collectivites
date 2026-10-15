@@ -155,6 +155,20 @@ sources ni les collectes ne bougent.
 une liste séparée par des virgules ; sans l'option, tous sont rendus. `carto.*`
 désigne tous les composants sous `carto`.
 
+Certains composants acceptent des paramètres, listés par `GET /components`.
+Pour une fiche entière, ils sont préfixés par le nom du composant ; pour un
+composant seul, ils ne le sont pas :
+
+```sh
+just fiche 35238 -c identite,historique -p historique__since=2020
+curl '…/fiches/35238.pdf?component=identite,historique&historique__since=2020'
+curl '…/fiches/35238/historique.json?since=2020'
+```
+
+| Composant | Paramètre | Effet |
+| --- | --- | --- |
+| `historique` | `since` | les financements à partir de cette année, et ceux sans année |
+
 | Composant | Contenu |
 | --- | --- |
 | `identite` | SIREN, code INSEE, population, superficie, densité, rattachements |

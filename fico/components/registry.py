@@ -1,10 +1,13 @@
-from collections.abc import Callable
+import inspect
+import typing
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from fractions import Fraction
 from pathlib import Path
 
 ROOT = Path(__file__).parent
+PARAMETER_SEPARATOR = "__"
 
 
 class Access(StrEnum):
@@ -26,6 +29,14 @@ def ancestors(module: str) -> list[str]:
     return [".".join(parts[:end]) for end in range(1, len(parts))]
 
 
+class UnknownComponent(Exception):
+    pass
+
+
+class InvalidParameter(Exception):
+    pass
+
+
 @dataclass(frozen=True)
 class Component:
     name: str
@@ -33,16 +44,44 @@ class Component:
     width: Fraction
     access: Access
     collect: Callable
+    parameters: dict[str, type]
 
     def template(self, extension: str) -> Path:
         return template(self.name, extension)
+
+    def arguments(self, values: Mapping[str, str]) -> dict[str, object]:
+        """The `collect` keyword arguments from their text values."""
+        arguments = {}
+        for key, value in values.items():
+            kind = self.parameters.get(key)
+            if kind is None:
+                accepted = ", ".join(self.parameters) or "aucun"
+                raise InvalidParameter(
+                    f"{self.name} n'accepte pas le paramètre {key}. "
+                    f"Paramètres acceptés : {accepted}."
+                )
+            try:
+                arguments[key] = kind(value)
+            except ValueError:
+                raise InvalidParameter(
+                    f"{self.name} : {key}={value} n'est pas un {kind.__name__}."
+                ) from None
+        return arguments
 
 
 COMPONENTS: dict[str, Component] = {}
 
 
-class UnknownComponent(Exception):
-    pass
+def _parameters(collect: Callable) -> dict[str, type]:
+    """The parameters `collect` takes after its context, each with the type its
+    text value converts to: `since: int | None = None` is an `int`."""
+    _, *parameters = inspect.signature(collect).parameters.values()
+    kinds = {}
+    for parameter in parameters:
+        annotation = parameter.annotation
+        types = [t for t in typing.get_args(annotation) if t is not type(None)]
+        kinds[parameter.name] = types[0] if types else annotation
+    return kinds
 
 
 def component(
@@ -66,6 +105,7 @@ def component(
             width=share,
             access=access,
             collect=collect,
+            parameters=_parameters(collect),
         )
         return collect
 
@@ -122,6 +162,21 @@ def selected(
     if authenticated:
         return chosen
     return tuple(c for c in chosen if c.access is Access.PUBLIC)
+
+
+def arguments(query: Mapping[str, str]) -> dict[str, dict[str, object]]:
+    """Each component's arguments, from parameters prefixed by its name:
+    `historique__since=2020` → `{"historique": {"since": 2020}}`."""
+    values: dict[str, dict[str, str]] = {}
+    for key, value in query.items():
+        name, separator, parameter = key.rpartition(PARAMETER_SEPARATOR)
+        if not separator or name not in COMPONENTS:
+            raise InvalidParameter(
+                f"Paramètre inconnu : {key}. "
+                f"Attendu : <composant>{PARAMETER_SEPARATOR}<paramètre>."
+            )
+        values.setdefault(name, {})[parameter] = value
+    return {name: COMPONENTS[name].arguments(given) for name, given in values.items()}
 
 
 def rows(chosen) -> list[tuple[Component, ...]]:

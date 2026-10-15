@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
@@ -40,21 +40,39 @@ def _resolving(identifiant: str):
         raise HTTPException(404, f"Aucune collectivité connue pour {identifiant}.")
 
 
-def _collect(identifiant: str, requested: str | None):
-    chosen = _chosen(requested)
+def _fiche_arguments(request: Request) -> dict:
+    """A whole fiche takes each component's parameters prefixed by its name."""
+    query = {k: v for k, v in request.query_params.items() if k != "component"}
+    try:
+        return components.arguments(query)
+    except components.InvalidParameter as erreur:
+        raise HTTPException(400, str(erreur))
+
+
+def _component_arguments(request: Request, name: str) -> dict:
+    """A single component takes its parameters unprefixed."""
+    component = components.COMPONENTS.get(name)
+    if component is None:
+        raise HTTPException(400, f"Composant inconnu : {name}.")
+    try:
+        return {name: component.arguments(request.query_params)}
+    except components.InvalidParameter as erreur:
+        raise HTTPException(400, str(erreur))
+
+
+def _collect(identifiant: str, chosen, arguments: dict):
     with _resolving(identifiant):
-        return collect(identifiant, chosen)
+        return collect(identifiant, chosen, arguments)
 
 
-def _page(identifiant: str, requested: str | None) -> HTMLResponse:
-    chosen = _chosen(requested)
+def _page(identifiant: str, chosen, arguments: dict) -> HTMLResponse:
     with _resolving(identifiant):
         header = describe(identifiant)
-    return HTMLResponse(html.page(header, identifiant, chosen))
+    return HTMLResponse(html.page(header, identifiant, chosen, arguments))
 
 
-def _result(identifiant: str, name: str):
-    _, results = _collect(identifiant, name)
+def _result(identifiant: str, name: str, arguments: dict):
+    _, results = _collect(identifiant, _chosen(name), arguments)
     if name not in results:
         raise HTTPException(
             404, f"Le composant {name} n'a rien à montrer pour {identifiant}."
@@ -75,14 +93,18 @@ async def list_components():
             "description": component.description,
             "access": component.access,
             "width": str(component.width),
+            "parameters": {
+                name: kind.__name__ for name, kind in component.parameters.items()
+            },
         }
         for component in components.COMPONENTS.values()
     ]
 
 
 @app.get("/fiches/{identifiant}.pdf")
-def fiche_pdf(identifiant: str, component: str | None = None):
-    header, results = _collect(identifiant, component)
+def fiche_pdf(identifiant: str, request: Request, component: str | None = None):
+    chosen, arguments = _chosen(component), _fiche_arguments(request)
+    header, results = _collect(identifiant, chosen, arguments)
     return Response(
         content=render(header, results),
         media_type="application/pdf",
@@ -91,8 +113,9 @@ def fiche_pdf(identifiant: str, component: str | None = None):
 
 
 @app.get("/fiches/{identifiant}.json")
-def fiche_json(identifiant: str, component: str | None = None):
-    header, results = _collect(identifiant, component)
+def fiche_json(identifiant: str, request: Request, component: str | None = None):
+    chosen, arguments = _chosen(component), _fiche_arguments(request)
+    header, results = _collect(identifiant, chosen, arguments)
     lines = components.rows(components.COMPONENTS[name] for name in results)
     return {
         **header,
@@ -104,18 +127,19 @@ def fiche_json(identifiant: str, component: str | None = None):
 
 
 @app.get("/fiches/{identifiant}/{name}.json")
-def component_json(identifiant: str, name: str):
-    return _result(identifiant, name).data
+def component_json(identifiant: str, name: str, request: Request):
+    return _result(identifiant, name, _component_arguments(request, name)).data
 
 
 @app.get("/fiches/{identifiant}.html", response_class=HTMLResponse)
-def fiche_html(identifiant: str, component: str | None = None):
-    return _page(identifiant, component)
+def fiche_html(identifiant: str, request: Request, component: str | None = None):
+    return _page(identifiant, _chosen(component), _fiche_arguments(request))
 
 
 @app.get("/fiches/{identifiant}/{name}.html", response_class=HTMLResponse)
-def component_html(identifiant: str, name: str):
-    return _page(identifiant, name)
+def component_html(identifiant: str, name: str, request: Request):
+    arguments = _component_arguments(request, name)
+    return _page(identifiant, _chosen(name), arguments)
 
 
 @app.get("/assets/components/{name}.js")

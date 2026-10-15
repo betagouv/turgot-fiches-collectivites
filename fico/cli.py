@@ -11,21 +11,26 @@ from .sources.collectivites import NotFound
 from .sources.registry import Interrupted
 
 
-def build(identifiant: str, output_path: Path, chosen) -> Path:
-    header, results = collect(identifiant, chosen)
+def build(identifiant: str, output_path: Path, chosen, arguments: dict) -> Path:
+    header, results = collect(identifiant, chosen, arguments)
     output_path.write_bytes(render(header, results))
     return output_path
 
 
 def command_fiche(args) -> None:
+    query = {}
+    for parameter in args.parameter:
+        key, _, value = parameter.partition("=")
+        query[key] = value
     try:
         chosen = components.selected(args.component, authenticated=True)
-    except components.UnknownComponent as erreur:
+        arguments = components.arguments(query)
+    except (components.UnknownComponent, components.InvalidParameter) as erreur:
         sys.exit(str(erreur))
 
     output_path = args.output or Path(f"{args.identifiant}.pdf")
     try:
-        written = build(args.identifiant, output_path, chosen)
+        written = build(args.identifiant, output_path, chosen, arguments)
     except (IdentifiantInvalide, base.DatabaseMissing) as erreur:
         sys.exit(str(erreur))
     except NotFound:
@@ -98,6 +103,13 @@ def main(argv=None):
         "--component",
         help="Composants à afficher, séparés par des virgules (défaut : tous). "
         f"Disponibles : {', '.join(components.COMPONENTS)}",
+    )
+    fiche.add_argument(
+        "-p",
+        "--parameter",
+        action="append",
+        default=[],
+        help="Paramètre d'un composant, répétable, par exemple historique__since=2020",
     )
     fiche.set_defaults(run=command_fiche)
 

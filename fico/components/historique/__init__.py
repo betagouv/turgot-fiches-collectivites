@@ -25,10 +25,10 @@ class Historique:
     description="Liste des financements reçus, projet par projet, avec leur "
     "coût et leur taux de financement.",
 )
-def collect(context: Context) -> Result | None:
+def collect(context: Context, since: int | None = None) -> Result | None:
     lignes = []
     for row in api_collectivites.financements_recus(
-        context.connection, context.fiche.siren
+        context.connection, context.fiche.siren, since
     ):
         cout = row["budget_previsionnel"] or None
         montant = row["montant_attribue"]

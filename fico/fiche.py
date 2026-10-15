@@ -46,14 +46,15 @@ def describe(identifiant: str) -> dict:
         return _header(resolve(connection, identifiant))
 
 
-def collect(identifiant: str, components) -> tuple[dict, dict]:
+def collect(identifiant: str, components, arguments: dict) -> tuple[dict, dict]:
+    """`arguments` maps a component's name to its `collect` keyword arguments."""
     names = tuple(component.name for component in components)
     results = {}
     with base.connect() as connection:
         fiche = resolve(connection, identifiant)
         context = Context(fiche=fiche, connection=connection, components=names)
         for component in components:
-            result = component.collect(context)
+            result = component.collect(context, **arguments.get(component.name, {}))
             if result is not None:
                 results[component.name] = result
 
