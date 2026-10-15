@@ -2,9 +2,9 @@
 
 Chaque composant est un paquet qui porte sa collecte, décorée par `@component`,
 et un gabarit par cible de rendu nommé d'après le dernier segment de son nom :
-`identite/identite.typ`, `carto/financements/departement/departement.js`. Un
-paquet englobant peut porter des gabarits partagés par ses composants, comme
-`carto/financements/financements.typ`.
+`identite/identite.typ`, `carto/financements/financements.js`. Un paquet
+englobant peut porter des gabarits partagés par ses composants, comme
+`carto/carto.typ`.
 """
 
 from . import (  # noqa: F401
@@ -14,18 +14,17 @@ from . import (  # noqa: F401
     identite,
     programmes,
 )
-from .carto.financements import departement, interco  # noqa: F401
+from .carto import financements  # noqa: F401
 from .registry import (
     COMPONENTS,
     Access,
     Component,
+    Instance,
     InvalidParameter,
     UnknownComponent,
     ancestors,
-    arguments,
     component,
     modules,
-    names,
     order,
     rows,
     selected,
@@ -35,8 +34,8 @@ from .registry import (
 order(
     "identite",
     "programmes",
-    "carto.financements.departement",
-    "carto.financements.interco",
+    "carto.financements(perimeter=departement)",
+    "carto.financements(perimeter=interco)",
     "chiffres",
     "historique",
     "competences",
@@ -46,13 +45,12 @@ __all__ = [
     "COMPONENTS",
     "Access",
     "Component",
+    "Instance",
     "InvalidParameter",
     "UnknownComponent",
     "ancestors",
-    "arguments",
     "component",
     "modules",
-    "names",
     "order",
     "rows",
     "selected",

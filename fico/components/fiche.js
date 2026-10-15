@@ -1,7 +1,6 @@
-// <fico-fiche collectivite="35238" components="identite,historique"
-// historique__since="2020">: a whole fiche in one request, with its header and
-// sources; `components` and the parameters, prefixed by their component's name,
-// are optional. The server lists the components that have something to show and
+// <fico-fiche collectivite="35238" components="identite,historique(since=2020)">:
+// a whole fiche in one request, with its header and sources; `components` is
+// optional. The server lists the components that have something to show and
 // groups them into lines; this element only places them, handing each its data
 // so it does not fetch it again.
 
@@ -19,11 +18,6 @@ customElements.define(
       if (components) {
         url.searchParams.set("component", components)
       }
-      for (const attribute of this.attributes) {
-        if (attribute.name.includes("__")) {
-          url.searchParams.set(attribute.name, attribute.value)
-        }
-      }
       const response = await fetch(url)
       if (!response.ok) {
         this.innerHTML = `<p class="fr-error-text">Chargement impossible (${response.status}).</p>`
@@ -31,10 +25,10 @@ customElements.define(
       }
       const fiche = await response.json()
 
-      const element = ({ name, width }) => {
+      const element = ({ name, width, data }) => {
         const child = document.createElement("fico-component")
         child.setAttribute("name", name)
-        child.data = fiche.components[name]
+        child.data = data
         const [numerator, denominator = 1] = width.split("/").map(Number)
         child.style.setProperty("--width", numerator / denominator)
         return child

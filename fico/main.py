@@ -7,7 +7,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 
 from . import components
-from .fiche import IdentifiantInvalide, collect, describe, render
+from .fiche import IdentifiantInvalide, collect, collect_one, describe, render
 from .render import html
 from .sources.collectivites import NotFound
 
@@ -26,7 +26,18 @@ app.add_middleware(GZipMiddleware)
 def _chosen(requested: str | None):
     try:
         return components.selected(requested)
-    except components.UnknownComponent as erreur:
+    except (components.UnknownComponent, components.InvalidParameter) as erreur:
+        raise HTTPException(400, str(erreur))
+
+
+def _instance(name: str, request: Request) -> components.Instance:
+    """A single component takes its parameters from the query string."""
+    component = components.COMPONENTS.get(name)
+    if component is None or component.access is not components.Access.PUBLIC:
+        raise HTTPException(404, f"Composant inconnu : {name}.")
+    try:
+        return component.instance(request.query_params)
+    except components.InvalidParameter as erreur:
         raise HTTPException(400, str(erreur))
 
 
@@ -40,44 +51,15 @@ def _resolving(identifiant: str):
         raise HTTPException(404, f"Aucune collectivité connue pour {identifiant}.")
 
 
-def _fiche_arguments(request: Request) -> dict:
-    """A whole fiche takes each component's parameters prefixed by its name."""
-    query = {k: v for k, v in request.query_params.items() if k != "component"}
-    try:
-        return components.arguments(query)
-    except components.InvalidParameter as erreur:
-        raise HTTPException(400, str(erreur))
-
-
-def _component_arguments(request: Request, name: str) -> dict:
-    """A single component takes its parameters unprefixed."""
-    component = components.COMPONENTS.get(name)
-    if component is None:
-        raise HTTPException(400, f"Composant inconnu : {name}.")
-    try:
-        return {name: component.arguments(request.query_params)}
-    except components.InvalidParameter as erreur:
-        raise HTTPException(400, str(erreur))
-
-
-def _collect(identifiant: str, chosen, arguments: dict):
+def _collect(identifiant: str, chosen):
     with _resolving(identifiant):
-        return collect(identifiant, chosen, arguments)
+        return collect(identifiant, chosen)
 
 
-def _page(identifiant: str, chosen, arguments: dict) -> HTMLResponse:
+def _page(identifiant: str, chosen) -> HTMLResponse:
     with _resolving(identifiant):
         header = describe(identifiant)
-    return HTMLResponse(html.page(header, identifiant, chosen, arguments))
-
-
-def _result(identifiant: str, name: str, arguments: dict):
-    _, results = _collect(identifiant, _chosen(name), arguments)
-    if name not in results:
-        raise HTTPException(
-            404, f"Le composant {name} n'a rien à montrer pour {identifiant}."
-        )
-    return results[name]
+    return HTMLResponse(html.page(header, identifiant, chosen))
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
@@ -94,7 +76,8 @@ async def list_components():
             "access": component.access,
             "width": str(component.width),
             "parameters": {
-                name: kind.__name__ for name, kind in component.parameters.items()
+                name: parameter.describe()
+                for name, parameter in component.parameters.items()
             },
         }
         for component in components.COMPONENTS.values()
@@ -102,44 +85,41 @@ async def list_components():
 
 
 @app.get("/fiches/{identifiant}.pdf")
-def fiche_pdf(identifiant: str, request: Request, component: str | None = None):
-    chosen, arguments = _chosen(component), _fiche_arguments(request)
-    header, results = _collect(identifiant, chosen, arguments)
+def fiche_pdf(identifiant: str, component: str | None = None):
+    header, lines = _collect(identifiant, _chosen(component))
     return Response(
-        content=render(header, results),
+        content=render(header, lines),
         media_type="application/pdf",
         headers={"Content-Disposition": f'inline; filename="{identifiant}.pdf"'},
     )
 
 
 @app.get("/fiches/{identifiant}.json")
-def fiche_json(identifiant: str, request: Request, component: str | None = None):
-    chosen, arguments = _chosen(component), _fiche_arguments(request)
-    header, results = _collect(identifiant, chosen, arguments)
-    lines = components.rows(components.COMPONENTS[name] for name in results)
-    return {
-        **header,
-        "components": {name: r.data for name, r in results.items()},
-        "lines": [
-            [{"name": c.name, "width": str(c.width)} for c in line] for line in lines
-        ],
-    }
+def fiche_json(identifiant: str, component: str | None = None):
+    header, lines = _collect(identifiant, _chosen(component))
+    return {**header, "lines": lines}
 
 
 @app.get("/fiches/{identifiant}/{name}.json")
 def component_json(identifiant: str, name: str, request: Request):
-    return _result(identifiant, name, _component_arguments(request, name)).data
+    instance = _instance(name, request)
+    with _resolving(identifiant):
+        result = collect_one(identifiant, instance)
+    if result is None:
+        raise HTTPException(
+            404, f"Le composant {name} n'a rien à montrer pour {identifiant}."
+        )
+    return result.data
 
 
 @app.get("/fiches/{identifiant}.html", response_class=HTMLResponse)
-def fiche_html(identifiant: str, request: Request, component: str | None = None):
-    return _page(identifiant, _chosen(component), _fiche_arguments(request))
+def fiche_html(identifiant: str, component: str | None = None):
+    return _page(identifiant, _chosen(component))
 
 
 @app.get("/fiches/{identifiant}/{name}.html", response_class=HTMLResponse)
 def component_html(identifiant: str, name: str, request: Request):
-    arguments = _component_arguments(request, name)
-    return _page(identifiant, _chosen(name), arguments)
+    return _page(identifiant, (_instance(name, request),))
 
 
 @app.get("/assets/components/{name}.js")

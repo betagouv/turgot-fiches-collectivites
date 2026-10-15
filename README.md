@@ -47,10 +47,10 @@ just serve                            # http://127.0.0.1:8001
 
 | Endpoint | Rôle |
 | --- | --- |
-| `GET /components` | les composants : nom, description, accès, largeur |
-| `GET /fiches/{identifiant}.pdf` | la fiche en PDF, `?component=a,b` pour choisir |
-| `GET /fiches/{identifiant}.json` | les données de tous les composants, même filtre, et leurs lignes de mise en page |
-| `GET /fiches/{identifiant}/{composant}.json` | les données d'un seul composant |
+| `GET /components` | les composants : nom, description, accès, largeur, paramètres |
+| `GET /fiches/{identifiant}.pdf` | la fiche en PDF, `?component=a,b(x=1)` pour choisir |
+| `GET /fiches/{identifiant}.json` | les lignes de mise en page, chaque composant avec ses paramètres et ses données, même filtre |
+| `GET /fiches/{identifiant}/{composant}.json` | les données d'un seul composant, ses paramètres en query |
 
 Les données d'un composant sont son contrat avec tous les rendus : chaque valeur
 affichée y figure en `{"value": …, "label": …}`, la valeur brute et son libellé
@@ -152,29 +152,28 @@ sources ni les collectes ne bougent.
 ## Choix des composants
 
 `--component` en ligne de commande, `?component=` en HTTP, les deux attendant
-une liste séparée par des virgules ; sans l'option, tous sont rendus. `carto.*`
-désigne tous les composants sous `carto`.
-
-Certains composants acceptent des paramètres, listés par `GET /components`.
-Pour une fiche entière, ils sont préfixés par le nom du composant ; pour un
-composant seul, ils ne le sont pas :
+une liste séparée par des virgules ; sans l'option, la fiche par défaut est
+rendue. Un composant prend ses paramètres entre parenthèses, et peut figurer
+plusieurs fois avec des paramètres différents ; `carto.*` désigne les
+composants de la fiche par défaut qui sont sous `carto`. Un composant seul
+prend ses paramètres en query :
 
 ```sh
-just fiche 35238 -c identite,historique -p historique__since=2020
-curl '…/fiches/35238.pdf?component=identite,historique&historique__since=2020'
+just fiche 35238 -c 'identite,historique(since=2020),carto.*'
+curl '…/fiches/35238.pdf?component=carto.financements(perimeter=departement)'
 curl '…/fiches/35238/historique.json?since=2020'
 ```
 
 | Composant | Paramètre | Effet |
 | --- | --- | --- |
-| `historique` | `since` | les financements à partir de cette année, et ceux sans année |
+| `historique` | `since`, facultatif | les financements à partir de cette année, et ceux sans année |
+| `carto.financements` | `perimeter`, requis | `departement` ou `interco` |
 
 | Composant | Contenu |
 | --- | --- |
 | `identite` | SIREN, code INSEE, population, superficie, densité, rattachements |
 | `programmes` | ACV, PVD, Territoires d'industrie, Villages d'avenir |
-| `carto.financements.departement` | les communes du département, colorées par taux de financement |
-| `carto.financements.interco` | les communes de l'intercommunalité, colorées par taux de financement |
+| `carto.financements` | les communes du périmètre, colorées par taux de financement |
 | `chiffres` | tuiles, histogramme annuel, répartition par dispositif |
 | `historique` | l'historique ligne à ligne des financements reçus |
 | `competences` | compétences Banatic, pour un groupement |

@@ -1,8 +1,8 @@
 import re
 from datetime import UTC, datetime
 
-from .components import COMPONENTS
-from .context import Context
+from .components import Instance, rows
+from .context import Context, Result
 from .render import typst
 from .sources import base, collectivites
 from .sources.collectivites import COMMUNE, Fiche
@@ -46,29 +46,48 @@ def describe(identifiant: str) -> dict:
         return _header(resolve(connection, identifiant))
 
 
-def collect(identifiant: str, components, arguments: dict) -> tuple[dict, dict]:
-    """`arguments` maps a component's name to its `collect` keyword arguments."""
-    names = tuple(component.name for component in components)
-    results = {}
+def collect_one(identifiant: str, instance: Instance) -> Result | None:
+    with base.connect() as connection:
+        context = Context(fiche=resolve(connection, identifiant), connection=connection)
+        return instance.component.collect(context, **instance.arguments)
+
+
+def collect(identifiant: str, instances) -> tuple[dict, list[list[dict]]]:
+    """The header, and the lines of the instances that have something to show,
+    each with its data: the fiche's contract with every renderer."""
+    shown, data = [], {}
     with base.connect() as connection:
         fiche = resolve(connection, identifiant)
-        context = Context(fiche=fiche, connection=connection, components=names)
-        for component in components:
-            result = component.collect(context, **arguments.get(component.name, {}))
+        context = Context(fiche=fiche, connection=connection)
+        for instance in instances:
+            result = instance.component.collect(context, **instance.arguments)
             if result is not None:
-                results[component.name] = result
+                shown.append(instance)
+                data[instance.spec] = result.data
 
-    return _header(fiche), results
+    lines = [
+        [
+            {
+                "name": instance.name,
+                "parameters": instance.arguments,
+                "width": str(instance.component.width),
+                "data": data[instance.spec],
+            }
+            for instance in line
+        ]
+        for line in rows(shown)
+    ]
+    return _header(fiche), lines
 
 
-def render(header: dict, results: dict) -> bytes:
-    return typst.compile_fiche(header, results)
+def render(header: dict, lines: list[list[dict]]) -> bytes:
+    return typst.compile_fiche(header, lines)
 
 
 __all__ = [
-    "COMPONENTS",
     "IdentifiantInvalide",
     "collect",
+    "collect_one",
     "describe",
     "render",
     "resolve",

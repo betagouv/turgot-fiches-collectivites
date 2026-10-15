@@ -31,15 +31,24 @@
         <tr><td><code>GET /components</code></td><td>la liste des composants, en JSON</td></tr>
       </tbody>
     </table></div>
-    <p><code>?component=a,b</code> restreint une fiche entière (HTML, PDF, JSON) aux
-      composants choisis, <code>carto.*</code> désignant tous ceux sous
-      <code>carto</code>. Les paramètres d'un composant, listés par
-      <code>/components</code>, se passent préfixés par son nom pour une fiche
-      entière (<code>?historique__since=2020</code>), sans préfixe pour un
-      composant seul (<code>/fiches/35238/historique.json?since=2020</code>). Chaque valeur affichée figure dans le JSON en
-      <code>{"value": …, "label": …}</code> : la valeur brute et son libellé
-      formaté. Le détail des paramètres et des réponses est dans
-      <a href="/docs">la documentation OpenAPI</a>.</p>
+    <h3 class="fr-mt-4w">Paramétrage</h3>
+    <ul>
+      <li><strong>Choisir les composants d'une fiche</strong> (HTML, PDF, JSON) :
+        <code>?component=identite,historique</code>. Sans ce paramètre, la fiche
+        par défaut est rendue.</li>
+      <li><strong>Paramétrer un composant</strong> : ses paramètres entre
+        parenthèses, <code>historique(since=2020)</code>. Un même composant peut
+        figurer plusieurs fois avec des paramètres différents.</li>
+      <li><strong>Prendre une famille</strong> : <code>carto.*</code> désigne les
+        composants de la fiche par défaut qui sont sous <code>carto</code>.</li>
+      <li><strong>Composant seul</strong> : ses paramètres passent en query,
+        <code>/fiches/35238/historique.json?since=2020</code>.</li>
+      <li><strong>Paramètres disponibles</strong> : listés par
+        <code>/components</code>, avec leur type, s'ils sont requis et leurs
+        valeurs possibles.</li>
+      <li><strong>Détail des réponses</strong> : dans
+        <a href="/docs">la documentation OpenAPI</a>.</li>
+    </ul>
 
     <h2 class="fr-mt-6w">Composants</h2>
     <div class="fr-table"><table>
@@ -66,7 +75,7 @@
       étroits qui se suivent partagent une ligne, un composant sans données
       disparaît.</p>
     <pre><code>&lt;script type="module" src="https://fico.example/assets/fiche.js"&gt;&lt;/script&gt;
-&lt;fico-fiche collectivite="35238" components="identite,programmes,historique" historique__since="2020"&gt;&lt;/fico-fiche&gt;</code></pre>
+&lt;fico-fiche collectivite="35238" components="identite,programmes,historique(since=2020)"&gt;&lt;/fico-fiche&gt;</code></pre>
   </main>
 </body>
 </html>

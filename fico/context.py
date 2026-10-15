@@ -10,7 +10,6 @@ class Context:
 
     fiche: Fiche
     connection: Connection
-    components: tuple[str, ...]
 
 
 @dataclass

@@ -1,18 +1,32 @@
 import inspect
+import re
 import typing
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from enum import StrEnum
+from enum import Enum, StrEnum
 from fractions import Fraction
 from pathlib import Path
 
 ROOT = Path(__file__).parent
-PARAMETER_SEPARATOR = "__"
+
+# `identite,historique(since=2020),carto.*`: values hold neither commas nor
+# parentheses.
+ITEM = r"[\w.*]+\s*(?:\([^()]*\))?"
+SPECS = re.compile(rf"\s*{ITEM}\s*(?:,\s*{ITEM}\s*)*")
+SPEC = re.compile(r"(?P<name>[\w.*]+)\s*(?:\((?P<arguments>[^()]*)\))?")
 
 
 class Access(StrEnum):
     PUBLIC = "public"
     RESTRICTED = "restricted"
+
+
+class UnknownComponent(Exception):
+    pass
+
+
+class InvalidParameter(Exception):
+    pass
 
 
 def template(module: str, extension: str) -> Path:
@@ -24,17 +38,21 @@ def template(module: str, extension: str) -> Path:
 
 def ancestors(module: str) -> list[str]:
     """The enclosing modules, outermost first, whose templates the module's own
-    may import: `carto.financements.departement` → `carto`, `carto.financements`."""
+    may import: `carto.financements` → `carto`."""
     parts = module.split(".")
     return [".".join(parts[:end]) for end in range(1, len(parts))]
 
 
-class UnknownComponent(Exception):
-    pass
+@dataclass(frozen=True)
+class Parameter:
+    kind: type
+    required: bool
 
-
-class InvalidParameter(Exception):
-    pass
+    def describe(self) -> dict:
+        description = {"type": self.kind.__name__, "required": self.required}
+        if issubclass(self.kind, Enum):
+            description["choices"] = [choice.value for choice in self.kind]
+        return description
 
 
 @dataclass(frozen=True)
@@ -44,44 +62,80 @@ class Component:
     width: Fraction
     access: Access
     collect: Callable
-    parameters: dict[str, type]
+    parameters: dict[str, Parameter]
 
     def template(self, extension: str) -> Path:
         return template(self.name, extension)
 
-    def arguments(self, values: Mapping[str, str]) -> dict[str, object]:
-        """The `collect` keyword arguments from their text values."""
+    def instance(self, values: Mapping[str, str]) -> Instance:
+        """The component with its `collect` keyword arguments, from their text
+        values."""
         arguments = {}
         for key, value in values.items():
-            kind = self.parameters.get(key)
-            if kind is None:
+            parameter = self.parameters.get(key)
+            if parameter is None:
                 accepted = ", ".join(self.parameters) or "aucun"
                 raise InvalidParameter(
                     f"{self.name} n'accepte pas le paramètre {key}. "
                     f"Paramètres acceptés : {accepted}."
                 )
             try:
-                arguments[key] = kind(value)
+                arguments[key] = parameter.kind(value)
             except ValueError:
                 raise InvalidParameter(
-                    f"{self.name} : {key}={value} n'est pas un {kind.__name__}."
+                    f"{self.name} : {key}={value} invalide, "
+                    f"attendu : {parameter.describe()}."
                 ) from None
-        return arguments
+        missing = [
+            key
+            for key, parameter in self.parameters.items()
+            if parameter.required and key not in arguments
+        ]
+        if missing:
+            expected = {key: self.parameters[key].describe() for key in missing}
+            raise InvalidParameter(f"{self.name} : paramètre(s) requis : {expected}.")
+        ordered = {key: arguments[key] for key in self.parameters if key in arguments}
+        return Instance(self, ordered)
+
+
+@dataclass(frozen=True)
+class Instance:
+    """A component and the arguments it is collected with: a page may hold the
+    same component twice, with different arguments."""
+
+    component: Component
+    arguments: dict[str, object]
+
+    @property
+    def name(self) -> str:
+        return self.component.name
+
+    @property
+    def spec(self) -> str:
+        """`historique(since=2020)`, as `selected` reads it back."""
+        if not self.arguments:
+            return self.name
+        arguments = ",".join(f"{key}={value}" for key, value in self.arguments.items())
+        return f"{self.name}({arguments})"
 
 
 COMPONENTS: dict[str, Component] = {}
+DEFAULT: list[Instance] = []
 
 
-def _parameters(collect: Callable) -> dict[str, type]:
+def _parameters(collect: Callable) -> dict[str, Parameter]:
     """The parameters `collect` takes after its context, each with the type its
-    text value converts to: `since: int | None = None` is an `int`."""
+    text value converts to: `since: int | None = None` is an optional `int`."""
     _, *parameters = inspect.signature(collect).parameters.values()
-    kinds = {}
+    found = {}
     for parameter in parameters:
         annotation = parameter.annotation
         types = [t for t in typing.get_args(annotation) if t is not type(None)]
-        kinds[parameter.name] = types[0] if types else annotation
-    return kinds
+        found[parameter.name] = Parameter(
+            kind=types[0] if types else annotation,
+            required=parameter.default is inspect.Parameter.empty,
+        )
+    return found
 
 
 def component(
@@ -89,8 +143,8 @@ def component(
     width: str = "1",
     access: Access = Access.PUBLIC,
 ):
-    """The component is named after its package: `components/carto/financements/
-    departement/` is `carto.financements.departement`.
+    """The component is named after its package: `components/carto/financements/`
+    is `carto.financements`.
 
     `width` is the share of a line the content needs, as "1/3", "1/2" or "1"."""
     share = Fraction(width)
@@ -117,77 +171,76 @@ def modules() -> set[str]:
     return {module for name in COMPONENTS for module in (*ancestors(name), name)}
 
 
-def order(*names: str) -> None:
-    """Fixe l'ordre d'apparition des composants dans la page."""
-    declared, wanted = set(COMPONENTS), set(names)
+def _instances(spec: str) -> list[Instance]:
+    """`carto.*` stands for every default instance under `carto`, in page order."""
+    match = SPEC.fullmatch(spec)
+    name, arguments = match["name"], match["arguments"]
+    if name.endswith(".*"):
+        prefix = name.removesuffix("*")
+        return [instance for instance in DEFAULT if instance.name.startswith(prefix)]
+    if name not in COMPONENTS:
+        return []
+    values = {}
+    for argument in (arguments or "").split(","):
+        if argument.strip():
+            key, _, value = argument.partition("=")
+            values[key.strip()] = value.strip()
+    return [COMPONENTS[name].instance(values)]
+
+
+def _parse(requested: str) -> list[Instance]:
+    if not SPECS.fullmatch(requested):
+        raise UnknownComponent(
+            f"Composants illisibles : {requested}. "
+            f"Attendu par exemple : identite,historique(since=2020),carto.*"
+        )
+    specs = [match.group(0) for match in re.finditer(ITEM, requested)]
+    expanded = {spec: _instances(spec) for spec in specs}
+    unknown = [spec for spec, instances in expanded.items() if not instances]
+    if unknown:
+        raise UnknownComponent(
+            f"Composant(s) inconnu(s) : {', '.join(unknown)}. "
+            f"Composants disponibles : {', '.join(COMPONENTS)}."
+        )
+    return [instance for spec in specs for instance in expanded[spec]]
+
+
+def order(*specs: str) -> None:
+    """Fixe les composants d'une fiche par défaut et leur ordre d'apparition."""
+    DEFAULT[:] = _parse(",".join(specs))
+    declared = set(COMPONENTS)
+    wanted = {instance.name for instance in DEFAULT}
     if declared != wanted:
         raise UnknownComponent(
             f"L'ordre ne couvre pas les composants déclarés : "
-            f"manquants {sorted(declared - wanted)}, "
-            f"inconnus {sorted(wanted - declared)}."
+            f"manquants {sorted(declared - wanted)}."
         )
+    names = dict.fromkeys(instance.name for instance in DEFAULT)
     ordered = {name: COMPONENTS[name] for name in names}
     COMPONENTS.clear()
     COMPONENTS.update(ordered)
 
 
-def names() -> tuple[str, ...]:
-    return tuple(COMPONENTS)
-
-
-def _expand(pattern: str) -> list[str]:
-    """`carto.*` stands for every component under `carto`, in page order."""
-    if not pattern.endswith(".*"):
-        return [pattern] if pattern in COMPONENTS else []
-    prefix = pattern.removesuffix("*")
-    return [name for name in COMPONENTS if name.startswith(prefix)]
-
-
 def selected(
     requested: str | None, authenticated: bool = False
-) -> tuple[Component, ...]:
-    if requested:
-        patterns = [part.strip() for part in requested.split(",") if part.strip()]
-        expanded = {pattern: _expand(pattern) for pattern in patterns}
-        unknown = [pattern for pattern, names in expanded.items() if not names]
-        if unknown:
-            raise UnknownComponent(
-                f"Composant(s) inconnu(s) : {', '.join(unknown)}. "
-                f"Composants disponibles : {', '.join(COMPONENTS)}."
-            )
-        asked = [name for pattern in patterns for name in expanded[pattern]]
-    else:
-        asked = list(COMPONENTS)
-    chosen = tuple(COMPONENTS[name] for name in dict.fromkeys(asked))
+) -> tuple[Instance, ...]:
+    instances = _parse(requested) if requested else DEFAULT
+    unique = {instance.spec: instance for instance in instances}
     if authenticated:
-        return chosen
-    return tuple(c for c in chosen if c.access is Access.PUBLIC)
+        return tuple(unique.values())
+    return tuple(i for i in unique.values() if i.component.access is Access.PUBLIC)
 
 
-def arguments(query: Mapping[str, str]) -> dict[str, dict[str, object]]:
-    """Each component's arguments, from parameters prefixed by its name:
-    `historique__since=2020` → `{"historique": {"since": 2020}}`."""
-    values: dict[str, dict[str, str]] = {}
-    for key, value in query.items():
-        name, separator, parameter = key.rpartition(PARAMETER_SEPARATOR)
-        if not separator or name not in COMPONENTS:
-            raise InvalidParameter(
-                f"Paramètre inconnu : {key}. "
-                f"Attendu : <composant>{PARAMETER_SEPARATOR}<paramètre>."
-            )
-        values.setdefault(name, {})[parameter] = value
-    return {name: COMPONENTS[name].arguments(given) for name, given in values.items()}
-
-
-def rows(chosen) -> list[tuple[Component, ...]]:
-    """The lines of a page, in the given order: each component joins the current
+def rows(instances) -> list[tuple[Instance, ...]]:
+    """The lines of a page, in the given order: each instance joins the current
     line while their widths add up to one at most, otherwise starts the next."""
     lines, used = [], Fraction(0)
-    for component in chosen:
-        if lines and used + component.width <= 1:
-            lines[-1] = (*lines[-1], component)
-            used += component.width
+    for instance in instances:
+        width = instance.component.width
+        if lines and used + width <= 1:
+            lines[-1] = (*lines[-1], instance)
+            used += width
         else:
-            lines.append((component,))
-            used = component.width
+            lines.append((instance,))
+            used = width
     return lines
