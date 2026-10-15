@@ -7,6 +7,7 @@ fetch.
 
 import os
 from datetime import UTC, datetime
+from itertools import batched
 
 import psycopg
 from psycopg.rows import dict_row
@@ -14,6 +15,7 @@ from psycopg.rows import dict_row
 from .registry import Source, schemas
 
 URL_VARIABLE = "DATABASE_URL"
+BATCH_SIZE = 5_000
 
 FETCH_SCHEMA = """
 CREATE TABLE IF NOT EXISTS fetch_log (
@@ -49,21 +51,10 @@ def migrate(connection: Connection) -> None:
             connection.execute(schema)
 
 
-def batched(rows, size: int = 5_000):
-    batch = []
-    for row in rows:
-        batch.append(row)
-        if len(batch) == size:
-            yield batch
-            batch = []
-    if batch:
-        yield batch
-
-
 def upsert(connection: Connection, statement: str, rows) -> int:
     written = 0
     with connection.transaction(), connection.cursor() as cursor:
-        for batch in batched(rows):
+        for batch in batched(rows, BATCH_SIZE):
             cursor.executemany(statement, batch)
             written += len(batch)
     return written

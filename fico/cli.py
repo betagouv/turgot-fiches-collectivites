@@ -1,6 +1,5 @@
 import argparse
 import sys
-from inspect import signature
 from pathlib import Path
 
 import httpx
@@ -64,7 +63,7 @@ def command_fetch(args) -> None:
                 continue
             print(f"  {source.name:12} récupération…", flush=True)
             options = {}
-            if args.max_pages and "max_pages" in signature(source.fetch).parameters:
+            if args.max_pages and source.paginated:
                 options["max_pages"] = args.max_pages
             try:
                 report = source.fetch(client, connection, **options)

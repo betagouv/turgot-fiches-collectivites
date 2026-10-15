@@ -25,6 +25,7 @@ class Source:
     schedule: Schedule
     schema: str
     fetch: Callable
+    paginated: bool
 
     @property
     def interval(self) -> timedelta | None:
@@ -43,10 +44,24 @@ class Interrupted(Exception):
     so the source stays due."""
 
 
-def source(name: str, label: str, schedule: Schedule, schema: str = ""):
+def source(
+    name: str,
+    label: str,
+    schedule: Schedule,
+    schema: str = "",
+    paginated: bool = False,
+):
+    """A `paginated` source's fetch takes `max_pages`, and resumes where the
+    previous call stopped."""
+
     def decorate(fetch: Callable) -> Callable:
         SOURCES[name] = Source(
-            name=name, label=label, schedule=schedule, schema=schema, fetch=fetch
+            name=name,
+            label=label,
+            schedule=schedule,
+            schema=schema,
+            fetch=fetch,
+            paginated=paginated,
         )
         return fetch
 

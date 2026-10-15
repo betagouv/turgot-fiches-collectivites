@@ -22,6 +22,7 @@ NAME = "api-collectivites"
 URL = "https://api.collectivites.beta.gouv.fr/consultation/v1/projets"
 TOKEN_VARIABLE = "API_COLLECTIVITES_TOKEN"
 PAGE_SIZE = 1000
+ATTEMPTS = 6
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS projet (
@@ -77,15 +78,23 @@ class TokenMissing(Exception):
     pass
 
 
-def _page(client: httpx.Client, cursor: str | None) -> httpx.Response:
+def _retry_delay(response: httpx.Response, attempt: int) -> int:
+    # Retry-After may also be an HTTP date, which falls back to the backoff.
+    retry_after = response.headers.get("retry-after", "")
+    return int(retry_after) if retry_after.isdigit() else 5 * 2**attempt
+
+
+def _page(client: httpx.Client, token: str, cursor: str | None) -> httpx.Response:
     params = {"limit": PAGE_SIZE}
     if cursor:
         params["cursor"] = cursor
-    for attempt in range(6):
-        response = client.get(URL, params=params)
+    headers = {"Authorization": f"Bearer {token}"}
+    for attempt in range(ATTEMPTS):
+        response = client.get(URL, params=params, headers=headers)
         if response.status_code != 429 and response.status_code < 500:
             break
-        time.sleep(int(response.headers.get("retry-after", 5 * 2**attempt)))
+        if attempt < ATTEMPTS - 1:
+            time.sleep(_retry_delay(response, attempt))
     response.raise_for_status()
     return response
 
@@ -149,6 +158,7 @@ def _counts(connection: base.Connection) -> tuple[int, int]:
     label="API Collectivités : projets et financements consolidés",
     schedule=Schedule.DAILY,
     schema=SCHEMA,
+    paginated=True,
 )
 def fetch(
     client: httpx.Client, connection: base.Connection, max_pages: int | None = None
@@ -166,36 +176,34 @@ def fetch(
     start = time.perf_counter()
     pages = 0
     downloaded = 0
-    with httpx.Client(
-        timeout=300, headers={"Authorization": f"Bearer {token}"}
-    ) as authenticated:
-        while True:
-            response = _page(authenticated, cursor)
-            payload = response.json()
-            cursor = payload.get("nextCursor")
-            with connection.transaction(), connection.cursor() as writer:
-                for projet in payload["data"]:
-                    _store(writer, projet)
-                base.save_cursor(connection, NAME, cursor)
-            pages += 1
-            downloaded += response.num_bytes_downloaded
-            projets, financements = _counts(connection)
-            minutes = (time.perf_counter() - start) / 60
-            print(
-                f"    page {pages:>4} — {projets} projets, "
-                f"{financements} financements en base, "
-                f"{downloaded / 1e6:.1f} Mo reçus, {minutes:.1f} min",
-                flush=True,
-            )
-            if not cursor:
-                break
-            if max_pages and pages >= max_pages:
-                raise Interrupted(
-                    f"arrêt après {pages} pages et {downloaded / 1e6:.1f} Mo reçus, "
-                    f"{projets} projets en base — reprise au prochain appel"
-                )
-
     projets, financements = _counts(connection)
+    while True:
+        response = _page(client, token, cursor)
+        payload = response.json()
+        cursor = payload.get("nextCursor")
+        with connection.transaction(), connection.cursor() as writer:
+            for projet in payload["data"]:
+                _store(writer, projet)
+            base.save_cursor(connection, NAME, cursor)
+        pages += 1
+        downloaded += response.num_bytes_downloaded
+        projets += len(payload["data"])
+        financements += sum(len(p.get("financements") or []) for p in payload["data"])
+        minutes = (time.perf_counter() - start) / 60
+        print(
+            f"    page {pages:>4} — {projets} projets, "
+            f"{financements} financements en base, "
+            f"{downloaded / 1e6:.1f} Mo reçus, {minutes:.1f} min",
+            flush=True,
+        )
+        if not cursor:
+            break
+        if max_pages and pages >= max_pages:
+            raise Interrupted(
+                f"arrêt après {pages} pages et {downloaded / 1e6:.1f} Mo reçus, "
+                f"{projets} projets en base — reprise au prochain appel"
+            )
+
     return f"{projets} projets, {financements} financements"
 
 
@@ -246,26 +254,32 @@ def totaux_par_annee(connection: base.Connection, siren: str) -> list[dict]:
     ).fetchall()
 
 
+def _par_projet(siren_condition: str) -> str:
+    """Attribué and budget per projet, over the projets that publish both, as
+    upstream's own taux de financement does: a budget alone would deflate the
+    rate."""
+    return f"""
+        SELECT p.siren, p.budget_previsionnel AS budget,
+               SUM(f.montant_attribue) AS attribue
+        FROM projet p JOIN financement f ON f.projet_id = p.id
+        WHERE {siren_condition} AND {RECEIVED}
+          AND p.budget_previsionnel > 0 AND f.montant_attribue IS NOT NULL
+        GROUP BY p.id
+    """
+
+
 def taux_par_commune(connection: base.Connection, codes_insee) -> dict[str, float]:
-    """Taux de financement of the projets each commune carries, counted as
-    `cofinancement` does."""
+    """Taux de financement of the projets each commune carries."""
     codes = list(codes_insee)
     if not codes:
         return {}
+    par_projet = _par_projet(
+        "p.siren IN (SELECT siren FROM collectivite WHERE code_insee = ANY(%s))"
+    )
     rows = connection.execute(
         f"""
         SELECT c.code_insee, SUM(attribue) AS montant, SUM(budget) AS cout
-        FROM (
-            SELECT p.siren, p.budget_previsionnel AS budget,
-                   SUM(f.montant_attribue) AS attribue
-            FROM projet p JOIN financement f ON f.projet_id = p.id
-            WHERE p.siren IN (
-                      SELECT siren FROM collectivite WHERE code_insee = ANY(%s)
-                  )
-              AND {RECEIVED}
-              AND p.budget_previsionnel > 0 AND f.montant_attribue IS NOT NULL
-            GROUP BY p.id
-        ) AS par_projet
+        FROM ({par_projet}) AS par_projet
         JOIN collectivite c ON c.siren = par_projet.siren
         GROUP BY c.code_insee
         """,
@@ -275,19 +289,11 @@ def taux_par_commune(connection: base.Connection, codes_insee) -> dict[str, floa
 
 
 def cofinancement(connection: base.Connection, siren: str) -> dict:
-    """Attribué and budget over the projets that publish both, as upstream's
-    own taux de financement does: a budget alone would deflate the rate."""
+    par_projet = _par_projet("p.siren = %s")
     return connection.execute(
         f"""
         SELECT SUM(attribue) AS montant, SUM(budget) AS cout, COUNT(*) AS projets
-        FROM (
-            SELECT p.budget_previsionnel AS budget,
-                   SUM(f.montant_attribue) AS attribue
-            FROM projet p JOIN financement f ON f.projet_id = p.id
-            WHERE p.siren = %s AND {RECEIVED}
-              AND p.budget_previsionnel > 0 AND f.montant_attribue IS NOT NULL
-            GROUP BY p.id
-        ) AS par_projet
+        FROM ({par_projet}) AS par_projet
         """,
         (siren,),
     ).fetchone()
