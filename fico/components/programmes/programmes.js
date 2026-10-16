@@ -10,8 +10,8 @@ export function render(data) {
         programme.depuis.value === null
           ? ""
           : ` <span class="muted fr-text--xs">depuis le ${escape(programme.depuis.label)}</span>`
-      return `<li><span class="fr-tag fr-tag--sm">${escape(programme.nom)}</span>${depuis}</li>`
+      return `<li><strong>${escape(programme.nom)}</strong>${depuis}</li>`
     })
     .join("")
-  return panel("Programmes", `<ul class="fr-raw-list">${items}</ul>`)
+  return panel("Programmes", `<ul>${items}</ul>`)
 }

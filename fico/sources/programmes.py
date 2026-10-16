@@ -133,7 +133,8 @@ def rows(client: httpx.Client, programme: Programme):
 
 @source(
     name="programmes",
-    label="Programmes nationaux (ACV, PVD, Territoires d'industrie, Villages d'avenir)",
+    label="data.gouv.fr : programmes Action cœur de ville (liste de la Caisse des "
+    "Dépôts), Petites villes de demain, Territoires d'industrie, Villages d'avenir",
     schedule=Schedule.MONTHLY,
     schema=SCHEMA,
 )

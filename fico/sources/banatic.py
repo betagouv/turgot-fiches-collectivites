@@ -111,7 +111,8 @@ def parse(content: bytes) -> tuple[list[dict], list[tuple[str, int, str]]]:
 
 @source(
     name="banatic",
-    label="Groupements et compétences (BANATIC)",
+    label="BANATIC, base nationale sur l'intercommunalité : groupements et "
+    "compétences exercées",
     schedule=Schedule.MONTHLY,
     schema=collectivites.SCHEMA,
 )

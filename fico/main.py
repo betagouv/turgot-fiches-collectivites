@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 
-from . import components
+from . import components, sources
 from .fiche import IdentifiantInvalide, collect, collect_one, describe, render
 from .render import html
 from .sources.collectivites import NotFound
@@ -63,8 +63,9 @@ def _page(identifiant: str, chosen) -> HTMLResponse:
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
-async def home():
-    return html.home(components.COMPONENTS.values())
+async def home(request: Request):
+    base = str(request.base_url).rstrip("/")
+    return html.home(base, components.COMPONENTS.values(), sources.SOURCES.values())
 
 
 @app.get("/components")

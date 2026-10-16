@@ -155,7 +155,8 @@ def _counts(connection: base.Connection) -> tuple[int, int]:
 
 @source(
     name=NAME,
-    label="API Collectivités : projets et financements consolidés",
+    label="API Collectivités (api.collectivites.beta.gouv.fr) : projets et "
+    "financements consolidés",
     schedule=Schedule.DAILY,
     schema=SCHEMA,
     paginated=True,

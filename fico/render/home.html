@@ -75,21 +75,28 @@
       l'intégrer dans une autre application :</p>
     <ol>
       <li>charger dans la page le CSS du DSFR et <code>fico.css</code> : les
-        composants n'apportent pas leurs styles ;</li>
+        composants n'apportent pas leurs styles ;
+        <pre class="fr-ml-3w"><code>&lt;link rel="stylesheet" href="$dsfr"&gt;
+&lt;link rel="stylesheet" href="$base/assets/fico.css"&gt;</code></pre></li>
       <li>importer <code>component.js</code> et placer un élément
         <code>&lt;fico-component&gt;</code> par composant, ses paramètres en
-        attributs, comme ci-dessous.</li>
-    </ol>
-    <pre><code>&lt;link rel="stylesheet" href="https://fico.example/assets/fico.css"&gt;
-&lt;script type="module" src="https://fico.example/assets/component.js"&gt;&lt;/script&gt;
+        attributs :
+        <pre class="fr-ml-3w"><code>&lt;script type="module" src="$base/assets/component.js"&gt;&lt;/script&gt;
 &lt;fico-component name="identite" collectivite="35238"&gt;&lt;/fico-component&gt;
-&lt;fico-component name="historique" collectivite="35238" since="2020"&gt;&lt;/fico-component&gt;</code></pre>
+&lt;fico-component name="historique" collectivite="35238" since="2020"&gt;&lt;/fico-component&gt;</code></pre></li>
+    </ol>
     <p>Pour une fiche entière, <code>&lt;fico-fiche&gt;</code> charge les composants
       choisis en un seul appel et les dispose comme le PDF : deux composants
       étroits qui se suivent partagent une ligne, un composant sans données
-      disparaît.</p>
-    <pre><code>&lt;script type="module" src="https://fico.example/assets/fiche.js"&gt;&lt;/script&gt;
+      disparaît. Avec les mêmes feuilles de style :</p>
+    <pre class="fr-ml-3w"><code>&lt;script type="module" src="$base/assets/fiche.js"&gt;&lt;/script&gt;
 &lt;fico-fiche collectivite="35238" components="identite,programmes,historique(since=2020)"&gt;&lt;/fico-fiche&gt;</code></pre>
+
+    <h2 class="fr-mt-6w">Sources</h2>
+    <div class="fr-table"><table>
+      <thead><tr><th>Source</th><th>Mise à jour</th></tr></thead>
+      <tbody>$sources</tbody>
+    </table></div>
   </main>
 </body>
 </html>

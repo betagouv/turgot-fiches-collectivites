@@ -64,7 +64,7 @@ def _row(commune: dict) -> dict:
 
 @source(
     name="geoapi",
-    label="Communes : population, superficie, rattachements",
+    label="geo.api.gouv.fr : communes, population, superficie, rattachements",
     schedule=Schedule.MONTHLY,
     schema=collectivites.SCHEMA,
 )

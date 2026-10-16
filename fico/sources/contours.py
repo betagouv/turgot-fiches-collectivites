@@ -53,7 +53,8 @@ def _rows(payload: dict):
 
 @source(
     name="contours",
-    label="Contours communaux simplifiés (100 m)",
+    label="data.gouv.fr, contours administratifs : contours communaux simplifiés "
+    "à 100 m",
     schedule=Schedule.ONESHOT,
     schema=SCHEMA,
 )
