@@ -47,15 +47,22 @@ just serve                            # http://127.0.0.1:8001
 
 | Endpoint | Rôle |
 | --- | --- |
-| `GET /components` | les composants : nom, description, accès, largeur, paramètres |
+| `GET /components` | les composants : nom, description, accès, largeur, paramètres, formats de téléchargement |
 | `GET /fiches/{identifiant}.pdf` | la fiche en PDF, `?component=a,b(x=1)` pour choisir |
 | `GET /fiches/{identifiant}.json` | les lignes de mise en page, chaque composant avec ses paramètres et ses données, même filtre |
 | `GET /fiches/{identifiant}/{composant}.json` | les données d'un seul composant, ses paramètres en query |
+| `GET /fiches/{identifiant}/{composant}.{format}` | les données brutes d'un composant en fichier : `csv`, `xlsx` ou `geojson`, selon ce que le composant propose |
 
 Les données d'un composant sont son contrat avec tous les rendus : chaque valeur
 affichée y figure en `{"value": …, "label": …}`, la valeur brute et son libellé
 formaté. Les gabarits ne calculent rien ; un tiers peut reprendre la main sur la
 présentation à partir du seul JSON.
+
+Les fichiers à télécharger portent les valeurs brutes, sans mise en forme : un
+taux de 42 % y vaut `0.42`. Les tableaux se téléchargent en `csv` et `xlsx`
+(`historique`), les cartes aussi, une ligne par commune, et en `geojson`
+(`carto.financements`) ; `/components` liste les formats de chaque composant
+dans `downloads`.
 
 ## Déploiement
 
@@ -99,6 +106,7 @@ just fetch contours --force
 | `api-collectivites` | quotidien | projets et financements consolidés, accès restreint |
 | `contours` | oneshot | contours communaux simplifiés à 100 m, 35 014 communes |
 | `programmes` | mensuel | ACV, PVD, Territoires d'industrie, Villages d'avenir |
+| `rne` | mensuel | Répertoire national des élus : maires et présidents d'EPCI |
 
 `geoapi` et `banatic` remplissent une même table `collectivite`, indexée par
 SIREN, et remplacent à chaque passage leur instantané précédent : une commune
@@ -162,6 +170,8 @@ prend ses paramètres en query :
 just fiche 35238 -c 'identite,historique(since=2020),carto.*'
 curl '…/fiches/35238.pdf?component=carto.financements(perimeter=departement)'
 curl '…/fiches/35238/historique.json?since=2020'
+curl -O '…/fiches/35238/historique.xlsx?since=2020'
+curl -O '…/fiches/35238/carto.financements.geojson?perimeter=interco'
 ```
 
 | Composant | Paramètre | Effet |
@@ -171,7 +181,7 @@ curl '…/fiches/35238/historique.json?since=2020'
 
 | Composant | Contenu |
 | --- | --- |
-| `identite` | SIREN, code INSEE, population, superficie, densité, rattachements |
+| `identite` | maire ou président, SIREN, code INSEE, population, superficie, densité, rattachements |
 | `programmes` | ACV, PVD, Territoires d'industrie, Villages d'avenir |
 | `carto.financements` | les communes du périmètre, colorées par taux de financement |
 | `chiffres` | tuiles, histogramme annuel, répartition par dispositif |

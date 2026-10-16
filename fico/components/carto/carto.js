@@ -20,7 +20,7 @@ function svg(carte) {
       const p = feature.properties
       const focused = isFocus(feature)
       const stroke = focused ? carte.legend.focus.color : "#ffffff"
-      return `<path d="${pathData(feature.geometry)}" fill="${p.couleur}" stroke="${stroke}" fill-rule="evenodd"${focused ? ' class="focus"' : ""}><title>${escape(p.nom)} — ${escape(p.valeur)}</title></path>`
+      return `<path d="${pathData(feature.geometry)}" fill="${p.couleur}" stroke="${stroke}" fill-rule="evenodd"${focused ? ' class="focus"' : ""}><title>${escape(p.nom)} — ${escape(p.valeur.label)}</title></path>`
     })
     .join("")
   return `<svg class="map" viewBox="${carte.viewbox.join(" ")}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${escape(carte.titre)}">${paths}</svg>`

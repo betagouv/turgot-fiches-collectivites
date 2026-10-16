@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Fiches collectivités</title>
   <link rel="stylesheet" href="$dsfr">
+  <link rel="stylesheet" href="$dsfr_icons">
   <style>
     .logo svg {
       width: 3rem;
@@ -36,6 +37,7 @@
         <tr><td><code>GET /fiches/{identifiant}.json</code></td><td>les données de tous les composants</td></tr>
         <tr><td><code>GET /fiches/{identifiant}/{composant}.json</code></td><td>les données d'un composant</td></tr>
         <tr><td><code>GET /fiches/{identifiant}/{composant}.html</code></td><td>un composant seul, en page web</td></tr>
+        <tr><td><code>GET /fiches/{identifiant}/{composant}.{format}</code></td><td>les données brutes d'un composant en fichier : <code>csv</code>, <code>xlsx</code> ou <code>geojson</code></td></tr>
         <tr><td><code>GET /components</code></td><td>la liste des composants, en JSON</td></tr>
       </tbody>
     </table></div>
@@ -57,9 +59,16 @@
         <code>carto</code>.</li>
       <li><strong>Composant seul</strong> : ses paramètres passent en query,
         <a href="/fiches/35238/historique.html?since=2020"><code>/fiches/35238/historique.html?since=2020</code></a>.</li>
+      <li><strong>Télécharger les données</strong> d'un composant, en valeurs
+        brutes : les tableaux en
+        <a href="/fiches/35238/historique.csv?since=2020"><code>.csv</code></a> ou
+        <a href="/fiches/35238/historique.xlsx?since=2020"><code>.xlsx</code></a>,
+        les cartes aussi, une ligne par commune, et en
+        <a href="/fiches/35238/carto.financements.geojson?perimeter=interco"><code>.geojson</code></a>.</li>
       <li><strong>Paramètres disponibles</strong> : listés par
         <a href="/components"><code>/components</code></a>, avec leur type,
-        s'ils sont requis et leurs valeurs possibles.</li>
+        s'ils sont requis et leurs valeurs possibles, ainsi que les formats de
+        téléchargement de chaque composant.</li>
       <li><strong>Détail des réponses</strong> : dans
         <a href="/docs">la documentation OpenAPI</a>.</li>
     </ul>
@@ -74,9 +83,10 @@
     <p>Chaque composant est un web component qui charge lui-même son JSON. Pour
       l'intégrer dans une autre application :</p>
     <ol>
-      <li>charger dans la page le CSS du DSFR et <code>fico.css</code> : les
-        composants n'apportent pas leurs styles ;
+      <li>charger dans la page le CSS du DSFR, ses icônes « system » et
+        <code>fico.css</code> : les composants n'apportent pas leurs styles ;
         <pre class="fr-ml-3w"><code>&lt;link rel="stylesheet" href="$dsfr"&gt;
+&lt;link rel="stylesheet" href="$dsfr_icons"&gt;
 &lt;link rel="stylesheet" href="$base/assets/fico.css"&gt;</code></pre></li>
       <li>importer <code>component.js</code> et placer un élément
         <code>&lt;fico-component&gt;</code> par composant, ses paramètres en

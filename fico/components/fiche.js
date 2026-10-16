@@ -25,9 +25,13 @@ customElements.define(
       }
       const fiche = await response.json()
 
-      const element = ({ name, width, data }) => {
+      const element = ({ name, parameters, width, data }) => {
         const child = document.createElement("fico-component")
         child.setAttribute("name", name)
+        child.setAttribute("collectivite", this.getAttribute("collectivite"))
+        for (const [parameter, value] of Object.entries(parameters)) {
+          child.setAttribute(parameter, value)
+        }
         child.data = data
         const [numerator, denominator = 1] = width.split("/").map(Number)
         child.style.setProperty("--width", numerator / denominator)

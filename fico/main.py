@@ -1,3 +1,4 @@
+import json
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -8,11 +9,18 @@ from fastapi.responses import FileResponse, HTMLResponse
 
 from . import components, sources
 from .fiche import IdentifiantInvalide, collect, collect_one, describe, render
-from .render import html
+from .render import html, table
 from .sources.collectivites import NotFound
 
 ASSETS = Path(components.__file__).parent
 SHARED_ASSETS = {"common.js", "component.js", "fiche.js", "fico.css"}
+MEDIA_TYPES = {
+    components.Download.CSV: "text/csv; charset=utf-8",
+    components.Download.XLSX: (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    ),
+    components.Download.GEOJSON: "application/geo+json",
+}
 
 
 app = FastAPI(title="Fico")
@@ -80,6 +88,7 @@ async def list_components():
                 name: parameter.describe()
                 for name, parameter in component.parameters.items()
             },
+            "downloads": component.downloads,
         }
         for component in components.COMPONENTS.values()
     ]
@@ -101,16 +110,19 @@ def fiche_json(identifiant: str, component: str | None = None):
     return {**header, "lines": lines}
 
 
-@app.get("/fiches/{identifiant}/{name}.json")
-def component_json(identifiant: str, name: str, request: Request):
-    instance = _instance(name, request)
+def _data(identifiant: str, instance: components.Instance):
     with _resolving(identifiant):
         result = collect_one(identifiant, instance)
     if result is None:
         raise HTTPException(
-            404, f"Le composant {name} n'a rien à montrer pour {identifiant}."
+            404, f"Le composant {instance.name} n'a rien à montrer pour {identifiant}."
         )
     return result.data
+
+
+@app.get("/fiches/{identifiant}/{name}.json")
+def component_json(identifiant: str, name: str, request: Request):
+    return _data(identifiant, _instance(name, request))
 
 
 @app.get("/fiches/{identifiant}.html", response_class=HTMLResponse)
@@ -121,6 +133,31 @@ def fiche_html(identifiant: str, component: str | None = None):
 @app.get("/fiches/{identifiant}/{name}.html", response_class=HTMLResponse)
 def component_html(identifiant: str, name: str, request: Request):
     return _page(identifiant, (_instance(name, request),))
+
+
+# Declared after `.json` and `.html`, which this route would capture otherwise.
+@app.get("/fiches/{identifiant}/{name}.{extension}")
+def component_download(
+    identifiant: str, name: str, extension: components.Download, request: Request
+):
+    instance = _instance(name, request)
+    component = instance.component
+    if extension not in component.downloads:
+        raise HTTPException(404, f"{name} ne se télécharge pas en {extension}.")
+    data = _data(identifiant, instance)
+    match extension:
+        case components.Download.CSV:
+            content = table.to_csv(component.table(data))
+        case components.Download.XLSX:
+            content = table.to_xlsx(component.table(data))
+        case components.Download.GEOJSON:
+            content = json.dumps(component.geojson(data)).encode()
+    filename = f"{identifiant}-{name}.{extension}"
+    return Response(
+        content=content,
+        media_type=MEDIA_TYPES[extension],
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.get("/assets/components/{name}.js")

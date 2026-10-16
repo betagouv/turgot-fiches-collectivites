@@ -7,7 +7,9 @@ from string import Template
 
 from ..sources.registry import Schedule
 
-DSFR = "https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.15.3/dist/dsfr.min.css"
+DSFR_DIST = "https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.15.3/dist"
+DSFR = f"{DSFR_DIST}/dsfr.min.css"
+DSFR_ICONS = f"{DSFR_DIST}/utility/icons/icons-system/icons-system.min.css"
 
 HOME = Template((Path(__file__).parent / "home.html").read_text(encoding="utf-8"))
 LOGO = (Path(__file__).parent / "logo.svg").read_text(encoding="utf-8")
@@ -26,6 +28,7 @@ PAGE = """<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{nom}</title>
   <link rel="stylesheet" href="{dsfr}">
+  <link rel="stylesheet" href="{dsfr_icons}">
   <link rel="stylesheet" href="/assets/fico.css">
   <script type="module" src="/assets/fiche.js"></script>
 </head>
@@ -51,7 +54,12 @@ def home(base: str, components, sources) -> str:
         for source in sources
     )
     return HOME.substitute(
-        base=base, dsfr=DSFR, components=rows, sources=source_rows, logo=LOGO
+        base=base,
+        dsfr=DSFR,
+        dsfr_icons=DSFR_ICONS,
+        components=rows,
+        sources=source_rows,
+        logo=LOGO,
     )
 
 
@@ -59,6 +67,7 @@ def page(header: dict, identifiant: str, chosen) -> str:
     return PAGE.format(
         nom=escape(header["nom"]),
         dsfr=DSFR,
+        dsfr_icons=DSFR_ICONS,
         collectivite=escape(identifiant),
         components=escape(",".join(instance.spec for instance in chosen)),
     )

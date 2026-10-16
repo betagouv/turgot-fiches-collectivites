@@ -21,6 +21,12 @@ class Access(StrEnum):
     RESTRICTED = "restricted"
 
 
+class Download(StrEnum):
+    CSV = "csv"
+    XLSX = "xlsx"
+    GEOJSON = "geojson"
+
+
 class UnknownComponent(Exception):
     pass
 
@@ -63,9 +69,22 @@ class Component:
     access: Access
     collect: Callable
     parameters: dict[str, Parameter]
+    table: Callable | None
+    geojson: Callable | None
 
     def template(self, extension: str) -> Path:
         return template(self.name, extension)
+
+    @property
+    def downloads(self) -> list[Download]:
+        """The formats the component's data can be downloaded in, after its
+        `table` and `geojson` renderers."""
+        formats = []
+        if self.table:
+            formats += [Download.CSV, Download.XLSX]
+        if self.geojson:
+            formats.append(Download.GEOJSON)
+        return formats
 
     def instance(self, values: Mapping[str, str]) -> Instance:
         """The component with its `collect` keyword arguments, from their text
@@ -142,11 +161,16 @@ def component(
     description: str,
     width: str = "1",
     access: Access = Access.PUBLIC,
+    table: Callable | None = None,
+    geojson: Callable | None = None,
 ):
     """The component is named after its package: `components/carto/financements/`
     is `carto.financements`.
 
-    `width` is the share of a line the content needs, as "1/3", "1/2" or "1"."""
+    `width` is the share of a line the content needs, as "1/3", "1/2" or "1".
+
+    `table` and `geojson` render the component's data for download, as a
+    `Table` of raw values and as a GeoJSON dict."""
     share = Fraction(width)
 
     def decorate(collect: Callable) -> Callable:
@@ -160,6 +184,8 @@ def component(
             access=access,
             collect=collect,
             parameters=_parameters(collect),
+            table=table,
+            geojson=geojson,
         )
         return collect
 
