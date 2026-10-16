@@ -11,6 +11,7 @@ from . import (
     contours,
     geoapi,
     programmes,
+    rne,
 )
 from .registry import SOURCES, Source, UnknownSource, schemas, selected, source
 
@@ -24,6 +25,7 @@ __all__ = [
     "contours",
     "geoapi",
     "programmes",
+    "rne",
     "schemas",
     "selected",
     "source",
