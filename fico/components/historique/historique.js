@@ -6,13 +6,13 @@ export function render(data) {
   const head = COLUMNS.map((column) => `<th scope="col">${column}</th>`).join("")
   const rows = data.lignes
     .map(
-      (l) => `<tr>
-        <td>${escape(l.annee.label)}</td>
-        <td>${escape(l.financeur.label)}</td>
-        <td>${escape(l.projet.label)}</td>
-        <td class="fr-cell--right">${escape(l.cout.label)}</td>
-        <td class="fr-cell--right"><strong>${escape(l.montant.label)}</strong></td>
-        <td class="fr-cell--right">${escape(l.taux.label)}</td>
+      (ligne) => `<tr>
+        <td>${escape(ligne.annee.label)}</td>
+        <td class="fr-cell--multiline">${escape(ligne.financeur.label)}</td>
+        <td class="fr-cell--multiline">${escape(ligne.projet.label)}</td>
+        <td class="fr-cell--right">${escape(ligne.cout.label)}</td>
+        <td class="fr-cell--right"><strong>${escape(ligne.montant.label)}</strong></td>
+        <td class="fr-cell--right">${escape(ligne.taux.label)}</td>
       </tr>`,
     )
     .join("")
