@@ -8,6 +8,7 @@ from string import Template
 DSFR = "https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.15.3/dist/dsfr.min.css"
 
 HOME = Template((Path(__file__).parent / "home.html").read_text(encoding="utf-8"))
+LOGO = (Path(__file__).parent / "logo.svg").read_text(encoding="utf-8")
 
 PAGE = """<!doctype html>
 <html lang="fr" data-fr-scheme="system">
@@ -34,7 +35,7 @@ def home(components) -> str:
         f"<td>{c.width}</td></tr>"
         for c in components
     )
-    return HOME.substitute(dsfr=DSFR, components=rows)
+    return HOME.substitute(dsfr=DSFR, components=rows, logo=LOGO)
 
 
 def page(header: dict, identifiant: str, chosen) -> str:
