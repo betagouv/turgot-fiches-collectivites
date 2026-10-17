@@ -66,10 +66,12 @@ def command_fetch(args) -> None:
             if args.max_pages and source.paginated:
                 options["max_pages"] = args.max_pages
             try:
-                report = source.fetch(client, connection, **options)
+                with base.staged(connection, source):
+                    report = source.fetch(client, connection, **options)
             except Interrupted as interruption:
                 print(f"  {source.name:12} {interruption}")
                 continue
+            base.publish(connection, source)
             base.record_fetch(connection, source.name, report)
             print(f"  {source.name:12} {report}")
 

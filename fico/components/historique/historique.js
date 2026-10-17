@@ -1,6 +1,6 @@
 import { escape } from "/assets/common.js"
 
-const COLUMNS = ["Année", "Dotation", "Projet", "Coût", "Subvention", "Taux"]
+const COLUMNS = ["Année", "Financeur", "Projet", "Coût", "Subvention", "Taux"]
 
 export function render(data) {
   const head = COLUMNS.map((column) => `<th scope="col">${column}</th>`).join("")
@@ -8,7 +8,7 @@ export function render(data) {
     .map(
       (ligne) => `<tr>
         <td>${escape(ligne.annee.label)}</td>
-        <td class="fr-cell--multiline">${escape(ligne.financeur.label)}</td>
+        <td class="fr-cell--multiline">${escape(ligne.financeur.label)}${ligne.reference.value ? `<br><span class="muted fr-text--xs">${escape(ligne.reference.label)}</span>` : ""}</td>
         <td class="fr-cell--multiline">${escape(ligne.projet.label)}</td>
         <td class="fr-cell--right">${escape(ligne.cout.label)}</td>
         <td class="fr-cell--right"><strong>${escape(ligne.montant.label)}</strong></td>

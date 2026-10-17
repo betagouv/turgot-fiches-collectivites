@@ -1,42 +1,29 @@
-"""Les collectivités : communes et groupements dans une même table, indexée par
-SIREN, alimentée par `geoapi` et `banatic`."""
+"""Les collectivités : les communes de `geoapi` et les groupements de `banatic`,
+lus ensemble à travers la vue `collectivite`, une ligne par SIREN."""
 
 from dataclasses import dataclass, field
 from datetime import date
 
 from . import base
+from .registry import view
 
 COMMUNE = "commune"
 GROUPEMENT = "groupement"
 
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS collectivite (
-    siren            TEXT PRIMARY KEY,
-    famille          TEXT NOT NULL,
-    nom              TEXT NOT NULL,
-    type             TEXT NOT NULL,
-    code_insee       TEXT UNIQUE,
-    population       INTEGER,
-    superficie       DOUBLE PRECISION,
-    codes_postaux    TEXT[] NOT NULL DEFAULT '{}',
-    code_epci        TEXT,
-    nom_epci         TEXT,
-    code_departement TEXT,
-    nom_departement  TEXT,
-    code_region      TEXT,
-    nom_region       TEXT,
-    mode_financement TEXT,
-    date_creation    DATE
-);
-CREATE INDEX IF NOT EXISTS collectivite_famille ON collectivite (famille);
-
-CREATE TABLE IF NOT EXISTS competence (
-    siren TEXT NOT NULL REFERENCES collectivite (siren) ON DELETE CASCADE,
-    rang  INTEGER NOT NULL,
-    nom   TEXT NOT NULL,
-    PRIMARY KEY (siren, rang)
-);
-"""
+view(f"""
+CREATE OR REPLACE VIEW collectivite AS
+SELECT siren, '{COMMUNE}' AS famille, nom, 'COM' AS type, code_insee, population,
+       superficie, codes_postaux, code_epci, nom_epci, code_departement,
+       nom_departement, code_region, nom_region,
+       NULL::text AS mode_financement, NULL::date AS date_creation
+FROM commune
+UNION ALL
+SELECT siren, '{GROUPEMENT}', nom, type, NULL, population,
+       NULL, '{{}}', NULL, NULL, code_departement,
+       nom_departement, NULL, NULL,
+       mode_financement, date_creation
+FROM groupement
+""")
 
 
 class NotFound(Exception):

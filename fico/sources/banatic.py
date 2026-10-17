@@ -15,7 +15,7 @@ from xml.etree.ElementTree import iterparse
 
 import httpx
 
-from . import base, collectivites
+from . import base
 from .registry import Schedule, source
 
 URL = (
@@ -28,9 +28,28 @@ NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 FIRST_COMPETENCE = "Nombre de compétences exercées"
 AFTER_COMPETENCES = "Adhésion siren"
 
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS groupement (
+    siren            TEXT PRIMARY KEY,
+    nom              TEXT NOT NULL,
+    type             TEXT NOT NULL,
+    population       INTEGER,
+    code_departement TEXT,
+    nom_departement  TEXT,
+    mode_financement TEXT,
+    date_creation    DATE
+);
+
+CREATE TABLE IF NOT EXISTS competence (
+    siren TEXT NOT NULL REFERENCES groupement (siren) ON DELETE CASCADE,
+    rang  INTEGER NOT NULL,
+    nom   TEXT NOT NULL,
+    PRIMARY KEY (siren, rang)
+);
+"""
+
 COLUMNS = (
     "siren",
-    "famille",
     "nom",
     "type",
     "population",
@@ -41,7 +60,7 @@ COLUMNS = (
 )
 
 INSERT = f"""
-INSERT INTO collectivite ({", ".join(COLUMNS)})
+INSERT INTO groupement ({", ".join(COLUMNS)})
 VALUES ({", ".join(f"%({c})s" for c in COLUMNS)})
 """
 
@@ -76,7 +95,6 @@ def _groupement(cells: dict, column: dict) -> dict:
     population = cells.get(column["Population totale"])
     return {
         "siren": cells[column["N° SIREN"]],
-        "famille": collectivites.GROUPEMENT,
         "nom": cells[column["Nom du groupement"]],
         "type": cells[column["Nature juridique"]],
         "population": int(population) if population else None,
@@ -114,16 +132,12 @@ def parse(content: bytes) -> tuple[list[dict], list[tuple[str, int, str]]]:
     label="BANATIC, base nationale sur l'intercommunalité : groupements et "
     "compétences exercées",
     schedule=Schedule.MONTHLY,
-    schema=collectivites.SCHEMA,
+    schema=SCHEMA,
 )
 def fetch(client: httpx.Client, connection: base.Connection) -> str:
     response = client.get(URL, timeout=600)
     response.raise_for_status()
     groupements, competences = parse(response.content)
-    with connection.transaction():
-        connection.execute(
-            "DELETE FROM collectivite WHERE famille = %s", (collectivites.GROUPEMENT,)
-        )
-        written = base.upsert(connection, INSERT, groupements)
-        base.upsert(connection, INSERT_COMPETENCE, competences)
+    written = base.upsert(connection, INSERT, groupements)
+    base.upsert(connection, INSERT_COMPETENCE, competences)
     return f"{written} groupement(s), {len(competences)} compétence(s) exercée(s)"

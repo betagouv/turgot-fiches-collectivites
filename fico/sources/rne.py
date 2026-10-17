@@ -117,11 +117,9 @@ def fetch(client: httpx.Client, connection: base.Connection) -> str:
     resources = response.json()["resources"]
     urls = {fichier: _url(resources, fichier) for fichier in FICHIERS}
     counts = []
-    with connection.transaction():
-        connection.execute("DELETE FROM executif")
-        for fichier, url in urls.items():
-            written = base.upsert(connection, INSERT, rows(client, url, fichier))
-            counts.append(f"{written} {fichier.fonction}(s)")
+    for fichier, url in urls.items():
+        written = base.upsert(connection, INSERT, rows(client, url, fichier))
+        counts.append(f"{written} {fichier.fonction}(s)")
     return ", ".join(counts)
 
 

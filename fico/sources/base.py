@@ -3,16 +3,23 @@
 Each source declares its own tables; this module only owns the bookkeeping ones:
 when each source was last fetched, and where to resume an interrupted paginated
 fetch.
+
+A fetch writes into a schema of its own, `staging_<source>`, created from the
+source's current schema; its tables then replace the public ones in a single
+transaction, so readers see the previous snapshot until the new one is complete.
 """
 
 import os
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from itertools import batched
 
 import psycopg
+from psycopg import sql
 from psycopg.rows import dict_row
 
-from .registry import Source, schemas
+from .registry import VIEWS, Source, schemas
 
 URL_VARIABLE = "DATABASE_URL"
 BATCH_SIZE = 5_000
@@ -49,6 +56,68 @@ def migrate(connection: Connection) -> None:
         connection.execute(FETCH_SCHEMA)
         for schema in schemas():
             connection.execute(schema)
+        for view in VIEWS:
+            connection.execute(view)
+
+
+def _staging(source: Source) -> str:
+    return f"staging_{source.name}"
+
+
+def _exists(connection: Connection, schema: str) -> bool:
+    row = connection.execute(
+        "SELECT 1 FROM pg_namespace WHERE nspname = %s", (schema,)
+    ).fetchone()
+    return row is not None
+
+
+@contextmanager
+def staged(connection: Connection, source: Source) -> Iterator[None]:
+    """Within the block, the source's tables are those of its staging schema.
+
+    A paginated fetch interrupted midway resumes into the schema it left;
+    otherwise the schema starts afresh."""
+    schema = _staging(source)
+    identifier = sql.Identifier(schema)
+    resuming = saved_cursor(connection, source.name) is not None and _exists(
+        connection, schema
+    )
+    if not resuming:
+        save_cursor(connection, source.name, None)
+        connection.execute(
+            sql.SQL("DROP SCHEMA IF EXISTS {} CASCADE").format(identifier)
+        )
+        connection.execute(sql.SQL("CREATE SCHEMA {}").format(identifier))
+    connection.execute(sql.SQL("SET search_path TO {}, public").format(identifier))
+    try:
+        if not resuming:
+            connection.execute(source.schema)
+        yield
+    finally:
+        connection.execute("RESET search_path")
+
+
+def publish(connection: Connection, source: Source) -> None:
+    """Replace the source's public tables with its staged ones. Dropping a table
+    drops the views over it, hence their rebuild in the same transaction."""
+    schema = _staging(source)
+    tables = connection.execute(
+        "SELECT tablename FROM pg_tables WHERE schemaname = %s", (schema,)
+    ).fetchall()
+    with connection.transaction():
+        for row in tables:
+            table = sql.Identifier(row["tablename"])
+            connection.execute(
+                sql.SQL("DROP TABLE IF EXISTS public.{} CASCADE").format(table)
+            )
+            connection.execute(
+                sql.SQL("ALTER TABLE {}.{} SET SCHEMA public").format(
+                    sql.Identifier(schema), table
+                )
+            )
+        for view in VIEWS:
+            connection.execute(view)
+        connection.execute(sql.SQL("DROP SCHEMA {}").format(sql.Identifier(schema)))
 
 
 def upsert(connection: Connection, statement: str, rows) -> int:

@@ -9,17 +9,32 @@ https://geo.api.gouv.fr/decoupage-administratif/communes
 
 import httpx
 
-from . import base, collectivites
+from . import base
 from .registry import Schedule, source
 
 URL = "https://geo.api.gouv.fr/communes"
 FIELDS = "nom,code,siren,population,surface,codesPostaux,epci,departement,region"
 
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS commune (
+    siren            TEXT PRIMARY KEY,
+    nom              TEXT NOT NULL,
+    code_insee       TEXT NOT NULL UNIQUE,
+    population       INTEGER,
+    superficie       DOUBLE PRECISION,
+    codes_postaux    TEXT[] NOT NULL DEFAULT '{}',
+    code_epci        TEXT,
+    nom_epci         TEXT,
+    code_departement TEXT,
+    nom_departement  TEXT,
+    code_region      TEXT,
+    nom_region       TEXT
+);
+"""
+
 COLUMNS = (
     "siren",
-    "famille",
     "nom",
-    "type",
     "code_insee",
     "population",
     "superficie",
@@ -33,7 +48,7 @@ COLUMNS = (
 )
 
 INSERT = f"""
-INSERT INTO collectivite ({", ".join(COLUMNS)})
+INSERT INTO commune ({", ".join(COLUMNS)})
 VALUES ({", ".join(f"%({c})s" for c in COLUMNS)})
 """
 
@@ -45,9 +60,7 @@ def _row(commune: dict) -> dict:
     surface = commune.get("surface")
     return {
         "siren": commune["siren"],
-        "famille": collectivites.COMMUNE,
         "nom": commune["nom"],
-        "type": "COM",
         "code_insee": commune["code"],
         "population": commune.get("population"),
         # geo.api.gouv.fr gives hectares.
@@ -66,16 +79,12 @@ def _row(commune: dict) -> dict:
     name="geoapi",
     label="geo.api.gouv.fr : communes, population, superficie, rattachements",
     schedule=Schedule.MONTHLY,
-    schema=collectivites.SCHEMA,
+    schema=SCHEMA,
 )
 def fetch(client: httpx.Client, connection: base.Connection) -> str:
     response = client.get(URL, params={"fields": FIELDS})
     response.raise_for_status()
     communes = response.json()
     rows = [_row(c) for c in communes if c.get("siren")]
-    with connection.transaction():
-        connection.execute(
-            "DELETE FROM collectivite WHERE famille = %s", (collectivites.COMMUNE,)
-        )
-        written = base.upsert(connection, INSERT, rows)
+    written = base.upsert(connection, INSERT, rows)
     return f"{written} commune(s), {len(communes) - written} sans SIREN écartée(s)"

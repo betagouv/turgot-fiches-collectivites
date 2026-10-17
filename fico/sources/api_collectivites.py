@@ -48,6 +48,7 @@ CREATE INDEX IF NOT EXISTS projet_commune_insee ON projet_commune (code_insee);
 CREATE TABLE IF NOT EXISTS financement (
     projet_id         BIGINT NOT NULL REFERENCES projet (id),
     source            TEXT,
+    reference         TEXT,
     annee             INTEGER,
     montant_demande   DOUBLE PRECISION,
     montant_attribue  DOUBLE PRECISION,
@@ -69,8 +70,8 @@ INSERT_COMMUNE = "INSERT INTO projet_commune (projet_id, code_insee) VALUES (%s,
 
 INSERT_FINANCEMENT = """
 INSERT INTO financement
-    (projet_id, source, annee, montant_demande, montant_attribue, statut)
-VALUES (%s, %s, %s, %s, %s, %s)
+    (projet_id, source, reference, annee, montant_demande, montant_attribue, statut)
+VALUES (%s, %s, %s, %s, %s, %s, %s)
 """
 
 
@@ -135,6 +136,7 @@ def _store(cursor: psycopg.Cursor, projet: dict) -> None:
             (
                 projet_id,
                 f.get("source"),
+                f.get("referenceExterne"),
                 int(f["dateAttribution"][:4]) if f.get("dateAttribution") else None,
                 f.get("montantDemande"),
                 f.get("montantAttribue"),
@@ -169,11 +171,6 @@ def fetch(
         raise TokenMissing(f"Variable {TOKEN_VARIABLE} absente de l'environnement.")
 
     cursor = base.saved_cursor(connection, NAME)
-    if cursor is None:
-        # Upstream rebuilds its base without stable identifiers, so a fresh
-        # snapshot replaces the previous one instead of merging into it.
-        connection.execute("TRUNCATE financement, projet_commune, projet")
-
     start = time.perf_counter()
     pages = 0
     downloaded = 0
@@ -217,7 +214,7 @@ def financements_recus(
     """From `since` on when given, the financements without a year included."""
     return connection.execute(
         f"""
-        SELECT f.annee, f.source, f.montant_attribue,
+        SELECT f.annee, f.source, f.reference, f.montant_attribue,
                p.nom, p.budget_previsionnel
         FROM financement f JOIN projet p ON p.id = f.projet_id
         WHERE p.siren = %(siren)s AND {RECEIVED}

@@ -11,6 +11,7 @@ from ..registry import component
 class Ligne:
     annee: Display
     financeur: Display
+    reference: Display
     projet: Display
     cout: Display
     montant: Display
@@ -24,11 +25,20 @@ class Historique:
 
 def table(data: Historique) -> Table:
     return Table(
-        columns=["Année", "Dotation", "Projet", "Coût", "Subvention", "Taux"],
+        columns=[
+            "Année",
+            "Financeur",
+            "Référence financeur",
+            "Projet",
+            "Coût",
+            "Subvention",
+            "Taux",
+        ],
         rows=[
             [
                 ligne.annee.value,
                 ligne.financeur.value,
+                ligne.reference.value,
                 ligne.projet.value,
                 ligne.cout.value,
                 ligne.montant.value,
@@ -55,6 +65,7 @@ def collect(context: Context, since: int | None = None) -> Result | None:
             Ligne(
                 annee=plain(row["annee"]),
                 financeur=text(row["source"]),
+                reference=text(row["reference"]),
                 projet=text(row["nom"]),
                 cout=euros(cout),
                 montant=euros(montant),

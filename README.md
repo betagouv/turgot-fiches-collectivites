@@ -93,6 +93,12 @@ Les tables sont créées à chaque déploiement, par la phase `release` du
 Chaque source déclare son rythme. `fico fetch` ne récupère que ce qui est dû,
 `--force` passe outre.
 
+Une source s'importe dans un schéma à elle, `staging_<source>`, créé d'après sa
+structure du moment ; une fois l'import terminé, ses tables remplacent celles
+en service en une transaction. Les fiches lisent l'instantané précédent jusque
+là, et un changement de structure prend effet au réimport suivant de la source.
+Un import paginé interrompu reprend dans son schéma.
+
 ```sh
 just fetch                 # tout ce qui est dû
 just fetch geoapi,programmes
@@ -108,9 +114,10 @@ just fetch contours --force
 | `programmes` | mensuel | ACV, PVD, Territoires d'industrie, Villages d'avenir |
 | `rne` | mensuel | Répertoire national des élus : maires et présidents d'EPCI |
 
-`geoapi` et `banatic` remplissent une même table `collectivite`, indexée par
-SIREN, et remplacent à chaque passage leur instantané précédent : une commune
-fusionnée ou un groupement dissous en disparaît. L'export BANATIC, 1,5 Go
+Chaque source a ses propres tables : `geoapi` remplit `commune`, `banatic`
+`groupement` et `competence`. La vue `collectivite` les réunit, une ligne par
+SIREN. Les deux sources remplacent à chaque passage leur instantané précédent :
+une commune fusionnée ou un groupement dissous en disparaît. L'export BANATIC, 1,5 Go
 décompressé, est lu en flux, en deux minutes environ.
 
 Les financements (DETR, DSIL, DPV, Fonds vert, agences de l'eau, ADEME,
