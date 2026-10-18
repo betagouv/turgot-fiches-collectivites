@@ -14,6 +14,9 @@ from .sources.collectivites import NotFound
 
 ASSETS = Path(components.__file__).parent
 SHARED_ASSETS = {"common.js", "component.js", "fiche.js", "fico.css"}
+# Embedding pages reference unversioned URLs: a short lifetime bounds how long
+# they run the previous code after a deployment.
+ASSET_CACHE = {"Cache-Control": "public, max-age=300"}
 MEDIA_TYPES = {
     components.Download.CSV: "text/csv; charset=utf-8",
     components.Download.XLSX: (
@@ -165,11 +168,11 @@ async def component_script(name: str):
     script = components.template(name, "js")
     if name not in components.modules() or not script.exists():
         raise HTTPException(404, f"Module inconnu : {name}.")
-    return FileResponse(script, media_type="text/javascript")
+    return FileResponse(script, media_type="text/javascript", headers=ASSET_CACHE)
 
 
 @app.get("/assets/{filename}")
 async def shared_asset(filename: str):
     if filename not in SHARED_ASSETS:
         raise HTTPException(404, f"Fichier inconnu : {filename}.")
-    return FileResponse(ASSETS / filename)
+    return FileResponse(ASSETS / filename, headers=ASSET_CACHE)
