@@ -54,7 +54,7 @@ def table(data: Historique) -> Table:
     "coût et leur taux de financement.",
     table=table,
 )
-def collect(context: Context, since: int | None = None) -> Result | None:
+def collect(context: Context, since: int | None = None) -> Result:
     lignes = []
     for row in api_collectivites.financements_recus(
         context.connection, context.fiche.siren, since
@@ -72,4 +72,4 @@ def collect(context: Context, since: int | None = None) -> Result | None:
                 taux=percent(montant / cout if cout and montant else None),
             )
         )
-    return Result(data=Historique(lignes)) if lignes else None
+    return Result(data=Historique(lignes))

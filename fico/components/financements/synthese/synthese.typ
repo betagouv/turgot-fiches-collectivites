@@ -1,34 +1,34 @@
 #import "common.typ": blue, grey, muted
 
-#let tile(periode, content) = block(
+#let chiffre(value, caption, size) = {
+  v(0.5em)
+  text(size: size, weight: "bold", value.label)
+  linebreak()
+  text(size: 7.5pt, fill: muted, caption)
+}
+
+#let render(data) = block(
   fill: grey,
   stroke: (left: 2pt + blue),
   inset: (x: 10pt, y: 9pt),
   width: 100%,
   breakable: false,
   {
-    box(
-      fill: white,
-      inset: (x: 4pt, y: 2pt),
-      text(size: 6.5pt, fill: blue, weight: "medium", periode),
-    )
-    v(0.5em)
-    text(size: 13pt, weight: "bold", content.main.label)
+    text(size: 10pt, weight: "bold", data.titre)
     linebreak()
-    text(size: 7.5pt, fill: muted, content.main_caption)
-    v(0.4em)
-    text(size: 11pt, weight: "bold", content.secondary.label)
-    linebreak()
-    text(size: 7.5pt, fill: muted, content.secondary_caption)
+    if data.projets.value == 0 {
+      v(0.3em)
+      text(size: 9pt, fill: muted, style: "italic", [Aucun financement])
+    } else {
+      box(
+        fill: white,
+        inset: (x: 4pt, y: 2pt),
+        text(size: 6.5pt, fill: blue, weight: "medium", data.periode),
+      )
+      chiffre(data.montant, [reçus], 13pt)
+      chiffre(data.projets, [projets financés], 11pt)
+      chiffre(data.cout, [de coût des projets renseignés], 11pt)
+      chiffre(data.taux, [de taux de financement], 11pt)
+    }
   },
 )
-
-#let render(data) = {
-  heading(level: 2, [Financements reçus])
-
-  grid(
-    columns: (1fr, 1fr, 1fr, 1fr),
-    column-gutter: 8pt,
-    ..data.tiles.map(content => tile(data.periode, content)),
-  )
-}

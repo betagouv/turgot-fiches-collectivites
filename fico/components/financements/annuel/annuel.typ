@@ -35,7 +35,11 @@
 #let render(data) = panel(
   [Montants reçus par année, #data.periode],
   {
-    histogram(data.bars, data.ticks)
+    if data.bars.any(bar => bar.montant.value != 0) {
+      histogram(data.bars, data.ticks)
+    } else {
+      text(size: 9pt, fill: muted, style: "italic", [Aucun financement])
+    }
     if data.sans_date > 0 {
       v(0.3em)
       text(size: 7pt, fill: muted)[

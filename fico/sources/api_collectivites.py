@@ -208,6 +208,7 @@ def fetch(
 RECEIVED = "f.statut IN ('Obtenu', 'Payé')"
 # From `since` on when given, the financements without a year included.
 SINCE = "(%(since)s::int IS NULL OR f.annee IS NULL OR f.annee >= %(since)s)"
+FINANCEUR = "(%(financeur)s::text IS NULL OR f.source = %(financeur)s)"
 
 
 def financements_recus(
@@ -224,6 +225,24 @@ def financements_recus(
         """,
         {"siren": siren, "since": since},
     ).fetchall()
+
+
+def totaux(
+    connection: base.Connection,
+    siren: str,
+    since: int | None = None,
+    financeur: str | None = None,
+) -> dict:
+    return connection.execute(
+        f"""
+        SELECT SUM(f.montant_attribue) AS montant,
+               COUNT(DISTINCT f.projet_id) AS projets,
+               MIN(f.annee) AS premiere_annee, MAX(f.annee) AS derniere_annee
+        FROM financement f JOIN projet p ON p.id = f.projet_id
+        WHERE p.siren = %(siren)s AND {RECEIVED} AND {SINCE} AND {FINANCEUR}
+        """,
+        {"siren": siren, "since": since, "financeur": financeur},
+    ).fetchone()
 
 
 def totaux_par_source(
@@ -268,7 +287,7 @@ def _par_projet(siren_condition: str) -> str:
         SELECT p.siren, p.budget_previsionnel AS budget,
                SUM(f.montant_attribue) AS attribue
         FROM projet p JOIN financement f ON f.projet_id = p.id
-        WHERE {siren_condition} AND {RECEIVED} AND {SINCE}
+        WHERE {siren_condition} AND {RECEIVED} AND {SINCE} AND {FINANCEUR}
           AND p.budget_previsionnel > 0 AND f.montant_attribue IS NOT NULL
         GROUP BY p.id
     """
@@ -289,21 +308,25 @@ def taux_par_commune(connection: base.Connection, codes_insee) -> dict[str, floa
         JOIN collectivite c ON c.siren = par_projet.siren
         GROUP BY c.code_insee
         """,
-        {"codes": codes, "since": None},
+        {"codes": codes, "since": None, "financeur": None},
     ).fetchall()
     return {row["code_insee"]: row["montant"] / row["cout"] for row in rows}
 
 
 def cofinancement(
-    connection: base.Connection, siren: str, since: int | None = None
+    connection: base.Connection,
+    siren: str,
+    since: int | None = None,
+    financeur: str | None = None,
 ) -> dict:
     """A projet's whole budget counts as soon as one of its financements falls
-    from `since` on."""
+    from `since` on, or comes from `financeur`: the rate is then the share of
+    that budget the selected financements cover."""
     par_projet = _par_projet("p.siren = %(siren)s")
     return connection.execute(
         f"""
         SELECT SUM(attribue) AS montant, SUM(budget) AS cout, COUNT(*) AS projets
         FROM ({par_projet}) AS par_projet
         """,
-        {"siren": siren, "since": since},
+        {"siren": siren, "since": since, "financeur": financeur},
     ).fetchone()

@@ -7,65 +7,35 @@ from ...registry import component
 
 
 @dataclass
-class Tile:
-    main: Display
-    main_caption: str
-    secondary: Display
-    secondary_caption: str
-
-
-@dataclass
 class Synthese:
+    titre: str
     periode: str
-    tiles: list[Tile]
+    montant: Display
+    projets: Display
+    cout: Display
+    taux: Display
 
 
 @component(
-    description="Totaux des financements reçus : tous financeurs, DETR, DSIL, "
-    "Fonds vert, coût des projets et taux de financement.",
+    description="Total reçu, nombre de projets, coût des projets et taux de "
+    "financement, tous financeurs ou pour un seul.",
+    width="1/4",
 )
-def collect(context: Context, since: int | None = None) -> Result | None:
+def collect(
+    context: Context, since: int | None = None, financeur: str | None = None
+) -> Result:
     connection, siren = context.connection, context.fiche.siren
-    par_source = api_collectivites.totaux_par_source(connection, siren, since)
-    if not par_source:
-        return None
-
-    par_annee = api_collectivites.totaux_par_annee(connection, siren, since)
-    annees = [ligne["annee"] for ligne in par_annee if ligne["annee"] is not None]
-
-    cofinancement = api_collectivites.cofinancement(connection, siren, since)
+    totaux = api_collectivites.totaux(connection, siren, since, financeur)
+    cofinancement = api_collectivites.cofinancement(connection, siren, since, financeur)
     cout = cofinancement["cout"] or 0
-    taux = cofinancement["montant"] / cout if cout else None
-
-    montants = {ligne["source"]: ligne["montant"] or 0 for ligne in par_source}
-    total = sum(montants.values())
-    detr = montants.get("DETR", 0)
-    dsil = montants.get("DSIL", 0)
-    fonds_vert = montants.get("Fonds Vert", 0)
-    projets = sum(ligne["projets"] for ligne in par_source)
+    premiere, derniere = totaux["premiere_annee"], totaux["derniere_annee"]
 
     synthese = Synthese(
-        periode=f"{annees[0]} – {annees[-1]}" if annees else "",
-        tiles=[
-            Tile(
-                euros(total),
-                "reçus, tous financeurs",
-                number(projets),
-                "projets financés",
-            ),
-            Tile(euros(detr), "de DETR", euros(dsil), "de DSIL"),
-            Tile(
-                euros(fonds_vert),
-                "de Fonds vert",
-                euros(total - detr - dsil - fonds_vert),
-                "autres financeurs",
-            ),
-            Tile(
-                euros(cout),
-                "de coût des projets renseignés",
-                percent(taux),
-                "de taux de financement",
-            ),
-        ],
+        titre=financeur or "Tous financeurs",
+        periode=f"{premiere} – {derniere}" if premiere else "",
+        montant=euros(totaux["montant"]),
+        projets=number(totaux["projets"]),
+        cout=euros(cout),
+        taux=percent(cofinancement["montant"] / cout if cout else None),
     )
     return Result(data=synthese)

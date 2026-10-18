@@ -31,12 +31,10 @@ def table(data: Financeurs) -> Table:
     width="1/2",
     table=table,
 )
-def collect(context: Context, since: int | None = None) -> Result | None:
+def collect(context: Context, since: int | None = None) -> Result:
     par_source = api_collectivites.totaux_par_source(
         context.connection, context.fiche.siren, since
     )
-    if not par_source:
-        return None
     montants = {ligne["source"]: ligne["montant"] or 0 for ligne in par_source}
     total = sum(montants.values())
     financeurs = Financeurs(

@@ -1,6 +1,12 @@
 #import "common.typ": blue, grey, muted
 
 #let render(data) = {
+  if data.lignes.len() == 0 {
+    heading(level: 2, [Historique des subventions])
+    text(size: 9pt, fill: muted, style: "italic", [Aucun financement])
+    return
+  }
+
   heading(level: 2, [Historique des subventions (#data.lignes.len())])
 
   table(

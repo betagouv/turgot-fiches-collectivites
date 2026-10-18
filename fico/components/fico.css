@@ -8,12 +8,13 @@
     gap: 1rem;
   }
 
-  /* Each component grows in proportion to its share of the line; below 20rem
-     it wraps to a line of its own. */
+  /* Each component grows in proportion to its share of the line; below a
+     minimum in the same proportion (10rem for a quarter, 20rem for a half) it
+     wraps to the next line. */
   .line > * {
     display: block;
     flex: var(--width, 1) 1 0;
-    min-width: min(20rem, 100%);
+    min-width: min(calc(var(--width, 1) * 40rem), 100%);
   }
 
   /* Panels side by side keep the height of the tallest. */
@@ -42,13 +43,6 @@
   }
 
   /* Financements */
-
-  .tiles {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-  }
 
   .histogram {
     position: relative;

@@ -68,15 +68,13 @@ def table(data: Annuel) -> Table:
     width="1/2",
     table=table,
 )
-def collect(context: Context, since: int | None = None) -> Result | None:
+def collect(context: Context, since: int | None = None) -> Result:
     par_annee = api_collectivites.totaux_par_annee(
         context.connection, context.fiche.siren, since
     )
     # The current year is still running: its total would look like a drop.
     current_year = datetime.now(UTC).year
     window = range(since or current_year - YEARS, current_year)
-    if not par_annee or not window:
-        return None
 
     sans_date = sum(
         ligne["financements"] for ligne in par_annee if ligne["annee"] is None
@@ -86,7 +84,7 @@ def collect(context: Context, since: int | None = None) -> Result | None:
     top, ticks = _scale([montant for _, montant in histogram])
 
     annuel = Annuel(
-        periode=f"{window[0]} – {window[-1]}",
+        periode=f"{window[0]} – {window[-1]}" if window else f"depuis {since}",
         bars=[
             Bar(annee, compact_euros(montant), montant / top)
             for annee, montant in histogram

@@ -14,8 +14,8 @@ export function render(data) {
     data.sans_date > 0
       ? `<p class="muted fr-text--xs">${data.sans_date} financement(s) sans date d'attribution, non représenté(s).</p>`
       : ""
-  return panel(
-    `Montants reçus par année, ${data.periode}`,
-    `<div class="histogram">${ticks}<div class="histogram-bars">${bars}</div></div>${sansDate}`,
-  )
+  const chart = data.bars.some((bar) => bar.montant.value)
+    ? `<div class="histogram">${ticks}<div class="histogram-bars">${bars}</div></div>`
+    : `<p class="muted"><em>Aucun financement</em></p>`
+  return panel(`Montants reçus par année, ${data.periode}`, `${chart}${sansDate}`)
 }

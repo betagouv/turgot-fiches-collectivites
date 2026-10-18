@@ -1,16 +1,24 @@
 import { escape } from "/assets/common.js"
 
-function tile(periode, content) {
-  return `<div class="fr-callout fr-p-2w fr-mb-0">
-    <p class="fr-badge fr-badge--sm fr-badge--no-icon">${escape(periode)}</p>
-    <p class="fr-h4 fr-mt-1w fr-mb-0">${escape(content.main.label)}</p>
-    <p class="muted fr-text--xs fr-mb-0">${escape(content.main_caption)}</p>
-    <p class="fr-h5 fr-mt-1w fr-mb-0">${escape(content.secondary.label)}</p>
-    <p class="muted fr-text--xs fr-mb-0">${escape(content.secondary_caption)}</p>
-  </div>`
+function figure(value, caption, size) {
+  return `<p class="${size} fr-mt-1w fr-mb-0">${escape(value.label)}</p>
+    <p class="muted fr-text--xs fr-mb-0">${caption}</p>`
+}
+
+function figures(data) {
+  if (!data.projets.value) {
+    return `<p class="muted fr-mb-0"><em>Aucun financement</em></p>`
+  }
+  return `<p class="fr-badge fr-badge--sm fr-badge--no-icon fr-mb-0">${escape(data.periode)}</p>
+    ${figure(data.montant, "reçus", "fr-h4")}
+    ${figure(data.projets, "projets financés", "fr-h5")}
+    ${figure(data.cout, "de coût des projets renseignés", "fr-h5")}
+    ${figure(data.taux, "de taux de financement", "fr-h5")}`
 }
 
 export function render(data) {
-  return `<h2>Financements reçus</h2>
-    <div class="tiles">${data.tiles.map((content) => tile(data.periode, content)).join("")}</div>`
+  return `<section class="fr-callout fr-p-2w fr-mb-0">
+    <h3 class="fr-h6 fr-mb-1w">${escape(data.titre)}</h3>
+    ${figures(data)}
+  </section>`
 }

@@ -186,6 +186,7 @@ curl -O '…/fiches/35238/financements.carte.geojson?perimeter=interco'
 | Composant | Paramètre | Effet |
 | --- | --- | --- |
 | `financements.synthese`, `financements.financeurs`, `financements.historique` | `since`, facultatif | les financements à partir de cette année, et ceux sans année |
+| `financements.synthese` | `financeur`, facultatif | un seul financeur, tel que nommé par API Collectivités : `DSIL`, `DETR`, `Fonds Vert`… ; le coût et le taux portent alors sur les projets qu'il a financés |
 | `financements.annuel` | `since`, facultatif | les années révolues à partir de celle-ci, au lieu des cinq dernières |
 | `financements.carte` | `perimeter`, requis | `departement` ou `interco` |
 
@@ -194,7 +195,7 @@ curl -O '…/fiches/35238/financements.carte.geojson?perimeter=interco'
 | `identite` | maire ou président, SIREN, code INSEE, population, superficie, densité, rattachements |
 | `programmes` | ACV, PVD, Territoires d'industrie, Villages d'avenir |
 | `financements.carte` | les communes du périmètre, colorées par taux de financement |
-| `financements.synthese` | totaux : tous financeurs, DETR, DSIL, Fonds vert, coût et taux de financement |
+| `financements.synthese` | total reçu, nombre de projets, coût des projets et taux de financement, tous financeurs ou pour un seul |
 | `financements.annuel` | montants reçus par année, sur les cinq dernières années révolues |
 | `financements.financeurs` | répartition des montants reçus par financeur |
 | `financements.historique` | l'historique ligne à ligne des financements reçus |

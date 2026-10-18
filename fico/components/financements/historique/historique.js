@@ -3,6 +3,10 @@ import { escape } from "/assets/common.js"
 const COLUMNS = ["Année", "Financeur", "Projet", "Coût", "Subvention", "Taux"]
 
 export function render(data) {
+  if (!data.lignes.length) {
+    return `<h2>Historique des subventions</h2>
+      <p class="muted"><em>Aucun financement</em></p>`
+  }
   const head = COLUMNS.map((column) => `<th scope="col">${column}</th>`).join("")
   const rows = data.lignes
     .map(
