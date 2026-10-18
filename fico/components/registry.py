@@ -9,8 +9,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 
-# `identite,historique(since=2020),carto.*`: values hold neither commas nor
-# parentheses.
+# `identite,financements.historique(since=2020),financements.*`: values hold
+# neither commas nor parentheses.
 ITEM = r"[\w.*]+\s*(?:\([^()]*\))?"
 SPECS = re.compile(rf"\s*{ITEM}\s*(?:,\s*{ITEM}\s*)*")
 SPEC = re.compile(r"(?P<name>[\w.*]+)\s*(?:\((?P<arguments>[^()]*)\))?")
@@ -35,18 +35,11 @@ class InvalidParameter(Exception):
     pass
 
 
-def template(module: str, extension: str) -> Path:
-    """A module's template sits in its package, named after its last segment:
-    `carto.financements` → `carto/financements/financements.js`."""
-    parts = module.split(".")
+def template(name: str, extension: str) -> Path:
+    """A component's template sits in its package, named after its last segment:
+    `financements.carte` → `financements/carte/carte.js`."""
+    parts = name.split(".")
     return ROOT.joinpath(*parts, f"{parts[-1]}.{extension}")
-
-
-def ancestors(module: str) -> list[str]:
-    """The enclosing modules, outermost first, whose templates the module's own
-    may import: `carto.financements` → `carto`."""
-    parts = module.split(".")
-    return [".".join(parts[:end]) for end in range(1, len(parts))]
 
 
 @dataclass(frozen=True)
@@ -131,7 +124,7 @@ class Instance:
 
     @property
     def spec(self) -> str:
-        """`historique(since=2020)`, as `selected` reads it back."""
+        """`financements.historique(since=2020)`, as `selected` reads it back."""
         if not self.arguments:
             return self.name
         arguments = ",".join(f"{key}={value}" for key, value in self.arguments.items())
@@ -164,8 +157,8 @@ def component(
     table: Callable | None = None,
     geojson: Callable | None = None,
 ):
-    """The component is named after its package: `components/carto/financements/`
-    is `carto.financements`.
+    """The component is named after its package: `components/financements/carte/`
+    is `financements.carte`.
 
     `width` is the share of a line the content needs, as "1/3", "1/2" or "1".
 
@@ -192,13 +185,9 @@ def component(
     return decorate
 
 
-def modules() -> set[str]:
-    """Every component and enclosing module, the ones whose templates may exist."""
-    return {module for name in COMPONENTS for module in (*ancestors(name), name)}
-
-
 def _instances(spec: str) -> list[Instance]:
-    """`carto.*` stands for every default instance under `carto`, in page order."""
+    """`financements.*` stands for every default instance under `financements`,
+    in page order."""
     match = SPEC.fullmatch(spec)
     name, arguments = match["name"], match["arguments"]
     if name.endswith(".*"):
@@ -218,7 +207,8 @@ def _parse(requested: str) -> list[Instance]:
     if not SPECS.fullmatch(requested):
         raise UnknownComponent(
             f"Composants illisibles : {requested}. "
-            f"Attendu par exemple : identite,historique(since=2020),carto.*"
+            "Attendu par exemple : "
+            "identite,financements.historique(since=2020),financements.*"
         )
     specs = [match.group(0) for match in re.finditer(ITEM, requested)]
     expanded = {spec: _instances(spec) for spec in specs}

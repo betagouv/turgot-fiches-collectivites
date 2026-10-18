@@ -5,9 +5,9 @@ from enum import StrEnum
 from ....context import Context, Result
 from ....sources import api_collectivites, contours
 from ....sources.collectivites import COMMUNE
+from ...carto import Echelle, choroplethe, geojson, table
 from ...formats import percent
 from ...registry import component
-from .. import Echelle, choroplethe, geojson, table
 
 ECHELLE = Echelle(
     titre="Taux de financement",

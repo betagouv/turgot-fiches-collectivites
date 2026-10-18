@@ -16,7 +16,10 @@ import typst
 from ..components import registry as components
 
 EXTENSION = "typ"
-COMMON = Path(components.__file__).parent / "common.typ"
+LIBRARIES = [
+    Path(components.__file__).parent / library
+    for library in ("common.typ", "carto.typ")
+]
 ROOT = "fiche.typ"
 FONTS = Path(__file__).parent.parent.parent / "fonts"
 
@@ -64,12 +67,12 @@ def compile_fiche(header: dict, lines: list[list[dict]]) -> bytes:
     names = list(dict.fromkeys(entry["name"] for line in lines for entry in line))
     with TemporaryDirectory() as tmp:
         build = Path(tmp)
-        shutil.copy(COMMON, build / "common.typ")
+        for library in LIBRARIES:
+            shutil.copy(library, build / library.name)
         for name in names:
-            for module in (*components.ancestors(name), name):
-                source = components.template(module, EXTENSION)
-                if source.exists():
-                    shutil.copy(source, build / f"{module}.{EXTENSION}")
+            shutil.copy(
+                components.template(name, EXTENSION), build / f"{name}.{EXTENSION}"
+            )
 
         (build / "data.json").write_text(
             json.dumps({**header, "lines": lines}, default=asdict, ensure_ascii=False)

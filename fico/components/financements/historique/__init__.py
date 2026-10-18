@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 
-from ...context import Context, Result
-from ...render.table import Table
-from ...sources import api_collectivites
-from ..formats import Display, euros, percent, plain, text
-from ..registry import component
+from ....context import Context, Result
+from ....render.table import Table
+from ....sources import api_collectivites
+from ...formats import Display, euros, percent, plain, text
+from ...registry import component
 
 
 @dataclass

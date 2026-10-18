@@ -14,7 +14,7 @@ serve port="8001":
 fetch *args:
     uv run fico fetch {{ args }}
 
-# Render a fiche to PDF, e.g. `just fiche 35238 -c identite,carto`
+# Render a fiche to PDF, e.g. `just fiche 35238 -c identite,financements.*`
 fiche *args:
     uv run fico fiche {{ args }}
 

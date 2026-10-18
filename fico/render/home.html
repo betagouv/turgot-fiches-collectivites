@@ -45,26 +45,26 @@
     <p>Les exemples portent sur Rennes.</p>
     <ul>
       <li><strong>Choisir les composants d'une fiche</strong> (HTML, PDF, JSON) :
-        <a href="/fiches/35238.html?component=identite,historique"><code>?component=identite,historique</code></a>.
+        <a href="/fiches/35238.html?component=identite,financements.synthese"><code>?component=identite,financements.synthese</code></a>.
         Sans ce paramètre, la fiche par défaut est rendue.</li>
       <li><strong>Paramétrer un composant</strong> : ses paramètres entre
         parenthèses,
-        <a href="/fiches/35238.html?component=historique(since=2020)"><code>historique(since=2020)</code></a>.
+        <a href="/fiches/35238.html?component=financements.historique(since=2020)"><code>financements.historique(since=2020)</code></a>.
         Un même composant peut figurer plusieurs fois avec des paramètres
         différents :
-        <a href="/fiches/35238.html?component=carto.financements(perimeter=departement),carto.financements(perimeter=interco)"><code>carto.financements(perimeter=departement),carto.financements(perimeter=interco)</code></a>.</li>
+        <a href="/fiches/35238.html?component=financements.carte(perimeter=departement),financements.carte(perimeter=interco)"><code>financements.carte(perimeter=departement),financements.carte(perimeter=interco)</code></a>.</li>
       <li><strong>Prendre une famille</strong> :
-        <a href="/fiches/35238.html?component=carto.*"><code>carto.*</code></a>
+        <a href="/fiches/35238.html?component=financements.*"><code>financements.*</code></a>
         désigne les composants de la fiche par défaut qui sont sous
-        <code>carto</code>.</li>
+        <code>financements</code>.</li>
       <li><strong>Composant seul</strong> : ses paramètres passent en query,
-        <a href="/fiches/35238/historique.html?since=2020"><code>/fiches/35238/historique.html?since=2020</code></a>.</li>
+        <a href="/fiches/35238/financements.historique.html?since=2020"><code>/fiches/35238/financements.historique.html?since=2020</code></a>.</li>
       <li><strong>Télécharger les données</strong> d'un composant, en valeurs
         brutes : les tableaux en
-        <a href="/fiches/35238/historique.csv?since=2020"><code>.csv</code></a> ou
-        <a href="/fiches/35238/historique.xlsx?since=2020"><code>.xlsx</code></a>,
+        <a href="/fiches/35238/financements.historique.csv?since=2020"><code>.csv</code></a> ou
+        <a href="/fiches/35238/financements.historique.xlsx?since=2020"><code>.xlsx</code></a>,
         les cartes aussi, une ligne par commune, et en
-        <a href="/fiches/35238/carto.financements.geojson?perimeter=interco"><code>.geojson</code></a>.</li>
+        <a href="/fiches/35238/financements.carte.geojson?perimeter=interco"><code>.geojson</code></a>.</li>
       <li><strong>Paramètres disponibles</strong> : listés par
         <a href="/components"><code>/components</code></a>, avec leur type,
         s'ils sont requis et leurs valeurs possibles, ainsi que les formats de
@@ -93,14 +93,14 @@
         attributs :
         <pre class="fr-ml-3w"><code>&lt;script type="module" src="$base/assets/component.js"&gt;&lt;/script&gt;
 &lt;fico-component name="identite" collectivite="35238"&gt;&lt;/fico-component&gt;
-&lt;fico-component name="historique" collectivite="35238" since="2020"&gt;&lt;/fico-component&gt;</code></pre></li>
+&lt;fico-component name="financements.historique" collectivite="35238" since="2020"&gt;&lt;/fico-component&gt;</code></pre></li>
     </ol>
     <p>Pour une fiche entière, <code>&lt;fico-fiche&gt;</code> charge les composants
       choisis en un seul appel et les dispose comme le PDF : deux composants
       étroits qui se suivent partagent une ligne, un composant sans données
       disparaît. Avec les mêmes feuilles de style :</p>
     <pre class="fr-ml-3w"><code>&lt;script type="module" src="$base/assets/fiche.js"&gt;&lt;/script&gt;
-&lt;fico-fiche collectivite="35238" components="identite,programmes,historique(since=2020)"&gt;&lt;/fico-fiche&gt;</code></pre>
+&lt;fico-fiche collectivite="35238" components="identite,programmes,financements.historique(since=2020)"&gt;&lt;/fico-fiche&gt;</code></pre>
 
     <h2 class="fr-mt-6w">Sources</h2>
     <div class="fr-table"><table>

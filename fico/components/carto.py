@@ -6,8 +6,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from itertools import pairwise
 
-from ...render.table import Table
-from ..formats import Display
+from ..render.table import Table
+from .formats import Display
 
 COULEUR_FOCUS = "#000000"
 COULEUR_SANS_DONNEE = "#e5e5e5"

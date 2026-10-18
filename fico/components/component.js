@@ -1,4 +1,4 @@
-// <fico-component name="historique" collectivite="35238" since="2020">: fetches
+// <fico-component name="financements.historique" collectivite="35238" since="2020">: fetches
 // the component's JSON from the server this script comes from, its other
 // attributes passed as the component's parameters, unless `data` was set before
 // the element joined the page; then lays it out with the `render` exported by

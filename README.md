@@ -36,7 +36,7 @@ aux services de l'État. Le HTML, lui, charge Marianne avec le CSS du DSFR.
 ```sh
 just fiche 64008                      # écrit 64008.pdf
 just fiche 216400085 -o ahaxe.pdf
-just fiche 64008 -c identite,historique
+just fiche 64008 -c identite,financements.historique
 ```
 
 En HTTP, la page d'accueil décrit les endpoints et les composants :
@@ -59,10 +59,11 @@ formaté. Les gabarits ne calculent rien ; un tiers peut reprendre la main sur l
 présentation à partir du seul JSON.
 
 Les fichiers à télécharger portent les valeurs brutes, sans mise en forme : un
-taux de 42 % y vaut `0.42`. Les tableaux se téléchargent en `csv` et `xlsx`
-(`historique`), les cartes aussi, une ligne par commune, et en `geojson`
-(`carto.financements`) ; `/components` liste les formats de chaque composant
-dans `downloads`.
+taux de 42 % y vaut `0.42`. Les tableaux et graphiques se téléchargent en `csv`
+et `xlsx` (`financements.historique`, `financements.annuel`,
+`financements.financeurs`), les cartes aussi, une ligne par commune, et en
+`geojson` (`financements.carte`) ; `/components` liste les formats de chaque
+composant dans `downloads`.
 
 ## Déploiement
 
@@ -169,30 +170,33 @@ sources ni les collectes ne bougent.
 `--component` en ligne de commande, `?component=` en HTTP, les deux attendant
 une liste séparée par des virgules ; sans l'option, la fiche par défaut est
 rendue. Un composant prend ses paramètres entre parenthèses, et peut figurer
-plusieurs fois avec des paramètres différents ; `carto.*` désigne les
-composants de la fiche par défaut qui sont sous `carto`. Un composant seul
-prend ses paramètres en query :
+plusieurs fois avec des paramètres différents ; `financements.*` désigne les
+composants de la fiche par défaut qui sont sous `financements`. Un composant
+seul prend ses paramètres en query :
 
 ```sh
-just fiche 35238 -c 'identite,historique(since=2020),carto.*'
-curl '…/fiches/35238.pdf?component=carto.financements(perimeter=departement)'
-curl '…/fiches/35238/historique.json?since=2020'
-curl -O '…/fiches/35238/historique.xlsx?since=2020'
-curl -O '…/fiches/35238/carto.financements.geojson?perimeter=interco'
+just fiche 35238 -c 'identite,financements.historique(since=2020)'
+just fiche 35238 -c 'identite,financements.*'
+curl '…/fiches/35238.pdf?component=financements.carte(perimeter=departement)'
+curl '…/fiches/35238/financements.historique.json?since=2020'
+curl -O '…/fiches/35238/financements.historique.xlsx?since=2020'
+curl -O '…/fiches/35238/financements.carte.geojson?perimeter=interco'
 ```
 
 | Composant | Paramètre | Effet |
 | --- | --- | --- |
-| `historique` | `since`, facultatif | les financements à partir de cette année, et ceux sans année |
-| `carto.financements` | `perimeter`, requis | `departement` ou `interco` |
+| `financements.historique` | `since`, facultatif | les financements à partir de cette année, et ceux sans année |
+| `financements.carte` | `perimeter`, requis | `departement` ou `interco` |
 
 | Composant | Contenu |
 | --- | --- |
 | `identite` | maire ou président, SIREN, code INSEE, population, superficie, densité, rattachements |
 | `programmes` | ACV, PVD, Territoires d'industrie, Villages d'avenir |
-| `carto.financements` | les communes du périmètre, colorées par taux de financement |
-| `chiffres` | tuiles, histogramme annuel, répartition par dispositif |
-| `historique` | l'historique ligne à ligne des financements reçus |
+| `financements.carte` | les communes du périmètre, colorées par taux de financement |
+| `financements.synthese` | totaux : tous financeurs, DETR, DSIL, Fonds vert, coût et taux de financement |
+| `financements.annuel` | montants reçus par année, sur les cinq dernières années révolues |
+| `financements.financeurs` | répartition des montants reçus par financeur |
+| `financements.historique` | l'historique ligne à ligne des financements reçus |
 | `competences` | compétences Banatic, pour un groupement |
 
 Un composant écarté n'est pas seulement masqué : ses requêtes sont évitées.

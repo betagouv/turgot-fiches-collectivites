@@ -99,7 +99,8 @@ def main(argv=None):
         "-c",
         "--component",
         help="Composants à afficher, séparés par des virgules, avec leurs "
-        "paramètres entre parenthèses : identite,historique(since=2020),carto.* "
+        "paramètres entre parenthèses : "
+        "identite,financements.historique(since=2020),financements.* "
         f"(défaut : la fiche par défaut). "
         f"Disponibles : {', '.join(components.COMPONENTS)}",
     )

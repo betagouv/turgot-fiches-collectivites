@@ -2,19 +2,22 @@
 
 Chaque composant est un paquet qui porte sa collecte, décorée par `@component`,
 et un gabarit par cible de rendu nommé d'après le dernier segment de son nom :
-`identite/identite.typ`, `carto/financements/financements.js`. Un paquet
-englobant peut porter des gabarits partagés par ses composants, comme
-`carto/carto.typ`.
+`identite/identite.typ`, `financements/carte/carte.js`. Les gabarits partagés
+sont à la racine : `common.typ` et `common.js`, `carto.typ` et `carto.js`.
 """
 
 from . import (  # noqa: F401
-    chiffres,
     competences,
-    historique,
     identite,
     programmes,
 )
-from .carto import financements  # noqa: F401
+from .financements import (  # noqa: F401
+    annuel,
+    carte,
+    financeurs,
+    historique,
+    synthese,
+)
 from .registry import (
     COMPONENTS,
     Access,
@@ -23,9 +26,7 @@ from .registry import (
     Instance,
     InvalidParameter,
     UnknownComponent,
-    ancestors,
     component,
-    modules,
     order,
     rows,
     selected,
@@ -35,10 +36,12 @@ from .registry import (
 order(
     "identite",
     "programmes",
-    "carto.financements(perimeter=departement)",
-    "carto.financements(perimeter=interco)",
-    "chiffres",
-    "historique",
+    "financements.carte(perimeter=departement)",
+    "financements.carte(perimeter=interco)",
+    "financements.synthese",
+    "financements.annuel",
+    "financements.financeurs",
+    "financements.historique",
     "competences",
 )
 
@@ -50,9 +53,7 @@ __all__ = [
     "Instance",
     "InvalidParameter",
     "UnknownComponent",
-    "ancestors",
     "component",
-    "modules",
     "order",
     "rows",
     "selected",

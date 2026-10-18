@@ -41,19 +41,13 @@
     }
   }
 
-  /* Chiffres */
+  /* Financements */
 
   .tiles {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
     gap: 0.75rem;
     margin-bottom: 1rem;
-  }
-
-  .charts {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
-    gap: 1rem;
   }
 
   .histogram {

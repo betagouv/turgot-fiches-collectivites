@@ -1,4 +1,4 @@
-// <fico-fiche collectivite="35238" components="identite,historique(since=2020)">:
+// <fico-fiche collectivite="35238" components="identite,financements.historique(since=2020)">:
 // a whole fiche in one request, with its header and sources; `components` is
 // optional. The server lists the components that have something to show and
 // groups them into lines; this element only places them, handing each its data
