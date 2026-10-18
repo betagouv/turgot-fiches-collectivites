@@ -185,7 +185,8 @@ curl -O '…/fiches/35238/financements.carte.geojson?perimeter=interco'
 
 | Composant | Paramètre | Effet |
 | --- | --- | --- |
-| `financements.historique` | `since`, facultatif | les financements à partir de cette année, et ceux sans année |
+| `financements.synthese`, `financements.financeurs`, `financements.historique` | `since`, facultatif | les financements à partir de cette année, et ceux sans année |
+| `financements.annuel` | `since`, facultatif | les années révolues à partir de celle-ci, au lieu des cinq dernières |
 | `financements.carte` | `perimeter`, requis | `departement` ou `interco` |
 
 | Composant | Contenu |

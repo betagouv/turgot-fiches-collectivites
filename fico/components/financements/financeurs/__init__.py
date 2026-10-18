@@ -31,9 +31,9 @@ def table(data: Financeurs) -> Table:
     width="1/2",
     table=table,
 )
-def collect(context: Context) -> Result | None:
+def collect(context: Context, since: int | None = None) -> Result | None:
     par_source = api_collectivites.totaux_par_source(
-        context.connection, context.fiche.siren
+        context.connection, context.fiche.siren, since
     )
     if not par_source:
         return None

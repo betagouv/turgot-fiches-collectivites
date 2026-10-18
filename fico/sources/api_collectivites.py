@@ -206,19 +206,19 @@ def fetch(
 
 
 RECEIVED = "f.statut IN ('Obtenu', 'Payé')"
+# From `since` on when given, the financements without a year included.
+SINCE = "(%(since)s::int IS NULL OR f.annee IS NULL OR f.annee >= %(since)s)"
 
 
 def financements_recus(
     connection: base.Connection, siren: str, since: int | None = None
 ) -> list[dict]:
-    """From `since` on when given, the financements without a year included."""
     return connection.execute(
         f"""
         SELECT f.annee, f.source, f.reference, f.montant_attribue,
                p.nom, p.budget_previsionnel
         FROM financement f JOIN projet p ON p.id = f.projet_id
-        WHERE p.siren = %(siren)s AND {RECEIVED}
-          AND (%(since)s::int IS NULL OR f.annee IS NULL OR f.annee >= %(since)s)
+        WHERE p.siren = %(siren)s AND {RECEIVED} AND {SINCE}
         ORDER BY f.annee DESC NULLS LAST,
                  f.source COLLATE "fr-x-icu", p.nom COLLATE "fr-x-icu"
         """,
@@ -226,33 +226,37 @@ def financements_recus(
     ).fetchall()
 
 
-def totaux_par_source(connection: base.Connection, siren: str) -> list[dict]:
+def totaux_par_source(
+    connection: base.Connection, siren: str, since: int | None = None
+) -> list[dict]:
     return connection.execute(
         f"""
         SELECT f.source,
                SUM(f.montant_attribue) AS montant,
                COUNT(DISTINCT f.projet_id) AS projets
         FROM financement f JOIN projet p ON p.id = f.projet_id
-        WHERE p.siren = %s AND {RECEIVED}
+        WHERE p.siren = %(siren)s AND {RECEIVED} AND {SINCE}
         GROUP BY f.source
         ORDER BY montant DESC
         """,
-        (siren,),
+        {"siren": siren, "since": since},
     ).fetchall()
 
 
-def totaux_par_annee(connection: base.Connection, siren: str) -> list[dict]:
+def totaux_par_annee(
+    connection: base.Connection, siren: str, since: int | None = None
+) -> list[dict]:
     return connection.execute(
         f"""
         SELECT f.annee,
                SUM(f.montant_attribue) AS montant,
                COUNT(*) AS financements
         FROM financement f JOIN projet p ON p.id = f.projet_id
-        WHERE p.siren = %s AND {RECEIVED}
+        WHERE p.siren = %(siren)s AND {RECEIVED} AND {SINCE}
         GROUP BY f.annee
         ORDER BY f.annee
         """,
-        (siren,),
+        {"siren": siren, "since": since},
     ).fetchall()
 
 
@@ -264,7 +268,7 @@ def _par_projet(siren_condition: str) -> str:
         SELECT p.siren, p.budget_previsionnel AS budget,
                SUM(f.montant_attribue) AS attribue
         FROM projet p JOIN financement f ON f.projet_id = p.id
-        WHERE {siren_condition} AND {RECEIVED}
+        WHERE {siren_condition} AND {RECEIVED} AND {SINCE}
           AND p.budget_previsionnel > 0 AND f.montant_attribue IS NOT NULL
         GROUP BY p.id
     """
@@ -276,7 +280,7 @@ def taux_par_commune(connection: base.Connection, codes_insee) -> dict[str, floa
     if not codes:
         return {}
     par_projet = _par_projet(
-        "p.siren IN (SELECT siren FROM collectivite WHERE code_insee = ANY(%s))"
+        "p.siren IN (SELECT siren FROM collectivite WHERE code_insee = ANY(%(codes)s))"
     )
     rows = connection.execute(
         f"""
@@ -285,17 +289,21 @@ def taux_par_commune(connection: base.Connection, codes_insee) -> dict[str, floa
         JOIN collectivite c ON c.siren = par_projet.siren
         GROUP BY c.code_insee
         """,
-        (codes,),
+        {"codes": codes, "since": None},
     ).fetchall()
     return {row["code_insee"]: row["montant"] / row["cout"] for row in rows}
 
 
-def cofinancement(connection: base.Connection, siren: str) -> dict:
-    par_projet = _par_projet("p.siren = %s")
+def cofinancement(
+    connection: base.Connection, siren: str, since: int | None = None
+) -> dict:
+    """A projet's whole budget counts as soon as one of its financements falls
+    from `since` on."""
+    par_projet = _par_projet("p.siren = %(siren)s")
     return connection.execute(
         f"""
         SELECT SUM(attribue) AS montant, SUM(budget) AS cout, COUNT(*) AS projets
         FROM ({par_projet}) AS par_projet
         """,
-        (siren,),
+        {"siren": siren, "since": since},
     ).fetchone()

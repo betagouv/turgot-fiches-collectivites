@@ -41,11 +41,22 @@ PAGE = """<!doctype html>
 """
 
 
+def _parameters(component) -> str:
+    items = []
+    for name, parameter in component.parameters.items():
+        description = parameter.describe()
+        kind = "requis" if description["required"] else "facultatif"
+        choices = description.get("choices")
+        values = f" : {', '.join(choices)}" if choices else ""
+        items.append(f"<code>{name}</code> {kind}{values}")
+    return "<br>".join(items)
+
+
 def home(base: str, components, sources) -> str:
     """`base` is this server's address, so the integration examples work as is."""
     rows = "".join(
         f"<tr><td><code>{c.name}</code></td><td>{escape(c.description)}</td>"
-        f"<td>{c.width}</td></tr>"
+        f"<td>{_parameters(c)}</td><td>{c.width}</td></tr>"
         for c in components
     )
     source_rows = "".join(

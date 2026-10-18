@@ -63,23 +63,24 @@ def table(data: Annuel) -> Table:
 
 
 @component(
-    description="Montants reçus par année, sur les cinq dernières années révolues.",
+    description="Montants reçus par année révolue, sur les cinq dernières ou "
+    "depuis l'année since.",
     width="1/2",
     table=table,
 )
-def collect(context: Context) -> Result | None:
+def collect(context: Context, since: int | None = None) -> Result | None:
     par_annee = api_collectivites.totaux_par_annee(
-        context.connection, context.fiche.siren
+        context.connection, context.fiche.siren, since
     )
-    if not par_annee:
+    # The current year is still running: its total would look like a drop.
+    current_year = datetime.now(UTC).year
+    window = range(since or current_year - YEARS, current_year)
+    if not par_annee or not window:
         return None
 
     sans_date = sum(
         ligne["financements"] for ligne in par_annee if ligne["annee"] is None
     )
-    # The current year is still running: its total would look like a drop.
-    current_year = datetime.now(UTC).year
-    window = range(current_year - YEARS, current_year)
     by_year = {ligne["annee"]: ligne["montant"] or 0 for ligne in par_annee}
     histogram = [(annee, by_year.get(annee, 0)) for annee in window]
     top, ticks = _scale([montant for _, montant in histogram])

@@ -24,16 +24,16 @@ class Synthese:
     description="Totaux des financements reçus : tous financeurs, DETR, DSIL, "
     "Fonds vert, coût des projets et taux de financement.",
 )
-def collect(context: Context) -> Result | None:
-    siren = context.fiche.siren
-    par_source = api_collectivites.totaux_par_source(context.connection, siren)
+def collect(context: Context, since: int | None = None) -> Result | None:
+    connection, siren = context.connection, context.fiche.siren
+    par_source = api_collectivites.totaux_par_source(connection, siren, since)
     if not par_source:
         return None
 
-    par_annee = api_collectivites.totaux_par_annee(context.connection, siren)
+    par_annee = api_collectivites.totaux_par_annee(connection, siren, since)
     annees = [ligne["annee"] for ligne in par_annee if ligne["annee"] is not None]
 
-    cofinancement = api_collectivites.cofinancement(context.connection, siren)
+    cofinancement = api_collectivites.cofinancement(connection, siren, since)
     cout = cofinancement["cout"] or 0
     taux = cofinancement["montant"] / cout if cout else None
 
