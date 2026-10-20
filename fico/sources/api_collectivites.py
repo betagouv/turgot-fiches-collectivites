@@ -299,13 +299,13 @@ def taux_par_commune(connection: base.Connection, codes_insee) -> dict[str, floa
     if not codes:
         return {}
     par_projet = _par_projet(
-        "p.siren IN (SELECT siren FROM collectivite WHERE code_insee = ANY(%(codes)s))"
+        "p.siren IN (SELECT siren FROM commune WHERE code_insee = ANY(%(codes)s))"
     )
     rows = connection.execute(
         f"""
         SELECT c.code_insee, SUM(attribue) AS montant, SUM(budget) AS cout
         FROM ({par_projet}) AS par_projet
-        JOIN collectivite c ON c.siren = par_projet.siren
+        JOIN commune c ON c.siren = par_projet.siren
         GROUP BY c.code_insee
         """,
         {"codes": codes, "since": None, "financeur": None},

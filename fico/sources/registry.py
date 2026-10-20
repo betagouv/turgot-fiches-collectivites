@@ -68,14 +68,6 @@ def source(
     return decorate
 
 
-VIEWS: list[str] = []
-
-
-def view(definition: str) -> None:
-    """A view over several sources' tables, created once they all exist."""
-    VIEWS.append(definition)
-
-
 def schemas() -> list[str]:
     return [source.schema for source in SOURCES.values() if source.schema]
 

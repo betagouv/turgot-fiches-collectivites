@@ -19,7 +19,7 @@ import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
 
-from .registry import VIEWS, Source, schemas
+from .registry import Source, schemas
 
 URL_VARIABLE = "DATABASE_URL"
 BATCH_SIZE = 5_000
@@ -56,8 +56,6 @@ def migrate(connection: Connection) -> None:
         connection.execute(FETCH_SCHEMA)
         for schema in schemas():
             connection.execute(schema)
-        for view in VIEWS:
-            connection.execute(view)
 
 
 def _staging(source: Source) -> str:
@@ -98,8 +96,8 @@ def staged(connection: Connection, source: Source) -> Iterator[None]:
 
 
 def publish(connection: Connection, source: Source) -> None:
-    """Replace the source's public tables with its staged ones. Dropping a table
-    drops the views over it, hence their rebuild in the same transaction."""
+    """Replace the source's public tables with its staged ones. CASCADE takes the
+    foreign keys between a source's own tables with them, whatever their order."""
     schema = _staging(source)
     tables = connection.execute(
         "SELECT tablename FROM pg_tables WHERE schemaname = %s", (schema,)
@@ -115,8 +113,6 @@ def publish(connection: Connection, source: Source) -> None:
                     sql.Identifier(schema), table
                 )
             )
-        for view in VIEWS:
-            connection.execute(view)
         connection.execute(sql.SQL("DROP SCHEMA {}").format(sql.Identifier(schema)))
 
 

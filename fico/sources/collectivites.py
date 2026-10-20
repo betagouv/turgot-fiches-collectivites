@@ -1,29 +1,13 @@
 """Les collectivités : les communes de `geoapi` et les groupements de `banatic`,
-lus ensemble à travers la vue `collectivite`, une ligne par SIREN."""
+lus sous une même forme, une ligne par SIREN."""
 
 from dataclasses import dataclass, field
 from datetime import date
 
 from . import base
-from .registry import view
 
 COMMUNE = "commune"
 GROUPEMENT = "groupement"
-
-view(f"""
-CREATE OR REPLACE VIEW collectivite AS
-SELECT siren, '{COMMUNE}' AS famille, nom, 'COM' AS type, code_insee, population,
-       superficie, codes_postaux, code_epci, nom_epci, code_departement,
-       nom_departement, code_region, nom_region,
-       NULL::text AS mode_financement, NULL::date AS date_creation
-FROM commune
-UNION ALL
-SELECT siren, '{GROUPEMENT}', nom, type, NULL, population,
-       NULL, '{{}}', NULL, NULL, code_departement,
-       nom_departement, NULL, NULL,
-       mode_financement, date_creation
-FROM groupement
-""")
 
 
 class NotFound(Exception):
@@ -32,7 +16,8 @@ class NotFound(Exception):
 
 @dataclass
 class Fiche:
-    """A row of `collectivite`: communes and groupements share one shape."""
+    """A commune or a groupement: both share one shape, the fields the other
+    kind lacks left to their default."""
 
     siren: str
     famille: str
@@ -52,24 +37,32 @@ class Fiche:
     date_creation: date | None = None
 
 
-def _fiche(row: dict | None, identifiant: str) -> Fiche:
-    if row is None:
-        raise NotFound(identifiant)
-    return Fiche(**row)
+def _commune(connection: base.Connection, column: str, value: str) -> Fiche | None:
+    row = connection.execute(
+        f"SELECT * FROM commune WHERE {column} = %s", (value,)
+    ).fetchone()
+    return Fiche(famille=COMMUNE, type="COM", **row) if row else None
+
+
+def _groupement(connection: base.Connection, siren: str) -> Fiche | None:
+    row = connection.execute(
+        "SELECT * FROM groupement WHERE siren = %s", (siren,)
+    ).fetchone()
+    return Fiche(famille=GROUPEMENT, **row) if row else None
 
 
 def par_code_insee(connection: base.Connection, code_insee: str) -> Fiche:
-    row = connection.execute(
-        "SELECT * FROM collectivite WHERE code_insee = %s", (code_insee,)
-    ).fetchone()
-    return _fiche(row, code_insee)
+    fiche = _commune(connection, "code_insee", code_insee)
+    if fiche is None:
+        raise NotFound(code_insee)
+    return fiche
 
 
 def par_siren(connection: base.Connection, siren: str) -> Fiche:
-    row = connection.execute(
-        "SELECT * FROM collectivite WHERE siren = %s", (siren,)
-    ).fetchone()
-    return _fiche(row, siren)
+    fiche = _commune(connection, "siren", siren) or _groupement(connection, siren)
+    if fiche is None:
+        raise NotFound(siren)
+    return fiche
 
 
 def competences(connection: base.Connection, siren: str) -> list[str]:

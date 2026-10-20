@@ -116,8 +116,7 @@ just fetch contours --force
 | `rne` | mensuel | Répertoire national des élus : maires et présidents d'EPCI |
 
 Chaque source a ses propres tables : `geoapi` remplit `commune`, `banatic`
-`groupement` et `competence`. La vue `collectivite` les réunit, une ligne par
-SIREN. Les deux sources remplacent à chaque passage leur instantané précédent :
+`groupement` et `competence`. Les deux sources remplacent à chaque passage leur instantané précédent :
 une commune fusionnée ou un groupement dissous en disparaît. L'export BANATIC, 1,5 Go
 décompressé, est lu en flux, en deux minutes environ.
 
@@ -205,6 +204,6 @@ Un composant écarté n'est pas seulement masqué : ses requêtes sont évitées
 
 ## Comment un identifiant est résolu
 
-Un code INSEE désigne une commune, un SIREN une commune ou un groupement : les
-deux se cherchent dans la table `collectivite`. Le type d'un groupement est
+Un code INSEE désigne une commune, un SIREN une commune ou un groupement : un
+SIREN se cherche dans `commune`, puis dans `groupement`. Le type d'un groupement est
 affiché tel quel (`METRO`, `SIVU`…), comme BANATIC le publie.

@@ -28,6 +28,23 @@
   data.focus.label
 }
 
+#let project(coordinates, scale) = if type(coordinates.first()) in (int, float) {
+  (coordinates.first() * scale, ..coordinates.slice(1))
+} else {
+  coordinates.map(part => project(part, scale))
+}
+
+#let projected(collection, scale) = (
+  type: "FeatureCollection",
+  features: collection.features.map(feature => (
+    ..feature,
+    geometry: (
+      ..feature.geometry,
+      coordinates: project(feature.geometry.coordinates, scale),
+    ),
+  )),
+)
+
 #let map(carte) = panel(
   [
     #carte.titre
@@ -47,7 +64,7 @@
     )
     // The commune is drawn again on top, alone, with the same frame: its
     // outline is never covered by a neighbour.
-    let territoire = carte.projected
+    let territoire = projected(carte.territoire, carte.scale)
     let commune = (
       type: "FeatureCollection",
       features: territoire.features.filter(f => f.properties.code == carte.focus),

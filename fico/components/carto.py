@@ -42,8 +42,11 @@ class Legend:
 
 @dataclass
 class Carte:
+    """`territoire` keeps its longitudes and latitudes: renderers draw each point
+    at (longitude × scale, latitude) and frame it with `viewbox`."""
+
     titre: str
-    projected: dict
+    territoire: dict
     scale: float
     communes: int
     viewbox: list[float]
@@ -102,13 +105,13 @@ def choroplethe(
     echelle: Echelle,
     focus: str,
 ) -> Carte:
-    """Colour, project and frame the communes of `geojson` by their value in
-    `valeurs`, keyed by code INSEE."""
+    """Colour and frame the communes of `geojson` by their value in `valeurs`,
+    keyed by code INSEE."""
     _colorise(geojson, valeurs, echelle)
-    scale, viewbox = _project(geojson)
+    scale, viewbox = _frame(geojson)
     return Carte(
         titre=titre,
-        projected=geojson,
+        territoire=geojson,
         scale=scale,
         communes=len(geojson["features"]),
         viewbox=viewbox,
@@ -126,26 +129,23 @@ def _points(coordinates):
             yield from _points(part)
 
 
-def _project(geojson: dict) -> tuple[float, list[float]]:
-    """Project in place and return the longitude scale and the framing viewbox.
+def _frame(geojson: dict) -> tuple[float, list[float]]:
+    """The longitude scale and the framing viewbox.
 
     mercator frames every map in a square and pins it to the top, so a wide
-    territory fills only a strip: the projection and its exact extent are
-    computed here, and mercator only draws. Scaling longitudes by the cosine of
-    the central latitude keeps shapes undistorted at this scale.
+    territory fills only a strip: the extent is computed here, and mercator
+    only draws. Scaling longitudes by the cosine of the central latitude keeps
+    shapes undistorted at this scale.
     """
-    latitudes = [
-        point[1]
+    points = [
+        point
         for feature in geojson["features"]
         for point in _points(feature["geometry"]["coordinates"])
     ]
+    latitudes = [point[1] for point in points]
     scale = math.cos(math.radians((min(latitudes) + max(latitudes)) / 2))
-    xs, ys = [], []
-    for feature in geojson["features"]:
-        for point in _points(feature["geometry"]["coordinates"]):
-            point[0] *= scale
-            xs.append(point[0])
-            ys.append(point[1])
+    xs = [point[0] * scale for point in points]
+    ys = latitudes
     width, height = max(xs) - min(xs), max(ys) - min(ys)
     margin = max(width, height) * VIEWBOX_MARGIN
     # SVG's y axis points down, hence the negated latitude.
@@ -158,12 +158,6 @@ def _project(geojson: dict) -> tuple[float, list[float]]:
     return scale, viewbox
 
 
-def _unproject(coordinates, scale: float):
-    if isinstance(coordinates[0], (int, float)):
-        return [coordinates[0] / scale, *coordinates[1:]]
-    return [_unproject(part, scale) for part in coordinates]
-
-
 def table(carte: Carte) -> Table:
     return Table(
         columns=["Code INSEE", "Commune", carte.legend.title],
@@ -173,29 +167,25 @@ def table(carte: Carte) -> Table:
                 feature["properties"]["nom"],
                 feature["properties"]["valeur"].value,
             ]
-            for feature in carte.projected["features"]
+            for feature in carte.territoire["features"]
         ],
     )
 
 
 def geojson(carte: Carte) -> dict:
-    """The map's communes back in longitude and latitude, with their raw value."""
-    features = []
-    for feature in carte.projected["features"]:
-        proprietes = feature["properties"]
-        geometry = feature["geometry"]
-        features.append(
+    """The map's communes with their raw value."""
+    return {
+        "type": "FeatureCollection",
+        "features": [
             {
                 "type": "Feature",
                 "properties": {
-                    "code": proprietes["code"],
-                    "nom": proprietes["nom"],
-                    "valeur": proprietes["valeur"].value,
+                    "code": feature["properties"]["code"],
+                    "nom": feature["properties"]["nom"],
+                    "valeur": feature["properties"]["valeur"].value,
                 },
-                "geometry": {
-                    "type": geometry["type"],
-                    "coordinates": _unproject(geometry["coordinates"], carte.scale),
-                },
+                "geometry": feature["geometry"],
             }
-        )
-    return {"type": "FeatureCollection", "features": features}
+            for feature in carte.territoire["features"]
+        ],
+    }
