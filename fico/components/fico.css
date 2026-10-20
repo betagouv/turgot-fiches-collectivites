@@ -104,6 +104,65 @@
     }
   }
 
+  .ranking {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 12rem;
+    margin: 3.5rem 0 1.5rem;
+  }
+
+  .ranking-bar {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 1px;
+    height: calc(var(--share) * 100%);
+    background: var(--blue-france-850-200);
+
+    &:not([data-accent=""]) {
+      flex: 0 0 2.75rem;
+    }
+
+    &[data-accent="focus"],
+    &[data-accent="neighbour"] {
+      background: var(--blue-france-main-525);
+    }
+
+    &[data-accent="top"] {
+      background: var(--blue-france-sun-113-625);
+    }
+
+    &[data-accent="bottom"] {
+      background: var(--pink-macaron-main-689);
+    }
+
+    span {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.75rem;
+      white-space: nowrap;
+    }
+  }
+
+  .ranking-value {
+    bottom: calc(100% + 0.25rem);
+    font-weight: 700;
+  }
+
+  .ranking-name {
+    bottom: calc(100% + 1.75rem);
+    padding: 0 0.5rem;
+    background: var(--background-default-grey);
+    box-shadow: var(--raised-shadow);
+  }
+
+  .ranking-rank {
+    top: calc(100% + 0.25rem);
+    color: var(--text-mention-grey);
+  }
+
   /* Carto */
 
   .map {

@@ -61,7 +61,7 @@ présentation à partir du seul JSON.
 Les fichiers à télécharger portent les valeurs brutes, sans mise en forme : un
 taux de 42 % y vaut `0.42`. Les tableaux et graphiques se téléchargent en `csv`
 et `xlsx` (`financements.historique`, `financements.annuel`,
-`financements.financeurs`), les cartes aussi, une ligne par commune, et en
+`financements.financeurs`, `financements.par_habitant`), les cartes aussi, une ligne par commune, et en
 `geojson` (`financements.carte`) ; `/components` liste les formats de chaque
 composant dans `downloads`.
 
@@ -186,6 +186,7 @@ curl -O '…/fiches/35238/financements.carte.geojson?perimeter=interco'
 | --- | --- | --- |
 | `financements.synthese`, `financements.financeurs`, `financements.historique` | `since`, facultatif | les financements à partir de cette année, et ceux sans année |
 | `financements.synthese` | `financeur`, facultatif | un seul financeur, tel que nommé par API Collectivités : `DSIL`, `DETR`, `Fonds Vert`… ; le coût et le taux portent alors sur les projets qu'il a financés |
+| `financements.par_habitant` | `since` et `financeur`, facultatifs | les années révolues à partir de celle-ci au lieu des six dernières, et un seul financeur |
 | `financements.annuel` | `since`, facultatif | les années révolues à partir de celle-ci, au lieu des cinq dernières |
 | `financements.carte` | `perimeter`, requis | `departement` ou `interco` |
 
@@ -197,6 +198,7 @@ curl -O '…/fiches/35238/financements.carte.geojson?perimeter=interco'
 | `financements.synthese` | total reçu, nombre de projets, coût des projets et taux de financement, tous financeurs ou pour un seul |
 | `financements.annuel` | montants reçus par année, sur les cinq dernières années révolues |
 | `financements.financeurs` | répartition des montants reçus par financeur |
+| `financements.par_habitant` | moyenne annuelle par habitant, en classement : la commune parmi celles de son intercommunalité, l'EPCI parmi les EPCI à fiscalité propre du département |
 | `financements.historique` | l'historique ligne à ligne des financements reçus |
 | `competences` | compétences Banatic, pour un groupement |
 

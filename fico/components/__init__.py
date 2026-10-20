@@ -16,6 +16,7 @@ from .financements import (  # noqa: F401
     carte,
     financeurs,
     historique,
+    par_habitant,
     synthese,
 )
 from .registry import (
@@ -44,6 +45,7 @@ order(
     "financements.synthese(financeur=Fonds Vert)",
     "financements.annuel",
     "financements.financeurs",
+    "financements.par_habitant",
     "financements.historique",
     "competences",
 )

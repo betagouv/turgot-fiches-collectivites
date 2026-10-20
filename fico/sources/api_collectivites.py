@@ -245,6 +245,32 @@ def totaux(
     ).fetchone()
 
 
+def montants_par_siren(
+    connection: base.Connection,
+    sirens: list[str],
+    annees: range,
+    financeur: str | None = None,
+) -> dict[str, float]:
+    """What the projets each of `sirens` carries received during `annees`; a
+    SIREN that received nothing is absent."""
+    rows = connection.execute(
+        f"""
+        SELECT p.siren, SUM(f.montant_attribue) AS montant
+        FROM financement f JOIN projet p ON p.id = f.projet_id
+        WHERE p.siren = ANY(%(sirens)s) AND {RECEIVED} AND {FINANCEUR}
+          AND f.annee >= %(start)s AND f.annee < %(stop)s
+        GROUP BY p.siren
+        """,
+        {
+            "sirens": sirens,
+            "start": annees.start,
+            "stop": annees.stop,
+            "financeur": financeur,
+        },
+    ).fetchall()
+    return {row["siren"]: row["montant"] for row in rows}
+
+
 def totaux_par_source(
     connection: base.Connection, siren: str, since: int | None = None
 ) -> list[dict]:

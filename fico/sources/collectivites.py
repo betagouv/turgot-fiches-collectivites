@@ -8,6 +8,7 @@ from . import base
 
 COMMUNE = "commune"
 GROUPEMENT = "groupement"
+EPCI_A_FISCALITE_PROPRE = ["CC", "CA", "CU", "METRO", "MET69"]
 
 
 class NotFound(Exception):
@@ -63,6 +64,26 @@ def par_siren(connection: base.Connection, siren: str) -> Fiche:
     if fiche is None:
         raise NotFound(siren)
     return fiche
+
+
+def communes_de_epci(connection: base.Connection, code_epci: str) -> list[dict]:
+    """The communes `code_epci` gathers: siren, code_insee, nom, population."""
+    return connection.execute(
+        "SELECT siren, code_insee, nom, population FROM commune WHERE code_epci = %s",
+        (code_epci,),
+    ).fetchall()
+
+
+def epci_du_departement(
+    connection: base.Connection, code_departement: str
+) -> list[dict]:
+    """The EPCI à fiscalité propre seated in `code_departement`: siren, nom,
+    population."""
+    return connection.execute(
+        "SELECT siren, nom, population FROM groupement "
+        "WHERE code_departement = %s AND type = ANY(%s)",
+        (code_departement, EPCI_A_FISCALITE_PROPRE),
+    ).fetchall()
 
 
 def competences(connection: base.Connection, siren: str) -> list[str]:
