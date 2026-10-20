@@ -44,6 +44,10 @@
 
   /* Financements */
 
+  .synthese {
+    text-align: right;
+  }
+
   .histogram {
     position: relative;
     height: 9rem;

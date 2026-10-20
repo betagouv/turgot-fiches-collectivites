@@ -12,7 +12,7 @@ export function render(data) {
     .map(
       (ligne) => `<tr>
         <td>${escape(ligne.annee.label)}</td>
-        <td class="fr-cell--multiline">${escape(ligne.financeur.label)}${ligne.reference.value ? `<br><span class="muted">${escape(ligne.reference.label)}</span>` : ""}</td>
+        <td class="fr-cell--multiline">${escape(ligne.financeur.label)}${ligne.reference.value ? `<br><span class="muted">numéro&nbsp;: ${escape(ligne.reference.label)}</span>` : ""}</td>
         <td class="fr-cell--multiline">${escape(ligne.projet.label)}</td>
         <td class="fr-cell--right">${escape(ligne.cout.label)}</td>
         <td class="fr-cell--right"><strong>${escape(ligne.montant.label)}</strong></td>

@@ -32,7 +32,7 @@
           text(size: 8pt, ligne.financeur.label)
           if ligne.reference.value != none {
             linebreak()
-            text(size: 7pt, fill: muted, ligne.reference.label)
+            text(size: 7pt, fill: muted, [numéro~: #ligne.reference.label])
           }
         },
         text(size: 8pt, ligne.projet.label),

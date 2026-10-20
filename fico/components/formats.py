@@ -4,7 +4,10 @@ label and a third party still gets the raw value."""
 from dataclasses import dataclass
 from datetime import date
 
+NBSP = " "
 NARROW_NBSP = " "
+# A symbol takes a narrow no-break space, a unit in words a full one.
+SYMBOLS = {"€", "k€", "M€", "%", "km²"}
 MONTHS = (
     "janvier",
     "février",
@@ -31,18 +34,23 @@ def _grouped(value: float) -> str:
     return f"{round(value):,}".replace(",", NARROW_NBSP)
 
 
+def _suffix(unit: str) -> str:
+    if not unit:
+        return ""
+    space = NARROW_NBSP if unit in SYMBOLS else NBSP
+    return f"{space}{unit}"
+
+
 def number(value: float | None, unit: str = "") -> Display:
     if value is None:
         return Display(None, "—")
-    suffix = f" {unit}" if unit else ""
-    return Display(value, f"{_grouped(value)}{suffix}")
+    return Display(value, f"{_grouped(value)}{_suffix(unit)}")
 
 
 def decimal(value: float | None, unit: str = "", digits: int = 1) -> Display:
     if value is None:
         return Display(None, "—")
-    suffix = f" {unit}" if unit else ""
-    return Display(value, f"{value:.{digits}f}".replace(".", ",") + suffix)
+    return Display(value, f"{value:.{digits}f}".replace(".", ",") + _suffix(unit))
 
 
 def euros(value: float | None) -> Display:
@@ -52,16 +60,16 @@ def euros(value: float | None) -> Display:
 def compact_euros(value: float) -> Display:
     if value >= 1_000_000:
         amount = f"{value / 1_000_000:.1f}".rstrip("0").rstrip(".").replace(".", ",")
-        return Display(value, f"{amount} M€")
+        return Display(value, f"{amount}{_suffix('M€')}")
     if value >= 1_000:
-        return Display(value, f"{_grouped(value / 1_000)} k€")
-    return Display(value, f"{_grouped(value)} €")
+        return Display(value, f"{_grouped(value / 1_000)}{_suffix('k€')}")
+    return Display(value, f"{_grouped(value)}{_suffix('€')}")
 
 
 def percent(value: float | None) -> Display:
     if value is None:
         return Display(None, "—")
-    return Display(value, f"{value:.0%}".replace("%", f"{NARROW_NBSP}%"))
+    return Display(value, f"{value * 100:.0f}{_suffix('%')}")
 
 
 def text(value: str | None) -> Display:
