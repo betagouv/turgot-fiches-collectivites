@@ -23,30 +23,30 @@ from .registry import (
     InvalidParameter,
     UnknownComponent,
     component,
-    order,
     rows,
     selected,
     template,
 )
 from .table import Table
 
-order(
-    identite,
-    programmes,
+DEFAULT = (
+    identite.new(),
+    programmes.new(),
     carte.new(perimeter="departement"),
     carte.new(perimeter="interco"),
-    synthese,
+    synthese.new(),
     synthese.new(financeur="DSIL"),
     synthese.new(financeur="DETR"),
     synthese.new(financeur="Fonds Vert"),
-    annuel,
-    financeurs,
-    par_habitant,
-    historique,
+    annuel.new(),
+    financeurs.new(),
+    par_habitant.new(),
+    historique.new(),
 )
 
 __all__ = [
     "COMPONENTS",
+    "DEFAULT",
     "Access",
     "Component",
     "Download",
@@ -55,7 +55,6 @@ __all__ = [
     "Table",
     "UnknownComponent",
     "component",
-    "order",
     "rows",
     "selected",
     "template",

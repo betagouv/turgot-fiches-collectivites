@@ -19,7 +19,9 @@ def build(identifiant: str, output_path: Path, chosen) -> Path:
 
 def command_fiche(args) -> None:
     try:
-        chosen = components.selected(args.component, authenticated=True)
+        chosen = components.selected(
+            args.component, components.DEFAULT, authenticated=True
+        )
     except (components.UnknownComponent, components.InvalidParameter) as error:
         sys.exit(str(error))
 

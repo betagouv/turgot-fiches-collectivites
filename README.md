@@ -162,9 +162,10 @@ entière, en PDF comme en HTML ; une ligne incomplète est répartie au prorata.
 restreints étant écartés quand l'appelant n'est pas authentifié. Une collecte
 qui renvoie `None` fait disparaître son composant de la page.
 
-La fiche par défaut est la liste `order(...)` de `components/__init__.py` : les
-composants dans l'ordre de la page, `carte.new(perimeter="interco")` pour une
-instance paramétrée. Un composant existe parce qu'il y figure.
+`@component` enregistre le composant ; il doit être importé dans
+`components/__init__.py`. La fiche par défaut y est le tuple `DEFAULT` : les
+instances dans l'ordre de la page, `carte.new(perimeter="interco")` pour une
+instance paramétrée.
 
 Les imports Typst étant statiques, le gabarit racine est écrit à la compilation
 avec les seuls composants demandés. Ajouter une cible de rendu revient à poser

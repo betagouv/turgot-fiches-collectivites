@@ -94,7 +94,8 @@ async def list_components():
 
 @app.get("/fiches/{identifiant}.pdf")
 def fiche_pdf(identifiant: str, component: str | None = None):
-    header, lines = collect(identifiant, components.selected(component))
+    chosen = components.selected(component, components.DEFAULT)
+    header, lines = collect(identifiant, chosen)
     return Response(
         content=render(header, lines),
         media_type="application/pdf",
@@ -104,7 +105,8 @@ def fiche_pdf(identifiant: str, component: str | None = None):
 
 @app.get("/fiches/{identifiant}.json")
 def fiche_json(identifiant: str, component: str | None = None):
-    header, lines = collect(identifiant, components.selected(component))
+    chosen = components.selected(component, components.DEFAULT)
+    header, lines = collect(identifiant, chosen)
     return {**header, "lines": lines}
 
 
@@ -115,7 +117,7 @@ def component_json(identifiant: str, name: str, request: Request):
 
 @app.get("/fiches/{identifiant}.html", response_class=HTMLResponse)
 def fiche_html(identifiant: str, component: str | None = None):
-    return _page(identifiant, components.selected(component))
+    return _page(identifiant, components.selected(component, components.DEFAULT))
 
 
 @app.get("/fiches/{identifiant}/{name}.html", response_class=HTMLResponse)

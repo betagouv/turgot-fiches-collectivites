@@ -1,7 +1,7 @@
 import inspect
 import re
 import typing
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from enum import Enum, StrEnum
 from fractions import Fraction
@@ -123,7 +123,6 @@ class Instance:
 
 
 COMPONENTS: dict[str, Component] = {}
-DEFAULT: list[Instance] = []
 
 
 def _parameters(fonction: Callable) -> dict[str, Parameter]:
@@ -153,7 +152,7 @@ def component(description: str, width: str = "1", access: Access = Access.PUBLIC
         name = fonction.__module__.removeprefix(f"{__package__}.")
         if not 0 < share <= 1:
             raise ValueError(f"{name} : largeur {width} hors de ]0, 1].")
-        return Component(
+        COMPONENTS[name] = Component(
             name=name,
             description=description,
             width=share,
@@ -161,6 +160,7 @@ def component(description: str, width: str = "1", access: Access = Access.PUBLIC
             fonction=fonction,
             parameters=_parameters(fonction),
         )
+        return COMPONENTS[name]
 
     return decorate
 
@@ -179,12 +179,14 @@ def _specs(requested: str) -> Iterator[re.Match]:
         position = match.end()
 
 
-def _instances(name: str, arguments: str | None) -> list[Instance]:
+def _instances(
+    name: str, arguments: str | None, default: Sequence[Instance]
+) -> list[Instance]:
     """`financements.*` stands for every default instance under `financements`,
     in page order."""
     if name.endswith(".*"):
         prefix = name.removesuffix("*")
-        return [instance for instance in DEFAULT if instance.name.startswith(prefix)]
+        return [instance for instance in default if instance.name.startswith(prefix)]
     if name not in COMPONENTS:
         return []
     values = {}
@@ -195,9 +197,11 @@ def _instances(name: str, arguments: str | None) -> list[Instance]:
     return [COMPONENTS[name].new(**values)]
 
 
-def _parse(requested: str) -> list[Instance]:
+def _parse(requested: str, default: Sequence[Instance]) -> list[Instance]:
     expanded = {
-        match.group(0).strip(" ,"): _instances(match["name"], match["arguments"])
+        match.group(0).strip(" ,"): _instances(
+            match["name"], match["arguments"], default
+        )
         for match in _specs(requested)
     }
     unknown = [spec for spec, instances in expanded.items() if not instances]
@@ -209,19 +213,10 @@ def _parse(requested: str) -> list[Instance]:
     return [instance for instances in expanded.values() for instance in instances]
 
 
-def order(*items: Component | Instance) -> None:
-    """The default fiche, in page order: a bare component stands for its
-    instance without arguments. The components known to the registry are the
-    ones listed here."""
-    DEFAULT[:] = [item if isinstance(item, Instance) else item.new() for item in items]
-    COMPONENTS.clear()
-    COMPONENTS.update({instance.name: instance.component for instance in DEFAULT})
-
-
 def selected(
-    requested: str | None, authenticated: bool = False
+    requested: str | None, default: Sequence[Instance], authenticated: bool = False
 ) -> tuple[Instance, ...]:
-    instances = _parse(requested) if requested else DEFAULT
+    instances = _parse(requested, default) if requested else default
     unique = {instance.spec: instance for instance in instances}
     if authenticated:
         return tuple(unique.values())
