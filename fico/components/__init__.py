@@ -32,8 +32,8 @@ from .table import Table
 DEFAULT = (
     identite.new(),
     programmes.new(),
-    carte.new(perimeter="departement"),
-    carte.new(perimeter="interco"),
+    carte.new(perimetre="departement"),
+    carte.new(perimetre="interco"),
     synthese.new(),
     synthese.new(financeur="DSIL"),
     synthese.new(financeur="DETR"),

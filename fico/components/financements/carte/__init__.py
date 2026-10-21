@@ -12,7 +12,7 @@ from ...table import Table
 COLUMNS = ["Code", "Collectivité", "Taux de financement", "Contour"]
 
 
-class Perimeter(StrEnum):
+class Perimetre(StrEnum):
     DEPARTEMENT = "departement"
     INTERCO = "interco"
 
@@ -40,10 +40,10 @@ def _table(
     )
 
 
-def _epci(context: Context, perimeter: Perimeter) -> Table | None:
+def _epci(context: Context, perimetre: Perimetre) -> Table | None:
     fiche = context.fiche
     if (
-        perimeter is not Perimeter.DEPARTEMENT
+        perimetre is not Perimetre.DEPARTEMENT
         or fiche.type not in collectivites.EPCI_A_FISCALITE_PROPRE
     ):
         return None
@@ -64,17 +64,17 @@ def _epci(context: Context, perimeter: Perimeter) -> Table | None:
     "du département.",
     width="1/2",
 )
-def carte(context: Context, perimeter: Perimeter) -> Table | None:
+def carte(context: Context, perimetre: Perimetre) -> Table | None:
     fiche = context.fiche
     if fiche.famille != COMMUNE:
-        return _epci(context, perimeter)
-    match perimeter:
-        case Perimeter.DEPARTEMENT:
+        return _epci(context, perimetre)
+    match perimetre:
+        case Perimetre.DEPARTEMENT:
             title = "Département"
             communes = contours.by_departement(
                 context.connection, fiche.code_departement
             )
-        case Perimeter.INTERCO:
+        case Perimetre.INTERCO:
             if not fiche.code_epci:
                 return None
             title = "Intercommunalité"
