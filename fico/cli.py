@@ -5,7 +5,7 @@ from pathlib import Path
 import httpx
 
 from . import components, sources
-from .fiche import IdentifiantInvalide, collect, render
+from .fiche import InvalidIdentifier, collect, render
 from .sources import base
 from .sources.collectivites import NotFound
 from .sources.registry import Interrupted
@@ -20,14 +20,14 @@ def build(identifiant: str, output_path: Path, chosen) -> Path:
 def command_fiche(args) -> None:
     try:
         chosen = components.selected(args.component, authenticated=True)
-    except (components.UnknownComponent, components.InvalidParameter) as erreur:
-        sys.exit(str(erreur))
+    except (components.UnknownComponent, components.InvalidParameter) as error:
+        sys.exit(str(error))
 
     output_path = args.output or Path(f"{args.identifiant}.pdf")
     try:
         written = build(args.identifiant, output_path, chosen)
-    except (IdentifiantInvalide, base.DatabaseMissing) as erreur:
-        sys.exit(str(erreur))
+    except (InvalidIdentifier, base.DatabaseMissing) as error:
+        sys.exit(str(error))
     except NotFound:
         sys.exit(f"Aucune collectivité connue pour {args.identifiant}.")
     print(written)
@@ -36,8 +36,8 @@ def command_fiche(args) -> None:
 def _connect() -> base.Connection:
     try:
         return base.connect()
-    except base.DatabaseMissing as erreur:
-        sys.exit(str(erreur))
+    except base.DatabaseMissing as error:
+        sys.exit(str(error))
 
 
 def command_migrate(args) -> None:
@@ -48,8 +48,8 @@ def command_migrate(args) -> None:
 def command_fetch(args) -> None:
     try:
         chosen = sources.selected(args.sources)
-    except sources.UnknownSource as erreur:
-        sys.exit(str(erreur))
+    except sources.UnknownSource as error:
+        sys.exit(str(error))
 
     with (
         _connect() as connection,

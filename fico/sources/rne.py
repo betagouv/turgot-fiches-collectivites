@@ -49,20 +49,20 @@ class Fonction(StrEnum):
 
 
 @dataclass(frozen=True)
-class Fichier:
+class File:
     fonction: Fonction
-    titre: str
-    colonne_code: str
-    libelle_fonction: str | None = None
+    title: str
+    code_column: str
+    function_label: str | None = None
 
 
-FICHIERS = (
-    Fichier(Fonction.MAIRE, "elus-maires-mai.csv", "Code de la commune"),
-    Fichier(
+FILES = (
+    File(Fonction.MAIRE, "elus-maires-mai.csv", "Code de la commune"),
+    File(
         Fonction.PRESIDENT,
         "elus-conseillers-communautaires-epci.csv",
         "N° SIREN",
-        libelle_fonction="Président du conseil communautaire",
+        function_label="Président du conseil communautaire",
     ),
 )
 
@@ -75,28 +75,28 @@ class Executif:
     depuis: date | None
 
 
-def _url(resources: list[dict], fichier: Fichier) -> str:
+def _url(resources: list[dict], file: File) -> str:
     for resource in resources:
-        if resource["title"] == fichier.titre:
+        if resource["title"] == file.title:
             return resource["url"]
-    raise ValueError(f"Ressource {fichier.titre} absente du jeu de données")
+    raise ValueError(f"Ressource {file.title} absente du jeu de données")
 
 
 def _depuis(text: str) -> date | None:
     return date.fromisoformat(text) if text else None
 
 
-def rows(client: httpx.Client, url: str, fichier: Fichier):
+def rows(client: httpx.Client, url: str, file: File):
     response = client.get(url, follow_redirects=True)
     response.raise_for_status()
     text = response.content.decode("utf-8-sig")
     for row in csv.DictReader(io.StringIO(text), delimiter=";"):
-        libelle = fichier.libelle_fonction
-        if libelle and row["Libellé de la fonction"] != libelle:
+        label = file.function_label
+        if label and row["Libellé de la fonction"] != label:
             continue
         yield {
-            "fonction": fichier.fonction,
-            "code": row[fichier.colonne_code],
+            "fonction": file.fonction,
+            "code": row[file.code_column],
             "nom": row["Nom de l'élu"],
             "prenom": row["Prénom de l'élu"],
             "depuis": _depuis(row["Date de début de la fonction"]),
@@ -114,15 +114,15 @@ def fetch(client: httpx.Client, connection: base.Connection) -> str:
     response = client.get(DATASET_URL)
     response.raise_for_status()
     resources = response.json()["resources"]
-    urls = {fichier: _url(resources, fichier) for fichier in FICHIERS}
+    urls = {file: _url(resources, file) for file in FILES}
     counts = []
-    for fichier, url in urls.items():
-        written = base.write(connection, INSERT, rows(client, url, fichier))
-        counts.append(f"{written} {fichier.fonction}(s)")
+    for file, url in urls.items():
+        written = base.write(connection, INSERT, rows(client, url, file))
+        counts.append(f"{written} {file.fonction}(s)")
     return ", ".join(counts)
 
 
-def de_collectivite(
+def for_collectivite(
     connection: base.Connection, fonction: Fonction, code: str
 ) -> Executif | None:
     row = connection.execute(

@@ -2,7 +2,7 @@ from datetime import date
 
 from ...context import Context
 from ...sources.collectivites import COMMUNE
-from ...sources.programmes import PAR_CODE, de_commune
+from ...sources.programmes import BY_CODE, for_commune
 from ..formats import Display, long_date, text
 from ..registry import component
 from ..table import Table
@@ -23,13 +23,13 @@ def _depuis(value: date | None) -> Display:
 def programmes(context: Context) -> Table | None:
     if context.fiche.famille != COMMUNE:
         return None
-    rows = de_commune(context.connection, context.fiche.code_insee)
+    rows = for_commune(context.connection, context.fiche.code_insee)
     return Table(
-        titre="Programmes",
+        title="Programmes",
         columns=["Programme", "Depuis"],
         rows=[
-            [text(PAR_CODE[row["programme"]].nom), _depuis(row["depuis"])]
+            [text(BY_CODE[row["programme"]].nom), _depuis(row["depuis"])]
             for row in rows
         ],
-        vide="Aucun programme national recensé.",
+        empty="Aucun programme national recensé.",
     )

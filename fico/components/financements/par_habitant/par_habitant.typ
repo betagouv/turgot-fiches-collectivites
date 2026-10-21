@@ -60,7 +60,7 @@
 }
 
 #let render(data) = panel(
-  data.titre,
+  data.title,
   header: data.header,
-  if data.rows.len() == 0 { empty(data.vide) } else { ranking(data) },
+  if data.rows.len() == 0 { empty(data.empty) } else { ranking(data) },
 )

@@ -18,11 +18,11 @@ class Perimeter(StrEnum):
 
 
 def _table(
-    titre: str, unite: str, territoire: list[dict], taux: dict[str, float], focus: str
+    title: str, unit: str, territoire: list[dict], taux: dict[str, float], focus: str
 ) -> Table:
     return Table(
-        header=f"{len(territoire)} {unite}",
-        titre=titre,
+        header=f"{len(territoire)} {unit}",
+        title=title,
         columns=COLUMNS,
         rows=[
             [
@@ -47,14 +47,14 @@ def _epci(context: Context, perimeter: Perimeter) -> Table | None:
         or fiche.type not in collectivites.EPCI_A_FISCALITE_PROPRE
     ):
         return None
-    voisins = collectivites.epci_du_departement(
+    peers = collectivites.epci_of_departement(
         context.connection, fiche.code_departement
     )
-    sirens = [voisin["siren"] for voisin in voisins]
+    sirens = [peer["siren"] for peer in peers]
     territoire = contours.epci(context.connection, sirens)
     if not territoire:
         return None
-    taux = api_collectivites.taux_par_siren(context.connection, sirens)
+    taux = api_collectivites.taux_by_siren(context.connection, sirens)
     return _table("Département", "EPCI", territoire, taux, fiche.siren)
 
 
@@ -70,17 +70,17 @@ def carte(context: Context, perimeter: Perimeter) -> Table | None:
         return _epci(context, perimeter)
     match perimeter:
         case Perimeter.DEPARTEMENT:
-            titre = "Département"
-            communes = contours.par_departement(
+            title = "Département"
+            communes = contours.by_departement(
                 context.connection, fiche.code_departement
             )
         case Perimeter.INTERCO:
             if not fiche.code_epci:
                 return None
-            titre = "Intercommunalité"
-            communes = contours.par_epci(context.connection, fiche.code_epci)
+            title = "Intercommunalité"
+            communes = contours.by_epci(context.connection, fiche.code_epci)
     if not communes:
         return None
     codes = [commune["code"] for commune in communes]
-    taux = api_collectivites.taux_par_commune(context.connection, codes)
-    return _table(titre, "communes", communes, taux, fiche.code_insee)
+    taux = api_collectivites.taux_by_commune(context.connection, codes)
+    return _table(title, "communes", communes, taux, fiche.code_insee)

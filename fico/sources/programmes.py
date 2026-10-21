@@ -35,8 +35,8 @@ ON CONFLICT (code_insee, programme) DO UPDATE SET depuis = excluded.depuis
 
 
 @dataclass(frozen=True)
-class ColonneDate:
-    nom: str
+class DateColumn:
+    name: str
     format: str
 
 
@@ -45,8 +45,8 @@ class Programme:
     code: str
     nom: str
     dataset: str
-    ressource: str | None = None
-    colonne_date: ColonneDate | None = None
+    resource: str | None = None
+    date_column: DateColumn | None = None
 
 
 PROGRAMMES = (
@@ -54,19 +54,19 @@ PROGRAMMES = (
         code="ACV",
         nom="Action cœur de ville",
         dataset="5fa9901c66cff095591963e8",
-        colonne_date=ColonneDate("date_signature", "%Y-%m-%d"),
+        date_column=DateColumn("date_signature", "%Y-%m-%d"),
     ),
     Programme(
         code="PVD",
         nom="Petites villes de demain",
         dataset="5fc1259b703620ed60a49d97",
-        colonne_date=ColonneDate("date_signature", "%d/%m/%Y"),
+        date_column=DateColumn("date_signature", "%d/%m/%Y"),
     ),
     Programme(
         code="TI",
         nom="Territoires d'industrie",
         dataset="5fc1472f114718d419e42f8a",
-        ressource="communes couvertes",
+        resource="communes couvertes",
     ),
     Programme(
         code="VA",
@@ -75,7 +75,7 @@ PROGRAMMES = (
     ),
 )
 
-PAR_CODE = {programme.code: programme for programme in PROGRAMMES}
+BY_CODE = {programme.code: programme for programme in PROGRAMMES}
 
 
 def _resource(client: httpx.Client, programme: Programme) -> dict:
@@ -86,21 +86,21 @@ def _resource(client: httpx.Client, programme: Programme) -> dict:
         for r in response.json().get("resources", [])
         if r.get("format", "").lower() == "csv"
     ]
-    if programme.ressource:
-        files = [r for r in files if programme.ressource in r.get("title", "").lower()]
+    if programme.resource:
+        files = [r for r in files if programme.resource in r.get("title", "").lower()]
     if not files:
         raise ValueError(f"Aucune ressource CSV pour {programme.code}")
     return files[0]
 
 
 def _depuis(row: dict, programme: Programme) -> date | None:
-    colonne = programme.colonne_date
-    if colonne is None:
+    column = programme.date_column
+    if column is None:
         return None
-    text = (row.get(colonne.nom) or "").strip()
+    text = (row.get(column.name) or "").strip()
     if not text:
         return None
-    return date.strptime(text, colonne.format)
+    return date.strptime(text, column.format)
 
 
 def rows(client: httpx.Client, programme: Programme):
@@ -137,7 +137,7 @@ def fetch(client: httpx.Client, connection: base.Connection) -> str:
     return ", ".join(counts)
 
 
-def de_commune(connection: base.Connection, code_insee: str) -> list[dict]:
+def for_commune(connection: base.Connection, code_insee: str) -> list[dict]:
     return connection.execute(
         "SELECT * FROM programme WHERE code_insee = %s ORDER BY programme",
         (code_insee,),

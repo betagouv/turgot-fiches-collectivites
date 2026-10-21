@@ -7,7 +7,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from . import components, sources
-from .fiche import IdentifiantInvalide, collect, collect_one, describe, render
+from .fiche import InvalidIdentifier, collect, collect_one, describe, render
 from .render import html, table
 from .sources.collectivites import NotFound
 
@@ -35,16 +35,16 @@ app.add_middleware(GZipMiddleware)
 
 @app.exception_handler(components.UnknownComponent)
 @app.exception_handler(components.InvalidParameter)
-@app.exception_handler(IdentifiantInvalide)
-async def bad_request(request: Request, erreur: Exception) -> JSONResponse:
-    return JSONResponse(status_code=400, content={"detail": str(erreur)})
+@app.exception_handler(InvalidIdentifier)
+async def bad_request(request: Request, error: Exception) -> JSONResponse:
+    return JSONResponse(status_code=400, content={"detail": str(error)})
 
 
 @app.exception_handler(NotFound)
-async def not_found(request: Request, erreur: NotFound) -> JSONResponse:
+async def not_found(request: Request, error: NotFound) -> JSONResponse:
     return JSONResponse(
         status_code=404,
-        content={"detail": f"Aucune collectivité connue pour {erreur}."},
+        content={"detail": f"Aucune collectivité connue pour {error}."},
     )
 
 

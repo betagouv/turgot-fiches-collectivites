@@ -24,11 +24,11 @@ def _pairs(connection: base.Connection, fiche: Fiche) -> tuple[str, list[dict]] 
     if fiche.famille == COMMUNE:
         if not fiche.code_epci:
             return None
-        communes = collectivites.communes_de_epci(connection, fiche.code_epci)
+        communes = collectivites.communes_of_epci(connection, fiche.code_epci)
         return f"communes de {fiche.nom_epci}", communes
     if fiche.type not in collectivites.EPCI_A_FISCALITE_PROPRE:
         return None
-    epci = collectivites.epci_du_departement(connection, fiche.code_departement)
+    epci = collectivites.epci_of_departement(connection, fiche.code_departement)
     return f"EPCI à fiscalité propre, {fiche.nom_departement}", epci
 
 
@@ -45,21 +45,21 @@ def par_habitant(
     pairs = _pairs(context.connection, fiche)
     if pairs is None:
         return None
-    perimetre, voisines = pairs
+    perimetre, peers = pairs
 
     # The current year is still running: it would pull the average down.
     current_year = datetime.now(UTC).year
-    annees = range(since or current_year - YEARS, current_year)
-    montants = api_collectivites.montants_par_siren(
+    years = range(since or current_year - YEARS, current_year)
+    montants = api_collectivites.montants_by_siren(
         context.connection,
-        [voisine["siren"] for voisine in voisines],
-        annees,
+        [peer["siren"] for peer in peers],
+        years,
         financeur,
     )
     rows = [
-        {**voisine, "montant": montants.get(voisine["siren"], 0)}
-        for voisine in voisines
-        if voisine["population"]
+        {**peer, "montant": montants.get(peer["siren"], 0)}
+        for peer in peers
+        if peer["population"]
     ]
     if not any(row["montant"] for row in rows):
         rows = []
@@ -67,24 +67,24 @@ def par_habitant(
     focus = next(
         (index for index, row in enumerate(rows) if row["siren"] == fiche.siren), None
     )
-    years = max(len(annees), 1)
+    year_count = max(len(years), 1)
 
-    sujet = financeur or "Montants reçus"
+    subject = financeur or "Montants reçus"
     return Table(
-        header=f"{annees[0]} – {annees[-1]}" if annees else f"depuis {since}",
-        titre=f"{sujet}, moyenne annuelle par habitant, {perimetre}",
+        header=f"{years[0]} – {years[-1]}" if years else f"depuis {since}",
+        title=f"{subject}, moyenne annuelle par habitant, {perimetre}",
         columns=COLUMNS,
         rows=[
             [
-                plain(rang),
+                plain(rank),
                 text(row.get("code_insee") or row["siren"]),
                 text(row["nom"]),
                 number(row["population"]),
                 euros(row["montant"]),
-                euros(row["montant"] / row["population"] / years),
+                euros(row["montant"] / row["population"] / year_count),
             ]
-            for rang, row in enumerate(rows, start=1)
+            for rank, row in enumerate(rows, start=1)
         ],
-        vide="Aucun financement",
+        empty="Aucun financement",
         focus=focus,
     )

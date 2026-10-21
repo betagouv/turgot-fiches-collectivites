@@ -15,31 +15,28 @@ YEARS = 5
     width="1/2",
 )
 def annuel(context: Context, since: int | None = None) -> Table:
-    par_annee = api_collectivites.totaux_par_annee(
+    totals = api_collectivites.totaux_by_annee(
         context.connection, context.fiche.siren, since
     )
     # The current year is still running: its total would look like a drop.
     current_year = datetime.now(UTC).year
     window = range(since or current_year - YEARS, current_year)
 
-    sans_date = sum(
-        ligne["financements"] for ligne in par_annee if ligne["annee"] is None
-    )
-    by_year = {ligne["annee"]: ligne["montant"] or 0 for ligne in par_annee}
-    montants = {annee: by_year.get(annee, 0) for annee in window}
+    undated = sum(total["financements"] for total in totals if total["annee"] is None)
+    by_year = {total["annee"]: total["montant"] or 0 for total in totals}
+    montants = {year: by_year.get(year, 0) for year in window}
     rows = []
     if any(montants.values()):
         rows = [
-            [plain(annee), compact_euros(montant)]
-            for annee, montant in montants.items()
+            [plain(year), compact_euros(montant)] for year, montant in montants.items()
         ]
     return Table(
         header=f"{window[0]} – {window[-1]}" if window else f"depuis {since}",
-        titre="Montants reçus par année",
+        title="Montants reçus par année",
         columns=["Année", "Montant reçu"],
         rows=rows,
-        vide="Aucun financement",
-        note=f"{sans_date} financement(s) sans date d'attribution, non représenté(s)."
-        if sans_date
+        empty="Aucun financement",
+        note=f"{undated} financement(s) sans date d'attribution, non représenté(s)."
+        if undated
         else "",
     )

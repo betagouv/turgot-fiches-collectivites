@@ -3,25 +3,25 @@
 
 import { escape, panel } from "/assets/common.js"
 
-const SEUILS = [0.15, 0.25, 0.35, 0.5]
-const COULEURS = ["#ececfe", "#cacafb", "#9a9af8", "#6a6af4", "#000091"]
-const SANS_DONNEE = "#e5e5e5"
+const THRESHOLDS = [0.15, 0.25, 0.35, 0.5]
+const COLORS = ["#ececfe", "#cacafb", "#9a9af8", "#6a6af4", "#000091"]
+const NO_DATA = "#e5e5e5"
 const FOCUS = "#000000"
 const MARGIN = 0.01
-const NOM = 1
-const VALEUR = 2
-const CONTOUR = 3
+const NAME = 1
+const VALUE = 2
+const GEOMETRY = 3
 
-function couleur(valeur) {
-  if (valeur === null) {
-    return SANS_DONNEE
+function shade(value) {
+  if (value === null) {
+    return NO_DATA
   }
-  const rang = SEUILS.findIndex((seuil) => valeur < seuil)
-  return rang === -1 ? COULEURS.at(-1) : COULEURS[rang]
+  const band = THRESHOLDS.findIndex((threshold) => value < threshold)
+  return band === -1 ? COLORS.at(-1) : COLORS[band]
 }
 
-function pourcent(valeur) {
-  return `${Math.round(valeur * 100)} %`
+function percent(value) {
+  return `${Math.round(value * 100)} %`
 }
 
 function* points(coordinates) {
@@ -38,7 +38,7 @@ function* points(coordinates) {
 // shapes undistorted at this scale; the latitude is negated because SVG's y
 // axis points down.
 function frame(rows) {
-  const all = rows.flatMap((row) => [...points(row[CONTOUR].value.coordinates)])
+  const all = rows.flatMap((row) => [...points(row[GEOMETRY].value.coordinates)])
   const latitudes = all.map(([, y]) => y)
   const minLat = Math.min(...latitudes)
   const maxLat = Math.max(...latitudes)
@@ -69,25 +69,25 @@ function svg(data) {
       const row = data.rows[index]
       const focused = index === data.focus
       const stroke = focused ? FOCUS : "#ffffff"
-      return `<path d="${pathData(row[CONTOUR].value, scale)}" fill="${couleur(row[VALEUR].value)}" stroke="${stroke}" fill-rule="evenodd"${focused ? ' class="focus"' : ""}><title>${escape(row[NOM].label)} — ${escape(row[VALEUR].label)}</title></path>`
+      return `<path d="${pathData(row[GEOMETRY].value, scale)}" fill="${shade(row[VALUE].value)}" stroke="${stroke}" fill-rule="evenodd"${focused ? ' class="focus"' : ""}><title>${escape(row[NAME].label)} — ${escape(row[VALUE].label)}</title></path>`
     })
     .join("")
-  return `<svg class="map" viewBox="${viewbox.join(" ")}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${escape(data.titre)}">${paths}</svg>`
+  return `<svg class="map" viewBox="${viewbox.join(" ")}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${escape(data.title)}">${paths}</svg>`
 }
 
 function legend(data) {
   const swatch = (color) => `<span class="swatch" data-fill="${color}"></span>`
-  const focused = data.focus === null ? "" : `<span class="swatch" data-outline="${FOCUS}"></span> ${escape(data.rows[data.focus][NOM].label)}`
+  const focused = data.focus === null ? "" : `<span class="swatch" data-outline="${FOCUS}"></span> ${escape(data.rows[data.focus][NAME].label)}`
   return `<div class="legend fr-text--xs">
-    ${escape(data.columns[VALEUR])}
+    ${escape(data.columns[VALUE])}
     <div class="legend-row">
-      <span>&lt; ${pourcent(SEUILS[0])}</span><span>${COULEURS.map(swatch).join("")}</span><span>≥ ${pourcent(SEUILS.at(-1))}</span>
-      ${swatch(SANS_DONNEE)} n.c.
+      <span>&lt; ${percent(THRESHOLDS[0])}</span><span>${COLORS.map(swatch).join("")}</span><span>≥ ${percent(THRESHOLDS.at(-1))}</span>
+      ${swatch(NO_DATA)} n.c.
       ${focused}
     </div>
   </div>`
 }
 
 export function map(data) {
-  return panel(data.titre, `${svg(data)}${legend(data)}`, data.header)
+  return panel(data.title, `${svg(data)}${legend(data)}`, data.header)
 }

@@ -8,7 +8,7 @@ from ..table import Table
 
 def _table(pairs: list[tuple[str, Display]]) -> Table:
     return Table(
-        titre="Identité",
+        title="Identité",
         columns=["Libellé", "Valeur"],
         rows=[[text(label), value] for label, value in pairs if value.value],
     )
@@ -34,7 +34,9 @@ def identite(context: Context) -> Table:
     connection = context.connection
 
     if fiche.famille != COMMUNE:
-        president = rne.de_collectivite(connection, rne.Fonction.PRESIDENT, fiche.siren)
+        president = rne.for_collectivite(
+            connection, rne.Fonction.PRESIDENT, fiche.siren
+        )
         return _table(
             [
                 ("Président", _executif(president)),
@@ -53,7 +55,7 @@ def identite(context: Context) -> Table:
         else None
     )
 
-    maire = rne.de_collectivite(connection, rne.Fonction.MAIRE, fiche.code_insee)
+    maire = rne.for_collectivite(connection, rne.Fonction.MAIRE, fiche.code_insee)
     return _table(
         [
             ("Maire", _executif(maire)),

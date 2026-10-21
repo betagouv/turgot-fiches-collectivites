@@ -16,17 +16,17 @@ CODE_INSEE = re.compile(r"\d{5}|2[AB]\d{3}")
 SIREN = re.compile(r"\d{9}")
 
 
-class IdentifiantInvalide(Exception):
+class InvalidIdentifier(Exception):
     pass
 
 
 def resolve(connection: base.Connection, identifiant: str) -> Fiche:
     """Trouve la collectivité derrière un code INSEE de commune ou un SIREN."""
     if CODE_INSEE.fullmatch(identifiant):
-        return collectivites.par_code_insee(connection, identifiant)
+        return collectivites.by_code_insee(connection, identifiant)
     if SIREN.fullmatch(identifiant):
-        return collectivites.par_siren(connection, identifiant)
-    raise IdentifiantInvalide(
+        return collectivites.by_siren(connection, identifiant)
+    raise InvalidIdentifier(
         f"{identifiant} n'est ni un code INSEE de commune (5 caractères) "
         f"ni un SIREN (9 chiffres)."
     )
@@ -85,7 +85,7 @@ def render(header: dict, lines: list[list[dict]]) -> bytes:
 
 
 __all__ = [
-    "IdentifiantInvalide",
+    "InvalidIdentifier",
     "collect",
     "collect_one",
     "describe",

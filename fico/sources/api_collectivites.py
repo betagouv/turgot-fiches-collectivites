@@ -237,7 +237,7 @@ def totaux(
         f"""
         SELECT SUM(f.montant_attribue) AS montant,
                COUNT(DISTINCT f.projet_id) AS projets,
-               MIN(f.annee) AS premiere_annee, MAX(f.annee) AS derniere_annee
+               MIN(f.annee) AS first_year, MAX(f.annee) AS last_year
         FROM financement f JOIN projet p ON p.id = f.projet_id
         WHERE p.siren = %(siren)s AND {RECEIVED} AND {SINCE} AND {FINANCEUR}
         """,
@@ -245,13 +245,13 @@ def totaux(
     ).fetchone()
 
 
-def montants_par_siren(
+def montants_by_siren(
     connection: base.Connection,
     sirens: list[str],
-    annees: range,
+    years: range,
     financeur: str | None = None,
 ) -> dict[str, float]:
-    """What the projets each of `sirens` carries received during `annees`; a
+    """What the projets each of `sirens` carries received during `years`; a
     SIREN that received nothing is absent."""
     rows = connection.execute(
         f"""
@@ -263,15 +263,15 @@ def montants_par_siren(
         """,
         {
             "sirens": sirens,
-            "start": annees.start,
-            "stop": annees.stop,
+            "start": years.start,
+            "stop": years.stop,
             "financeur": financeur,
         },
     ).fetchall()
     return {row["siren"]: row["montant"] for row in rows}
 
 
-def totaux_par_source(
+def totaux_by_source(
     connection: base.Connection, siren: str, since: int | None = None
 ) -> list[dict]:
     return connection.execute(
@@ -288,7 +288,7 @@ def totaux_par_source(
     ).fetchall()
 
 
-def totaux_par_annee(
+def totaux_by_annee(
     connection: base.Connection, siren: str, since: int | None = None
 ) -> list[dict]:
     return connection.execute(
@@ -305,7 +305,7 @@ def totaux_par_annee(
     ).fetchall()
 
 
-def _par_projet(siren_condition: str) -> str:
+def _by_projet(siren_condition: str) -> str:
     """Attribué and budget per projet, over the projets that publish both, as
     upstream's own taux de financement does: a budget alone would deflate the
     rate."""
@@ -319,19 +319,19 @@ def _par_projet(siren_condition: str) -> str:
     """
 
 
-def taux_par_commune(connection: base.Connection, codes_insee) -> dict[str, float]:
+def taux_by_commune(connection: base.Connection, codes_insee) -> dict[str, float]:
     """Taux de financement of the projets each commune carries."""
     codes = list(codes_insee)
     if not codes:
         return {}
-    par_projet = _par_projet(
+    by_projet = _by_projet(
         "p.siren IN (SELECT siren FROM commune WHERE code_insee = ANY(%(codes)s))"
     )
     rows = connection.execute(
         f"""
         SELECT c.code_insee, SUM(attribue) AS montant, SUM(budget) AS cout
-        FROM ({par_projet}) AS par_projet
-        JOIN commune c ON c.siren = par_projet.siren
+        FROM ({by_projet}) AS by_projet
+        JOIN commune c ON c.siren = by_projet.siren
         GROUP BY c.code_insee
         """,
         {"codes": codes, "since": None, "financeur": None},
@@ -339,13 +339,13 @@ def taux_par_commune(connection: base.Connection, codes_insee) -> dict[str, floa
     return {row["code_insee"]: row["montant"] / row["cout"] for row in rows}
 
 
-def taux_par_siren(connection: base.Connection, sirens: list[str]) -> dict[str, float]:
+def taux_by_siren(connection: base.Connection, sirens: list[str]) -> dict[str, float]:
     """Taux de financement of the projets each of `sirens` carries."""
-    par_projet = _par_projet("p.siren = ANY(%(sirens)s)")
+    by_projet = _by_projet("p.siren = ANY(%(sirens)s)")
     rows = connection.execute(
         f"""
         SELECT siren, SUM(attribue) AS montant, SUM(budget) AS cout
-        FROM ({par_projet}) AS par_projet
+        FROM ({by_projet}) AS by_projet
         GROUP BY siren
         """,
         {"sirens": sirens, "since": None, "financeur": None},
@@ -362,11 +362,11 @@ def cofinancement(
     """A projet's whole budget counts as soon as one of its financements falls
     from `since` on, or comes from `financeur`: the rate is then the share of
     that budget the selected financements cover."""
-    par_projet = _par_projet("p.siren = %(siren)s")
+    by_projet = _by_projet("p.siren = %(siren)s")
     return connection.execute(
         f"""
         SELECT SUM(attribue) AS montant, SUM(budget) AS cout, COUNT(*) AS projets
-        FROM ({par_projet}) AS par_projet
+        FROM ({by_projet}) AS by_projet
         """,
         {"siren": siren, "since": since, "financeur": financeur},
     ).fetchone()

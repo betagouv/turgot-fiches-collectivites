@@ -10,15 +10,15 @@ from ...table import Table
     width="1/2",
 )
 def financeurs(context: Context, since: int | None = None) -> Table:
-    par_source = api_collectivites.totaux_par_source(
+    totals = api_collectivites.totaux_by_source(
         context.connection, context.fiche.siren, since
     )
     return Table(
-        titre="Répartition par financeur",
+        title="Répartition par financeur",
         columns=["Financeur", "Montant reçu"],
         rows=[
-            [text(ligne["source"]), compact_euros(ligne["montant"] or 0)]
-            for ligne in par_source
+            [text(total["source"]), compact_euros(total["montant"] or 0)]
+            for total in totals
         ],
-        vide="Aucun financement",
+        empty="Aucun financement",
     )

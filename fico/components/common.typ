@@ -56,9 +56,9 @@
   },
 )
 
-#let header(nom, libelle-type) = {
+#let header(nom, type-label) = {
   heading(level: 1, nom)
-  badge(libelle-type)
+  badge(type-label)
   v(0.7em)
 }
 
@@ -86,11 +86,11 @@
 }
 
 #let definitions(data) = panel(
-  data.titre,
+  data.title,
   header: data.header,
   {
     if data.rows.len() == 0 {
-      empty(data.vide)
+      empty(data.empty)
     } else {
       pairs(data.rows.map(row => (row.at(0).label, row.at(1).label)))
     }
@@ -100,9 +100,9 @@
 
 #let tabular(data) = {
   overline(data.header)
-  heading(level: 2, data.titre)
+  heading(level: 2, data.title)
   if data.rows.len() == 0 {
-    empty(data.vide)
+    empty(data.empty)
   } else {
     let numeric = range(data.columns.len()).map(x => data.rows.any(row => type(row.at(x).value) in (int, float)))
     // The text column with the longest cells takes the room the others leave.
@@ -125,11 +125,11 @@
 }
 
 #let listing(data) = panel(
-  data.titre,
+  data.title,
   header: data.header,
   {
     if data.rows.len() == 0 {
-      empty(data.vide)
+      empty(data.empty)
     } else {
       for row in data.rows [
         #block(below: 0.5em)[
@@ -147,11 +147,11 @@
 #let figures(data) = {
   set align(right)
   panel(
-    data.titre,
+    data.title,
     header: data.header,
     {
       if data.rows.len() == 0 {
-        empty(data.vide)
+        empty(data.empty)
       } else {
         for (index, row) in data.rows.enumerate() {
           v(0.5em)

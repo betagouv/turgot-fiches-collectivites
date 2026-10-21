@@ -52,21 +52,21 @@ def _groupement(connection: base.Connection, siren: str) -> Fiche | None:
     return Fiche(famille=GROUPEMENT, **row) if row else None
 
 
-def par_code_insee(connection: base.Connection, code_insee: str) -> Fiche:
+def by_code_insee(connection: base.Connection, code_insee: str) -> Fiche:
     fiche = _commune(connection, "code_insee", code_insee)
     if fiche is None:
         raise NotFound(code_insee)
     return fiche
 
 
-def par_siren(connection: base.Connection, siren: str) -> Fiche:
+def by_siren(connection: base.Connection, siren: str) -> Fiche:
     fiche = _commune(connection, "siren", siren) or _groupement(connection, siren)
     if fiche is None:
         raise NotFound(siren)
     return fiche
 
 
-def communes_de_epci(connection: base.Connection, code_epci: str) -> list[dict]:
+def communes_of_epci(connection: base.Connection, code_epci: str) -> list[dict]:
     """The communes `code_epci` gathers: siren, code_insee, nom, population."""
     return connection.execute(
         "SELECT siren, code_insee, nom, population FROM commune WHERE code_epci = %s",
@@ -74,7 +74,7 @@ def communes_de_epci(connection: base.Connection, code_epci: str) -> list[dict]:
     ).fetchall()
 
 
-def epci_du_departement(
+def epci_of_departement(
     connection: base.Connection, code_departement: str
 ) -> list[dict]:
     """The EPCI à fiscalité propre seated in `code_departement`: siren, nom,

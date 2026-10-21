@@ -19,13 +19,13 @@ function accent(index, count, focus) {
 }
 
 function bar(row, kind, share) {
-  const [rang, , nom] = row
+  const [position, , nom] = row
   const value = row.at(-1)
   const highlighted = kind !== ""
   const name = kind === "focus" ? `<span class="ranking-name">${escape(nom.label)}</span>` : ""
   const figure = highlighted ? `<span class="ranking-value">${escape(value.label)}</span>` : ""
-  const rank = highlighted ? `<span class="ranking-rank">${escape(rang.label)}</span>` : ""
-  const title = `${rang.label}. ${nom.label} : ${value.label} par habitant`
+  const rank = highlighted ? `<span class="ranking-rank">${escape(position.label)}</span>` : ""
+  const title = `${position.label}. ${nom.label} : ${value.label} par habitant`
   return `<div class="ranking-bar" data-accent="${kind}" data-share="${share}" title="${escape(title)}">${name}${figure}${rank}</div>`
 }
 
@@ -38,6 +38,6 @@ function ranking(data) {
 }
 
 export function render(data) {
-  const body = data.rows.length ? ranking(data) : empty(data.vide)
-  return panel(data.titre, body, data.header)
+  const body = data.rows.length ? ranking(data) : empty(data.empty)
+  return panel(data.title, body, data.header)
 }

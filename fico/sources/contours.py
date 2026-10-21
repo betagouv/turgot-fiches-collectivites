@@ -83,7 +83,7 @@ def _contours(rows) -> list[dict]:
     ]
 
 
-def par_departement(connection: base.Connection, code: str) -> list[dict]:
+def by_departement(connection: base.Connection, code: str) -> list[dict]:
     return _contours(
         connection.execute(
             "SELECT code, nom, geometry FROM contour WHERE departement = %s "
@@ -93,7 +93,7 @@ def par_departement(connection: base.Connection, code: str) -> list[dict]:
     )
 
 
-def par_epci(connection: base.Connection, siren: str) -> list[dict]:
+def by_epci(connection: base.Connection, siren: str) -> list[dict]:
     return _contours(
         connection.execute(
             "SELECT code, nom, geometry FROM contour WHERE epci = %s ORDER BY code",

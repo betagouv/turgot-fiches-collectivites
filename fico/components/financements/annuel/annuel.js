@@ -42,6 +42,6 @@ function histogram(rows) {
 }
 
 export function render(data) {
-  const body = data.rows.length ? histogram(data.rows) : empty(data.vide)
-  return panel(data.titre, body + note(data), data.header)
+  const body = data.rows.length ? histogram(data.rows) : empty(data.empty)
+  return panel(data.title, body + note(data), data.header)
 }

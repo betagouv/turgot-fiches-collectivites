@@ -62,11 +62,11 @@
 }
 
 #let render(data) = panel(
-  data.titre,
+  data.title,
   header: data.header,
   {
     if data.rows.len() == 0 {
-      empty(data.vide)
+      empty(data.empty)
     } else {
       histogram(data.rows)
     }

@@ -17,7 +17,7 @@ def synthese(
     totaux = api_collectivites.totaux(connection, siren, since, financeur)
     cofinancement = api_collectivites.cofinancement(connection, siren, since, financeur)
     cout = cofinancement["cout"] or 0
-    premiere, derniere = totaux["premiere_annee"], totaux["derniere_annee"]
+    first, last = totaux["first_year"], totaux["last_year"]
 
     rows = []
     if totaux["projets"]:
@@ -31,9 +31,9 @@ def synthese(
             ],
         ]
     return Table(
-        header=f"{premiere} – {derniere}" if premiere else "",
-        titre=financeur or "Tous financeurs",
+        header=f"{first} – {last}" if first else "",
+        title=financeur or "Tous financeurs",
         columns=["Indicateur", "Valeur"],
         rows=rows,
-        vide="Aucun financement",
+        empty="Aucun financement",
     )

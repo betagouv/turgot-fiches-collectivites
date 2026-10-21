@@ -51,14 +51,14 @@ export function definitions(data) {
     ? `<dl class="definitions">${data.rows
         .map(([label, value]) => `<dt>${escape(label.label)}</dt><dd>${escape(value.label)}</dd>`)
         .join("")}</dl>`
-    : empty(data.vide)
-  return panel(data.titre, body + note(data), data.header)
+    : empty(data.empty)
+  return panel(data.title, body + note(data), data.header)
 }
 
 export function tabular(data) {
-  const heading = `${badge(data.header)}<h2>${escape(data.titre)}</h2>`
+  const heading = `${badge(data.header)}<h2>${escape(data.title)}</h2>`
   if (!data.rows.length) {
-    return heading + empty(data.vide)
+    return heading + empty(data.empty)
   }
   const numeric = numericColumns(data)
   const head = data.columns.map((column) => `<th scope="col">${escape(column)}</th>`).join("")
@@ -74,7 +74,7 @@ export function tabular(data) {
     <div class="fr-table fr-table--no-caption">
       <div class="fr-table__wrapper"><div class="fr-table__container"><div class="fr-table__content">
         <table>
-          <caption>${escape(data.titre)}</caption>
+          <caption>${escape(data.title)}</caption>
           <thead><tr>${head}</tr></thead>
           <tbody>${rows}</tbody>
         </table>
@@ -87,14 +87,14 @@ export function listing(data) {
     `<li><strong>${escape(first.label)}</strong>${rest
       .map((cell) => (cell.label ? ` <span class="muted fr-text--xs">${escape(cell.label)}</span>` : ""))
       .join("")}</li>`
-  const body = data.rows.length ? `<ul>${data.rows.map(item).join("")}</ul>` : empty(data.vide)
-  return panel(data.titre, body + note(data), data.header)
+  const body = data.rows.length ? `<ul>${data.rows.map(item).join("")}</ul>` : empty(data.empty)
+  return panel(data.title, body + note(data), data.header)
 }
 
 export function figures(data) {
   const figure = ([caption, value], index) =>
     `<p class="${index ? "fr-h5" : "fr-h4"} fr-mt-1w fr-mb-0">${escape(value.label)}</p>
     <p class="muted fr-mb-0">${escape(caption.label)}</p>`
-  const body = data.rows.length ? data.rows.map(figure).join("") : empty(data.vide)
-  return `<div class="figures">${panel(data.titre, body + note(data), data.header)}</div>`
+  const body = data.rows.length ? data.rows.map(figure).join("") : empty(data.empty)
+  return `<div class="figures">${panel(data.title, body + note(data), data.header)}</div>`
 }
