@@ -84,10 +84,3 @@ def epci_du_departement(
         "WHERE code_departement = %s AND type = ANY(%s)",
         (code_departement, EPCI_A_FISCALITE_PROPRE),
     ).fetchall()
-
-
-def competences(connection: base.Connection, siren: str) -> list[str]:
-    rows = connection.execute(
-        "SELECT nom FROM competence WHERE siren = %s ORDER BY rang", (siren,)
-    ).fetchall()
-    return [row["nom"] for row in rows]

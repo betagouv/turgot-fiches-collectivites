@@ -29,10 +29,12 @@ def historique(context: Context, since: int | None = None) -> Table:
                 percent(montant / cout if cout and montant else None),
             ]
         )
+    annees = [row[0].value for row in rows if row[0].value is not None]
     titre = "Historique des subventions"
     return Table(
         titre=f"{titre} ({len(rows)})" if rows else titre,
         columns=COLUMNS,
         rows=rows,
+        header=f"{min(annees)} – {max(annees)}" if annees else "",
         vide="Aucun financement",
     )

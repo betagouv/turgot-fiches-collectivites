@@ -1,9 +1,8 @@
-"""BANATIC, la base nationale sur l'intercommunalité : groupements (EPCI,
-syndicats, PETR…) et compétences exercées.
+"""BANATIC, la base nationale sur l'intercommunalité : les groupements (EPCI,
+syndicats, PETR…).
 
 L'export national est un classeur d'une seule feuille, une ligne par membre de
-chaque groupement, les compétences en colonnes OUI/NON. Il pèse 1,5 Go
-décompressé : il est lu en flux.
+chaque groupement. Il pèse 1,5 Go décompressé : il est lu en flux.
 
 https://www.data.gouv.fr/datasets/5e1f20058b4c414d3f94460d
 """
@@ -25,9 +24,6 @@ URL = (
 SHEET = "xl/worksheets/sheet1.xml"
 NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 
-FIRST_COMPETENCE = "Nombre de compétences exercées"
-AFTER_COMPETENCES = "Adhésion siren"
-
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS groupement (
     siren            TEXT PRIMARY KEY,
@@ -38,13 +34,6 @@ CREATE TABLE IF NOT EXISTS groupement (
     nom_departement  TEXT,
     mode_financement TEXT,
     date_creation    DATE
-);
-
-CREATE TABLE IF NOT EXISTS competence (
-    siren TEXT NOT NULL REFERENCES groupement (siren) ON DELETE CASCADE,
-    rang  INTEGER NOT NULL,
-    nom   TEXT NOT NULL,
-    PRIMARY KEY (siren, rang)
 );
 """
 
@@ -60,8 +49,6 @@ COLUMNS = (
 )
 
 INSERT = base.insert("groupement", COLUMNS)
-
-INSERT_COMPETENCE = "INSERT INTO competence (siren, rang, nom) VALUES (%s, %s, %s)"
 
 
 def _sheet_rows(archive: zipfile.ZipFile):
@@ -102,39 +89,25 @@ def _groupement(cells: dict, column: dict) -> dict:
     }
 
 
-def parse(content: bytes) -> tuple[list[dict], list[tuple[str, int, str]]]:
+def parse(content: bytes) -> list[dict]:
     rows = _sheet_rows(zipfile.ZipFile(io.BytesIO(content)))
-    header = next(rows)
-    column = {name: letters for letters, name in header.items()}
-    names = list(column)
-    start, end = names.index(FIRST_COMPETENCE) + 1, names.index(AFTER_COMPETENCES)
-    competence_columns = [column[name] for name in names[start:end]]
-
-    groupements, competences = {}, []
+    column = {name: letters for letters, name in next(rows).items()}
+    groupements = {}
     for cells in rows:
         siren = cells.get(column["N° SIREN"])
-        if not siren or siren in groupements:
-            continue
-        groupements[siren] = _groupement(cells, column)
-        competences += [
-            (siren, rang, header[letters])
-            for rang, letters in enumerate(competence_columns)
-            if cells.get(letters) == "OUI"
-        ]
-    return list(groupements.values()), competences
+        if siren and siren not in groupements:
+            groupements[siren] = _groupement(cells, column)
+    return list(groupements.values())
 
 
 @source(
     name="banatic",
-    label="BANATIC, base nationale sur l'intercommunalité : groupements et "
-    "compétences exercées",
+    label="BANATIC, base nationale sur l'intercommunalité : groupements",
     schedule=Schedule.MONTHLY,
     schema=SCHEMA,
 )
 def fetch(client: httpx.Client, connection: base.Connection) -> str:
     response = client.get(URL, timeout=600)
     response.raise_for_status()
-    groupements, competences = parse(response.content)
-    written = base.write(connection, INSERT, groupements)
-    base.write(connection, INSERT_COMPETENCE, competences)
-    return f"{written} groupement(s), {len(competences)} compétence(s) exercée(s)"
+    written = base.write(connection, INSERT, parse(response.content))
+    return f"{written} groupement(s)"

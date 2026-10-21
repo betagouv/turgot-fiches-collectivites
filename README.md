@@ -113,14 +113,14 @@ just fetch contours --force
 | Source | Rythme | Contenu |
 | --- | --- | --- |
 | `geoapi` | mensuel | geo.api.gouv.fr : communes, population, superficie, rattachements |
-| `banatic` | mensuel | BANATIC : groupements et compétences exercées |
+| `banatic` | mensuel | BANATIC : groupements |
 | `api-collectivites` | quotidien | projets et financements consolidés, accès restreint |
 | `contours` | oneshot | contours communaux simplifiés à 100 m, 35 014 communes |
 | `programmes` | mensuel | ACV, PVD, Territoires d'industrie, Villages d'avenir |
 | `rne` | mensuel | Répertoire national des élus : maires et présidents d'EPCI |
 
 Chaque source a ses propres tables : `geoapi` remplit `commune`, `banatic`
-`groupement` et `competence`. Les deux sources remplacent à chaque passage leur instantané précédent :
+`groupement`. Les deux sources remplacent à chaque passage leur instantané précédent :
 une commune fusionnée ou un groupement dissous en disparaît. L'export BANATIC, 1,5 Go
 décompressé, est lu en flux, en deux minutes environ.
 
@@ -207,7 +207,6 @@ curl -O '…/fiches/35238/financements.carte.geojson?perimeter=interco'
 | `financements.financeurs` | répartition des montants reçus par financeur |
 | `financements.par_habitant` | moyenne annuelle par habitant, en classement : la commune parmi celles de son intercommunalité, l'EPCI parmi les EPCI à fiscalité propre du département |
 | `financements.historique` | l'historique ligne à ligne des financements reçus |
-| `competences` | compétences Banatic, pour un groupement |
 
 Un composant écarté n'est pas seulement masqué : ses requêtes sont évitées.
 

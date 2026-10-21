@@ -6,7 +6,6 @@ et un gabarit par cible de rendu nommé d'après le dernier segment de son nom :
 sont à la racine : `common.typ` et `common.js`, `carto.typ` et `carto.js`.
 """
 
-from .competences import competences
 from .financements.annuel import annuel
 from .financements.carte import carte
 from .financements.financeurs import financeurs
@@ -44,7 +43,6 @@ order(
     financeurs,
     par_habitant,
     historique,
-    competences,
 )
 
 __all__ = [
