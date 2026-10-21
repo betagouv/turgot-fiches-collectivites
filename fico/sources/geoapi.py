@@ -47,10 +47,7 @@ COLUMNS = (
     "nom_region",
 )
 
-INSERT = f"""
-INSERT INTO commune ({", ".join(COLUMNS)})
-VALUES ({", ".join(f"%({c})s" for c in COLUMNS)})
-"""
+INSERT = base.insert("commune", COLUMNS)
 
 
 def _row(commune: dict) -> dict:
@@ -86,5 +83,5 @@ def fetch(client: httpx.Client, connection: base.Connection) -> str:
     response.raise_for_status()
     communes = response.json()
     rows = [_row(c) for c in communes if c.get("siren")]
-    written = base.upsert(connection, INSERT, rows)
+    written = base.write(connection, INSERT, rows)
     return f"{written} commune(s), {len(communes) - written} sans SIREN écartée(s)"

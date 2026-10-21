@@ -2,19 +2,14 @@
 
 from enum import StrEnum
 
-from ....context import Context, Result
+from ....context import Context
 from ....sources import api_collectivites, collectivites, contours
 from ....sources.collectivites import COMMUNE
-from ...carto import Echelle, choroplethe, geojson, table
-from ...formats import percent
+from ...formats import Display, percent, text
 from ...registry import component
+from ...table import Table
 
-ECHELLE = Echelle(
-    titre="Taux de financement",
-    couleurs=("#ececfe", "#cacafb", "#9a9af8", "#6a6af4", "#000091"),
-    seuils=(0.15, 0.25, 0.35, 0.50),
-    format=percent,
-)
+COLUMNS = ["Code", "Collectivité", "Taux de financement", "Contour"]
 
 
 class Perimeter(StrEnum):
@@ -22,7 +17,30 @@ class Perimeter(StrEnum):
     INTERCO = "interco"
 
 
-def _epci(context: Context, perimeter: Perimeter) -> Result | None:
+def _table(
+    titre: str, unite: str, territoire: list[dict], taux: dict[str, float], focus: str
+) -> Table:
+    return Table(
+        header=f"{len(territoire)} {unite}",
+        titre=titre,
+        columns=COLUMNS,
+        rows=[
+            [
+                text(contour["code"]),
+                text(contour["nom"]),
+                percent(taux.get(contour["code"])),
+                Display(contour["geometry"], ""),
+            ]
+            for contour in territoire
+        ],
+        focus=next(
+            (i for i, contour in enumerate(territoire) if contour["code"] == focus),
+            None,
+        ),
+    )
+
+
+def _epci(context: Context, perimeter: Perimeter) -> Table | None:
     fiche = context.fiche
     if (
         perimeter is not Perimeter.DEPARTEMENT
@@ -34,19 +52,10 @@ def _epci(context: Context, perimeter: Perimeter) -> Result | None:
     )
     sirens = [voisin["siren"] for voisin in voisins]
     territoire = contours.epci(context.connection, sirens)
-    if not territoire["features"]:
+    if not territoire:
         return None
     taux = api_collectivites.taux_par_siren(context.connection, sirens)
-    carte = choroplethe(
-        "Département",
-        territoire,
-        taux,
-        ECHELLE,
-        fiche.siren,
-        unite="EPCI",
-        focus_label="cet EPCI",
-    )
-    return Result(data=carte)
+    return _table("Département", "EPCI", territoire, taux, fiche.siren)
 
 
 @component(
@@ -54,10 +63,8 @@ def _epci(context: Context, perimeter: Perimeter) -> Result | None:
     "colorées par taux de financement ; pour un EPCI, les EPCI à fiscalité propre "
     "du département.",
     width="1/2",
-    table=table,
-    geojson=geojson,
 )
-def collect(context: Context, perimeter: Perimeter) -> Result | None:
+def carte(context: Context, perimeter: Perimeter) -> Table | None:
     fiche = context.fiche
     if fiche.famille != COMMUNE:
         return _epci(context, perimeter)
@@ -72,9 +79,8 @@ def collect(context: Context, perimeter: Perimeter) -> Result | None:
                 return None
             titre = "Intercommunalité"
             communes = contours.par_epci(context.connection, fiche.code_epci)
-    if not communes["features"]:
+    if not communes:
         return None
-    codes = [f["properties"]["code"] for f in communes["features"]]
+    codes = [commune["code"] for commune in communes]
     taux = api_collectivites.taux_par_commune(context.connection, codes)
-    carte = choroplethe(titre, communes, taux, ECHELLE, fiche.code_insee)
-    return Result(data=carte)
+    return _table(titre, "communes", communes, taux, fiche.code_insee)

@@ -116,7 +116,15 @@ def publish(connection: Connection, source: Source) -> None:
         connection.execute(sql.SQL("DROP SCHEMA {}").format(sql.Identifier(schema)))
 
 
-def upsert(connection: Connection, statement: str, rows) -> int:
+def insert(table: str, columns: tuple[str, ...]) -> str:
+    """An INSERT of `columns` into `table`, its rows given as dicts."""
+    names = ", ".join(columns)
+    values = ", ".join(f"%({column})s" for column in columns)
+    return f"INSERT INTO {table} ({names}) VALUES ({values})"
+
+
+def write(connection: Connection, statement: str, rows) -> int:
+    """Run `statement` once per row, by batches, in one transaction."""
     written = 0
     with connection.transaction(), connection.cursor() as cursor:
         for batch in batched(rows, BATCH_SIZE):

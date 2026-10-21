@@ -7,13 +7,11 @@ from enum import StrEnum
 class Schedule(StrEnum):
     ONESHOT = "oneshot"
     DAILY = "daily"
-    WEEKLY = "weekly"
     MONTHLY = "monthly"
 
 
 INTERVALS = {
     Schedule.DAILY: timedelta(days=1),
-    Schedule.WEEKLY: timedelta(weeks=1),
     Schedule.MONTHLY: timedelta(days=30),
 }
 

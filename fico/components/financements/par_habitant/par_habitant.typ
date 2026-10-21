@@ -1,53 +1,66 @@
-#import "common.typ": muted, panel
+#import "common.typ": empty, muted, panel
 
-#let color(accent) = if accent == "top" {
+#let highlighted = 3
+
+#let accent(index, count, focus) = if index == focus {
+  "focus"
+} else if index < highlighted {
+  "top"
+} else if index >= count - highlighted {
+  "bottom"
+} else if focus != none and calc.abs(index - focus) == 1 {
+  "neighbour"
+} else {
+  ""
+}
+
+#let color(kind) = if kind == "top" {
   rgb("#000091")
-} else if accent == "bottom" {
+} else if kind == "bottom" {
   rgb("#e18b76")
-} else if accent == "" {
+} else if kind == "" {
   rgb("#cacafb")
 } else {
   rgb("#6a6af4")
 }
 
 // Labels are placed above the bar, out of the layout: they may be wider than it.
-#let bar(barre, height) = align(bottom, block(
+#let bar(row, kind, share, height) = align(bottom, block(
   width: 100%,
-  height: calc.max(height * barre.share, 0.3pt),
-  fill: color(barre.accent),
+  height: calc.max(height * share, 0.3pt),
+  fill: color(kind),
   {
-    if barre.accent != "" {
-      place(top + center, dy: -1.1em, text(size: 6pt, weight: "bold", barre.par_habitant.label))
+    if kind != "" {
+      place(top + center, dy: -1.1em, text(size: 6pt, weight: "bold", row.last().label))
     }
-    if barre.accent == "focus" {
+    if kind == "focus" {
       place(
         top + center,
         dy: -2.3em,
-        box(width: 6cm, align(center, text(size: 6pt, fill: muted, barre.nom))),
+        box(width: 6cm, align(center, text(size: 6pt, fill: muted, row.at(2).label))),
       )
     }
   },
 ))
 
-#let ranking(barres, height: 3.5cm) = grid(
-  columns: barres.map(barre => if barre.accent == "" { 1fr } else { 0.9cm }),
-  column-gutter: 1pt,
-  rows: (height + 2.6em, 1.4em),
-  ..barres.map(barre => bar(barre, height)),
-  ..barres.map(barre => align(
-    center + bottom,
-    if barre.accent != "" { text(size: 6pt, fill: muted, str(barre.rang)) },
-  )),
-)
-
-#let render(data) = {
-  let titre = if data.periode != "" [#data.titre, #data.periode] else [#data.titre]
-  panel(
-    titre,
-    if data.barres.any(barre => barre.montant.value != 0) {
-      ranking(data.barres)
-    } else {
-      text(size: 9pt, fill: muted, style: "italic", [Aucun financement])
-    },
+#let ranking(data, height: 3.5cm) = {
+  let maximum = calc.max(..data.rows.map(row => row.last().value))
+  let kinds = range(data.rows.len()).map(index => accent(index, data.rows.len(), data.focus))
+  let bars = data.rows.zip(kinds)
+  grid(
+    columns: kinds.map(kind => if kind == "" { 1fr } else { 0.9cm }),
+    column-gutter: 1pt,
+    rows: (height + 2.6em, 1.4em),
+    ..bars.map(pair => bar(pair.at(0), pair.at(1), pair.at(0).last().value / maximum, height)),
+    ..bars.map(pair => align(
+      center + bottom,
+      if pair.at(1) != "" { text(size: 6pt, fill: muted, pair.at(0).first().label) },
+    )),
   )
 }
+
+#let render(data) = panel(
+  data.titre,
+  header: data.header,
+  if data.rows.len() == 0 { empty(data.vide) } else { ranking(data) },
+)

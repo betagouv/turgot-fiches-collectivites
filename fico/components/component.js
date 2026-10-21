@@ -2,8 +2,7 @@
 // the component's JSON from the server this script comes from, its other
 // attributes passed as the component's parameters, unless `data` was set before
 // the element joined the page; then lays it out with the `render` exported by
-// the component's module. The data is already computed and formatted server
-// side; modules only build markup.
+// the component's module.
 
 import { applyStyles, escape } from "/assets/common.js"
 
@@ -14,12 +13,12 @@ function isParameter(attribute) {
   return !OWN_ATTRIBUTES.has(name) && !name.startsWith("data-") && !name.startsWith("aria-")
 }
 
-let catalogue
-
-async function downloads(name) {
-  catalogue ??= fetch(new URL("/components", import.meta.url)).then((response) => response.json())
-  const component = (await catalogue).find((candidate) => candidate.name === name)
-  return component?.downloads ?? []
+function downloads(data) {
+  if (!data.rows.length) {
+    return []
+  }
+  const geometries = data.rows.some((row) => row.some((cell) => cell.value?.coordinates))
+  return geometries ? ["csv", "xlsx", "geojson"] : ["csv", "xlsx"]
 }
 
 customElements.define(
@@ -54,19 +53,20 @@ customElements.define(
       const { render } = await import(new URL(`/assets/components/${name}.js`, import.meta.url))
       this.innerHTML = render(this.data)
       applyStyles(this)
-      const formats = await downloads(name)
-      if (formats.length) {
-        const items = formats
-          .map((format) => `<li><a href="${escape(this.url(format))}" download>${format.toUpperCase()}</a></li>`)
-          .join("")
-        this.insertAdjacentHTML(
-          "beforeend",
-          `<details class="downloads">
-            <summary class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-download-line" title="Télécharger les données" aria-label="Télécharger les données"></summary>
-            <ul class="fr-text--sm">${items}</ul>
-          </details>`,
-        )
+      const formats = downloads(this.data)
+      if (!formats.length) {
+        return
       }
+      const items = formats
+        .map((format) => `<li><a href="${escape(this.url(format))}" download>${format.toUpperCase()}</a></li>`)
+        .join("")
+      this.insertAdjacentHTML(
+        "beforeend",
+        `<details class="downloads">
+          <summary class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-download-line" title="Télécharger les données" aria-label="Télécharger les données"></summary>
+          <ul class="fr-text--sm">${items}</ul>
+        </details>`,
+      )
     }
   },
 )

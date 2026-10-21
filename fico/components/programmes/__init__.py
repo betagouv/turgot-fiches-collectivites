@@ -1,22 +1,18 @@
-from dataclasses import dataclass
+from datetime import date
 
-from ...context import Context, Result
-from ...sources import programmes
+from ...context import Context
 from ...sources.collectivites import COMMUNE
-from ..formats import Display, long_date
+from ...sources.programmes import PAR_CODE, de_commune
+from ..formats import Display, long_date, text
 from ..registry import component
+from ..table import Table
 
 
-@dataclass
-class Programme:
-    code: str
-    nom: str
-    depuis: Display
-
-
-@dataclass
-class Programmes:
-    programmes: list[Programme]
+def _depuis(value: date | None) -> Display:
+    if value is None:
+        return Display(None, "")
+    depuis = long_date(value)
+    return Display(depuis.value, f"depuis le {depuis.label}")
 
 
 @component(
@@ -24,19 +20,16 @@ class Programmes:
     "ville, Petites villes de demain, Territoires d'industrie, Villages d'avenir.",
     width="1/2",
 )
-def collect(context: Context) -> Result | None:
+def programmes(context: Context) -> Table | None:
     if context.fiche.famille != COMMUNE:
         return None
-    rows = programmes.de_commune(context.connection, context.fiche.code_insee)
-    return Result(
-        data=Programmes(
-            [
-                Programme(
-                    code=row["programme"],
-                    nom=programmes.PAR_CODE[row["programme"]].nom,
-                    depuis=long_date(row["depuis"]),
-                )
-                for row in rows
-            ]
-        )
+    rows = de_commune(context.connection, context.fiche.code_insee)
+    return Table(
+        titre="Programmes",
+        columns=["Programme", "Depuis"],
+        rows=[
+            [text(PAR_CODE[row["programme"]].nom), _depuis(row["depuis"])]
+            for row in rows
+        ],
+        vide="Aucun programme national recensé.",
     )

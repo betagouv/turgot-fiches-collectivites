@@ -1,46 +1,24 @@
-from dataclasses import dataclass
-
-from ....context import Context, Result
-from ....render.table import Table
+from ....context import Context
 from ....sources import api_collectivites
-from ...formats import Display, compact_euros
+from ...formats import compact_euros, text
 from ...registry import component
-
-
-@dataclass
-class Financeur:
-    financeur: str
-    montant: Display
-    share: float
-
-
-@dataclass
-class Financeurs:
-    financeurs: list[Financeur]
-
-
-def table(data: Financeurs) -> Table:
-    return Table(
-        columns=["Financeur", "Montant reçu"],
-        rows=[[ligne.financeur, ligne.montant.value] for ligne in data.financeurs],
-    )
+from ...table import Table
 
 
 @component(
     description="Répartition des financements reçus par financeur.",
     width="1/2",
-    table=table,
 )
-def collect(context: Context, since: int | None = None) -> Result:
+def financeurs(context: Context, since: int | None = None) -> Table:
     par_source = api_collectivites.totaux_par_source(
         context.connection, context.fiche.siren, since
     )
-    montants = {ligne["source"]: ligne["montant"] or 0 for ligne in par_source}
-    total = sum(montants.values())
-    financeurs = Financeurs(
-        [
-            Financeur(source, compact_euros(montant), montant / total if total else 0)
-            for source, montant in montants.items()
-        ]
+    return Table(
+        titre="Répartition par financeur",
+        columns=["Financeur", "Montant reçu"],
+        rows=[
+            [text(ligne["source"]), compact_euros(ligne["montant"] or 0)]
+            for ligne in par_source
+        ],
+        vide="Aucun financement",
     )
-    return Result(data=financeurs)

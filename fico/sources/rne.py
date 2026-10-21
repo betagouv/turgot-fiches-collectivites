@@ -36,8 +36,7 @@ COLUMNS = ("fonction", "code", "nom", "prenom", "depuis")
 
 # Upstream files two EPCI under one SIREN: the latest president wins.
 INSERT = f"""
-INSERT INTO executif ({", ".join(COLUMNS)})
-VALUES ({", ".join(f"%({c})s" for c in COLUMNS)})
+{base.insert("executif", COLUMNS)}
 ON CONFLICT (fonction, code) DO UPDATE SET
 nom = excluded.nom, prenom = excluded.prenom, depuis = excluded.depuis
 WHERE excluded.depuis > executif.depuis
@@ -118,7 +117,7 @@ def fetch(client: httpx.Client, connection: base.Connection) -> str:
     urls = {fichier: _url(resources, fichier) for fichier in FICHIERS}
     counts = []
     for fichier, url in urls.items():
-        written = base.upsert(connection, INSERT, rows(client, url, fichier))
+        written = base.write(connection, INSERT, rows(client, url, fichier))
         counts.append(f"{written} {fichier.fonction}(s)")
     return ", ".join(counts)
 

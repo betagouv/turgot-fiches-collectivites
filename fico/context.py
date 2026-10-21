@@ -10,14 +10,3 @@ class Context:
 
     fiche: Fiche
     connection: Connection
-
-
-@dataclass
-class Result:
-    """What a component produces.
-
-    `data` is the component's contract with every renderer: values are computed
-    here, templates only lay them out.
-    """
-
-    data: object

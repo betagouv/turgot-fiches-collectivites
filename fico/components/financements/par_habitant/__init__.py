@@ -1,79 +1,21 @@
-from dataclasses import dataclass
 from datetime import UTC, datetime
-from enum import StrEnum
 
-from ....context import Context, Result
-from ....render.table import Table
+from ....context import Context
 from ....sources import api_collectivites, base, collectivites
 from ....sources.collectivites import COMMUNE, Fiche
-from ...formats import Display, euros, number
+from ...formats import euros, number, plain, text
 from ...registry import component
+from ...table import Table
 
-HIGHLIGHTED = 3
 YEARS = 6
-
-
-class Accent(StrEnum):
-    TOP = "top"
-    BOTTOM = "bottom"
-    FOCUS = "focus"
-    NEIGHBOUR = "neighbour"
-    NONE = ""
-
-
-@dataclass
-class Barre:
-    rang: int
-    code: str
-    nom: str
-    population: Display
-    montant: Display
-    par_habitant: Display
-    share: float
-    accent: Accent
-
-
-@dataclass
-class ParHabitant:
-    titre: str
-    periode: str
-    barres: list[Barre]
-
-
-def _accent(rang: int, count: int, focus: int | None) -> Accent:
-    if rang == focus:
-        return Accent.FOCUS
-    if rang <= HIGHLIGHTED:
-        return Accent.TOP
-    if rang > count - HIGHLIGHTED:
-        return Accent.BOTTOM
-    if focus is not None and abs(rang - focus) == 1:
-        return Accent.NEIGHBOUR
-    return Accent.NONE
-
-
-def table(data: ParHabitant) -> Table:
-    return Table(
-        columns=[
-            "Rang",
-            "Code",
-            "Collectivité",
-            "Population",
-            "Montant reçu",
-            "Moyenne annuelle par habitant",
-        ],
-        rows=[
-            [
-                barre.rang,
-                barre.code,
-                barre.nom,
-                barre.population.value,
-                barre.montant.value,
-                barre.par_habitant.value,
-            ]
-            for barre in data.barres
-        ],
-    )
+COLUMNS = [
+    "Rang",
+    "Code",
+    "Collectivité",
+    "Population",
+    "Montant reçu",
+    "Moyenne annuelle par habitant",
+]
 
 
 def _pairs(connection: base.Connection, fiche: Fiche) -> tuple[str, list[dict]] | None:
@@ -95,11 +37,10 @@ def _pairs(connection: base.Connection, fiche: Fiche) -> tuple[str, list[dict]] 
     "commune aux autres communes de son intercommunalité, un EPCI aux autres "
     "EPCI à fiscalité propre du département ; sur les six dernières années "
     "révolues ou depuis l'année since.",
-    table=table,
 )
-def collect(
+def par_habitant(
     context: Context, since: int | None = None, financeur: str | None = None
-) -> Result | None:
+) -> Table | None:
     fiche = context.fiche
     pairs = _pairs(context.connection, fiche)
     if pairs is None:
@@ -120,35 +61,30 @@ def collect(
         for voisine in voisines
         if voisine["population"]
     ]
-
+    if not any(row["montant"] for row in rows):
+        rows = []
     rows.sort(key=lambda row: row["montant"] / row["population"], reverse=True)
-    maximum = max((row["montant"] / row["population"] for row in rows), default=0)
     focus = next(
-        (rang for rang, row in enumerate(rows, start=1) if row["siren"] == fiche.siren),
-        None,
+        (index for index, row in enumerate(rows) if row["siren"] == fiche.siren), None
     )
-
-    barres = []
-    for rang, row in enumerate(rows, start=1):
-        par_habitant = row["montant"] / row["population"]
-        barres.append(
-            Barre(
-                rang=rang,
-                code=row.get("code_insee") or row["siren"],
-                nom=row["nom"],
-                population=number(row["population"]),
-                montant=euros(row["montant"]),
-                par_habitant=euros(par_habitant / max(len(annees), 1)),
-                share=par_habitant / maximum if maximum else 0,
-                accent=_accent(rang, len(rows), focus),
-            )
-        )
+    years = max(len(annees), 1)
 
     sujet = financeur or "Montants reçus"
-    return Result(
-        data=ParHabitant(
-            titre=f"{sujet}, moyenne annuelle par habitant, {perimetre}",
-            periode=f"{annees[0]} – {annees[-1]}" if annees else f"depuis {since}",
-            barres=barres,
-        )
+    return Table(
+        header=f"{annees[0]} – {annees[-1]}" if annees else f"depuis {since}",
+        titre=f"{sujet}, moyenne annuelle par habitant, {perimetre}",
+        columns=COLUMNS,
+        rows=[
+            [
+                plain(rang),
+                text(row.get("code_insee") or row["siren"]),
+                text(row["nom"]),
+                number(row["population"]),
+                euros(row["montant"]),
+                euros(row["montant"] / row["population"] / years),
+            ]
+            for rang, row in enumerate(rows, start=1)
+        ],
+        vide="Aucun financement",
+        focus=focus,
     )

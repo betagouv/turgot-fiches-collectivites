@@ -44,7 +44,8 @@
 
   /* Financements */
 
-  .synthese {
+  .figures {
+    height: 100%;
     text-align: right;
   }
 
@@ -92,15 +93,6 @@
       transform: translateX(-50%);
       font-size: 0.7rem;
       color: var(--text-mention-grey);
-    }
-  }
-
-  .amounts {
-    width: 100%;
-
-    td:last-child {
-      text-align: right;
-      font-weight: 500;
     }
   }
 
@@ -235,6 +227,17 @@
     a {
       display: block;
       padding: 0.25rem 1.5rem;
+    }
+  }
+
+  /* Figures read from the right: the menu takes the corner they leave free. */
+  &:is(fico-component):has(> .figures) .downloads {
+    right: auto;
+    left: 0.5rem;
+
+    ul {
+      right: auto;
+      left: 0;
     }
   }
 }

@@ -1,11 +1,10 @@
 import json
-from contextlib import contextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from . import components, sources
 from .fiche import IdentifiantInvalide, collect, collect_one, describe, render
@@ -34,11 +33,19 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"])
 app.add_middleware(GZipMiddleware)
 
 
-def _chosen(requested: str | None):
-    try:
-        return components.selected(requested)
-    except (components.UnknownComponent, components.InvalidParameter) as erreur:
-        raise HTTPException(400, str(erreur))
+@app.exception_handler(components.UnknownComponent)
+@app.exception_handler(components.InvalidParameter)
+@app.exception_handler(IdentifiantInvalide)
+async def bad_request(request: Request, erreur: Exception) -> JSONResponse:
+    return JSONResponse(status_code=400, content={"detail": str(erreur)})
+
+
+@app.exception_handler(NotFound)
+async def not_found(request: Request, erreur: NotFound) -> JSONResponse:
+    return JSONResponse(
+        status_code=404,
+        content={"detail": f"Aucune collectivité connue pour {erreur}."},
+    )
 
 
 def _instance(name: str, request: Request) -> components.Instance:
@@ -46,31 +53,20 @@ def _instance(name: str, request: Request) -> components.Instance:
     component = components.COMPONENTS.get(name)
     if component is None or component.access is not components.Access.PUBLIC:
         raise HTTPException(404, f"Composant inconnu : {name}.")
-    try:
-        return component.instance(request.query_params)
-    except components.InvalidParameter as erreur:
-        raise HTTPException(400, str(erreur))
-
-
-@contextmanager
-def _resolving(identifiant: str):
-    try:
-        yield
-    except IdentifiantInvalide as erreur:
-        raise HTTPException(400, str(erreur))
-    except NotFound:
-        raise HTTPException(404, f"Aucune collectivité connue pour {identifiant}.")
-
-
-def _collect(identifiant: str, chosen):
-    with _resolving(identifiant):
-        return collect(identifiant, chosen)
+    return component.new(**request.query_params)
 
 
 def _page(identifiant: str, chosen) -> HTMLResponse:
-    with _resolving(identifiant):
-        header = describe(identifiant)
-    return HTMLResponse(html.page(header, identifiant, chosen))
+    return HTMLResponse(html.page(describe(identifiant), identifiant, chosen))
+
+
+def _data(identifiant: str, instance: components.Instance) -> components.Table:
+    result = collect_one(identifiant, instance)
+    if result is None:
+        raise HTTPException(
+            404, f"Le composant {instance.name} n'a rien à montrer pour {identifiant}."
+        )
+    return result
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
@@ -91,7 +87,6 @@ async def list_components():
                 name: parameter.describe()
                 for name, parameter in component.parameters.items()
             },
-            "downloads": component.downloads,
         }
         for component in components.COMPONENTS.values()
     ]
@@ -99,7 +94,7 @@ async def list_components():
 
 @app.get("/fiches/{identifiant}.pdf")
 def fiche_pdf(identifiant: str, component: str | None = None):
-    header, lines = _collect(identifiant, _chosen(component))
+    header, lines = collect(identifiant, components.selected(component))
     return Response(
         content=render(header, lines),
         media_type="application/pdf",
@@ -109,18 +104,8 @@ def fiche_pdf(identifiant: str, component: str | None = None):
 
 @app.get("/fiches/{identifiant}.json")
 def fiche_json(identifiant: str, component: str | None = None):
-    header, lines = _collect(identifiant, _chosen(component))
+    header, lines = collect(identifiant, components.selected(component))
     return {**header, "lines": lines}
-
-
-def _data(identifiant: str, instance: components.Instance):
-    with _resolving(identifiant):
-        result = collect_one(identifiant, instance)
-    if result is None:
-        raise HTTPException(
-            404, f"Le composant {instance.name} n'a rien à montrer pour {identifiant}."
-        )
-    return result.data
 
 
 @app.get("/fiches/{identifiant}/{name}.json")
@@ -130,7 +115,7 @@ def component_json(identifiant: str, name: str, request: Request):
 
 @app.get("/fiches/{identifiant}.html", response_class=HTMLResponse)
 def fiche_html(identifiant: str, component: str | None = None):
-    return _page(identifiant, _chosen(component))
+    return _page(identifiant, components.selected(component))
 
 
 @app.get("/fiches/{identifiant}/{name}.html", response_class=HTMLResponse)
@@ -143,18 +128,16 @@ def component_html(identifiant: str, name: str, request: Request):
 def component_download(
     identifiant: str, name: str, extension: components.Download, request: Request
 ):
-    instance = _instance(name, request)
-    component = instance.component
-    if extension not in component.downloads:
-        raise HTTPException(404, f"{name} ne se télécharge pas en {extension}.")
-    data = _data(identifiant, instance)
+    data = _data(identifiant, _instance(name, request))
     match extension:
         case components.Download.CSV:
-            content = table.to_csv(component.table(data))
+            content = table.to_csv(data)
         case components.Download.XLSX:
-            content = table.to_xlsx(component.table(data))
+            content = table.to_xlsx(data)
         case components.Download.GEOJSON:
-            content = json.dumps(component.geojson(data)).encode()
+            if table.geometry_column(data) is None:
+                raise HTTPException(404, f"{name} ne porte pas de contours.")
+            content = json.dumps(table.to_geojson(data)).encode()
     filename = f"{identifiant}-{name}.{extension}"
     return Response(
         content=content,

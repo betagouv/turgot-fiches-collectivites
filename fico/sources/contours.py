@@ -36,17 +36,8 @@ CREATE TABLE IF NOT EXISTS epci_contour (
 
 COLUMNS = ("code", "nom", "departement", "epci", "geometry")
 
-UPSERT = f"""
-INSERT INTO contour ({", ".join(COLUMNS)})
-VALUES ({", ".join(f"%({c})s" for c in COLUMNS)})
-ON CONFLICT (code) DO UPDATE SET
-{", ".join(f"{c} = excluded.{c}" for c in COLUMNS if c != "code")}
-"""
-
-INSERT_EPCI = """
-INSERT INTO epci_contour (code, nom, geometry)
-VALUES (%(code)s, %(nom)s, %(geometry)s)
-"""
+INSERT = base.insert("contour", COLUMNS)
+INSERT_EPCI = base.insert("epci_contour", ("code", "nom", "geometry"))
 
 
 def _features(client: httpx.Client, url: str) -> list[dict]:
@@ -75,27 +66,25 @@ def _rows(features: list[dict]):
     schema=SCHEMA,
 )
 def fetch(client: httpx.Client, connection: base.Connection) -> str:
-    communes = base.upsert(connection, UPSERT, _rows(_features(client, COMMUNES)))
-    epci = base.upsert(connection, INSERT_EPCI, _rows(_features(client, EPCI)))
+    communes = base.write(connection, INSERT, _rows(_features(client, COMMUNES)))
+    epci = base.write(connection, INSERT_EPCI, _rows(_features(client, EPCI)))
     return f"{communes} commune(s), {epci} EPCI"
 
 
-def _collection(rows) -> dict:
-    return {
-        "type": "FeatureCollection",
-        "features": [
-            {
-                "type": "Feature",
-                "properties": {"code": row["code"], "nom": row["nom"]},
-                "geometry": json.loads(row["geometry"]),
-            }
-            for row in rows
-        ],
-    }
+def _contours(rows) -> list[dict]:
+    """Each row with its GeoJSON geometry decoded."""
+    return [
+        {
+            "code": row["code"],
+            "nom": row["nom"],
+            "geometry": json.loads(row["geometry"]),
+        }
+        for row in rows
+    ]
 
 
-def par_departement(connection: base.Connection, code: str) -> dict:
-    return _collection(
+def par_departement(connection: base.Connection, code: str) -> list[dict]:
+    return _contours(
         connection.execute(
             "SELECT code, nom, geometry FROM contour WHERE departement = %s "
             "ORDER BY code",
@@ -104,8 +93,8 @@ def par_departement(connection: base.Connection, code: str) -> dict:
     )
 
 
-def par_epci(connection: base.Connection, siren: str) -> dict:
-    return _collection(
+def par_epci(connection: base.Connection, siren: str) -> list[dict]:
+    return _contours(
         connection.execute(
             "SELECT code, nom, geometry FROM contour WHERE epci = %s ORDER BY code",
             (siren,),
@@ -113,9 +102,9 @@ def par_epci(connection: base.Connection, siren: str) -> dict:
     )
 
 
-def epci(connection: base.Connection, sirens: list[str]) -> dict:
-    """The contours of the EPCI of `sirens`, keyed by SIREN in `code`."""
-    return _collection(
+def epci(connection: base.Connection, sirens: list[str]) -> list[dict]:
+    """The contours of the EPCI of `sirens`, their SIREN in `code`."""
+    return _contours(
         connection.execute(
             "SELECT code, nom, geometry FROM epci_contour WHERE code = ANY(%s) "
             "ORDER BY code",

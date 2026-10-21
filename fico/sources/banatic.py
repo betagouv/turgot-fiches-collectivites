@@ -59,10 +59,7 @@ COLUMNS = (
     "date_creation",
 )
 
-INSERT = f"""
-INSERT INTO groupement ({", ".join(COLUMNS)})
-VALUES ({", ".join(f"%({c})s" for c in COLUMNS)})
-"""
+INSERT = base.insert("groupement", COLUMNS)
 
 INSERT_COMPETENCE = "INSERT INTO competence (siren, rang, nom) VALUES (%s, %s, %s)"
 
@@ -138,6 +135,6 @@ def fetch(client: httpx.Client, connection: base.Connection) -> str:
     response = client.get(URL, timeout=600)
     response.raise_for_status()
     groupements, competences = parse(response.content)
-    written = base.upsert(connection, INSERT, groupements)
-    base.upsert(connection, INSERT_COMPETENCE, competences)
+    written = base.write(connection, INSERT, groupements)
+    base.write(connection, INSERT_COMPETENCE, competences)
     return f"{written} groupement(s), {len(competences)} compétence(s) exercée(s)"

@@ -6,19 +6,15 @@ et un gabarit par cible de rendu nommé d'après le dernier segment de son nom :
 sont à la racine : `common.typ` et `common.js`, `carto.typ` et `carto.js`.
 """
 
-from . import (  # noqa: F401
-    competences,
-    identite,
-    programmes,
-)
-from .financements import (  # noqa: F401
-    annuel,
-    carte,
-    financeurs,
-    historique,
-    par_habitant,
-    synthese,
-)
+from .competences import competences
+from .financements.annuel import annuel
+from .financements.carte import carte
+from .financements.financeurs import financeurs
+from .financements.historique import historique
+from .financements.par_habitant import par_habitant
+from .financements.synthese import synthese
+from .identite import identite
+from .programmes import programmes
 from .registry import (
     COMPONENTS,
     Access,
@@ -33,21 +29,22 @@ from .registry import (
     selected,
     template,
 )
+from .table import Table
 
 order(
-    "identite",
-    "programmes",
-    "financements.carte(perimeter=departement)",
-    "financements.carte(perimeter=interco)",
-    "financements.synthese",
-    "financements.synthese(financeur=DSIL)",
-    "financements.synthese(financeur=DETR)",
-    "financements.synthese(financeur=Fonds Vert)",
-    "financements.annuel",
-    "financements.financeurs",
-    "financements.par_habitant",
-    "financements.historique",
-    "competences",
+    identite,
+    programmes,
+    carte.new(perimeter="departement"),
+    carte.new(perimeter="interco"),
+    synthese,
+    synthese.new(financeur="DSIL"),
+    synthese.new(financeur="DETR"),
+    synthese.new(financeur="Fonds Vert"),
+    annuel,
+    financeurs,
+    par_habitant,
+    historique,
+    competences,
 )
 
 __all__ = [
@@ -57,6 +54,7 @@ __all__ = [
     "Download",
     "Instance",
     "InvalidParameter",
+    "Table",
     "UnknownComponent",
     "component",
     "order",

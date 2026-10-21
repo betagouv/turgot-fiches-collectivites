@@ -1,18 +1,43 @@
-import { escape, panel } from "/assets/common.js"
+import { empty, escape, panel } from "/assets/common.js"
 
-function bar(barre) {
-  const highlighted = barre.accent !== ""
-  const name = barre.accent === "focus" ? `<span class="ranking-name">${escape(barre.nom)}</span>` : ""
-  const value = highlighted ? `<span class="ranking-value">${escape(barre.par_habitant.label)}</span>` : ""
-  const rank = highlighted ? `<span class="ranking-rank">${barre.rang}</span>` : ""
-  const title = `${barre.rang}. ${barre.nom} : ${barre.par_habitant.label} par habitant`
-  return `<div class="ranking-bar" data-accent="${barre.accent}" data-share="${barre.share}" title="${escape(title)}">${name}${value}${rank}</div>`
+const HIGHLIGHTED = 3
+
+function accent(index, count, focus) {
+  if (index === focus) {
+    return "focus"
+  }
+  if (index < HIGHLIGHTED) {
+    return "top"
+  }
+  if (index >= count - HIGHLIGHTED) {
+    return "bottom"
+  }
+  if (focus !== null && Math.abs(index - focus) === 1) {
+    return "neighbour"
+  }
+  return ""
+}
+
+function bar(row, kind, share) {
+  const [rang, , nom] = row
+  const value = row.at(-1)
+  const highlighted = kind !== ""
+  const name = kind === "focus" ? `<span class="ranking-name">${escape(nom.label)}</span>` : ""
+  const figure = highlighted ? `<span class="ranking-value">${escape(value.label)}</span>` : ""
+  const rank = highlighted ? `<span class="ranking-rank">${escape(rang.label)}</span>` : ""
+  const title = `${rang.label}. ${nom.label} : ${value.label} par habitant`
+  return `<div class="ranking-bar" data-accent="${kind}" data-share="${share}" title="${escape(title)}">${name}${figure}${rank}</div>`
+}
+
+function ranking(data) {
+  const maximum = Math.max(...data.rows.map((row) => row.at(-1).value))
+  const bars = data.rows
+    .map((row, index) => bar(row, accent(index, data.rows.length, data.focus), row.at(-1).value / maximum))
+    .join("")
+  return `<div class="ranking">${bars}</div>`
 }
 
 export function render(data) {
-  const titre = data.periode ? `${data.titre}, ${data.periode}` : data.titre
-  if (!data.barres.some((barre) => barre.montant.value)) {
-    return panel(titre, `<p class="muted fr-mb-0"><em>Aucun financement</em></p>`)
-  }
-  return panel(titre, `<div class="ranking">${data.barres.map(bar).join("")}</div>`)
+  const body = data.rows.length ? ranking(data) : empty(data.vide)
+  return panel(data.titre, body, data.header)
 }

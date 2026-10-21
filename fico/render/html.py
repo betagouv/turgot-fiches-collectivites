@@ -17,7 +17,6 @@ LOGO = (Path(__file__).parent / "logo.svg").read_text(encoding="utf-8")
 SCHEDULE_LABELS = {
     Schedule.ONESHOT: "ponctuelle",
     Schedule.DAILY: "quotidienne",
-    Schedule.WEEKLY: "hebdomadaire",
     Schedule.MONTHLY: "mensuelle",
 }
 

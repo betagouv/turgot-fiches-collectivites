@@ -1,19 +1,20 @@
 import inspect
 import re
 import typing
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from enum import Enum, StrEnum
 from fractions import Fraction
 from pathlib import Path
 
+from ..context import Context
+from .table import Table
+
 ROOT = Path(__file__).parent
 
-# `identite,financements.historique(since=2020),financements.*`: values hold
-# neither commas nor parentheses.
-ITEM = r"[\w.*]+\s*(?:\([^()]*\))?"
-SPECS = re.compile(rf"\s*{ITEM}\s*(?:,\s*{ITEM}\s*)*")
-SPEC = re.compile(r"(?P<name>[\w.*]+)\s*(?:\((?P<arguments>[^()]*)\))?")
+# One item of `identite,financements.historique(since=2020),financements.*`,
+# up to the comma that follows it: values hold neither commas nor parentheses.
+SPEC = re.compile(r"\s*(?P<name>[\w.*]+)\s*(?:\((?P<arguments>[^()]*)\))?\s*(?:,|$)")
 
 
 class Access(StrEnum):
@@ -60,28 +61,15 @@ class Component:
     description: str
     width: Fraction
     access: Access
-    collect: Callable
+    fonction: Callable
     parameters: dict[str, Parameter]
-    table: Callable | None
-    geojson: Callable | None
 
-    def template(self, extension: str) -> Path:
-        return template(self.name, extension)
+    def __call__(self, context: Context, **arguments) -> Table | None:
+        return self.fonction(context, **arguments)
 
-    @property
-    def downloads(self) -> list[Download]:
-        """The formats the component's data can be downloaded in, after its
-        `table` and `geojson` renderers."""
-        formats = []
-        if self.table:
-            formats += [Download.CSV, Download.XLSX]
-        if self.geojson:
-            formats.append(Download.GEOJSON)
-        return formats
-
-    def instance(self, values: Mapping[str, str]) -> Instance:
-        """The component with its `collect` keyword arguments, from their text
-        values."""
+    def new(self, **values) -> Instance:
+        """The component with its keyword arguments, each converted to its
+        parameter's type: `since="2020"` and `since=2020` both hold an `int`."""
         arguments = {}
         for key, value in values.items():
             parameter = self.parameters.get(key)
@@ -118,6 +106,9 @@ class Instance:
     component: Component
     arguments: dict[str, object]
 
+    def __call__(self, context: Context) -> Table | None:
+        return self.component(context, **self.arguments)
+
     @property
     def name(self) -> str:
         return self.component.name
@@ -135,10 +126,10 @@ COMPONENTS: dict[str, Component] = {}
 DEFAULT: list[Instance] = []
 
 
-def _parameters(collect: Callable) -> dict[str, Parameter]:
-    """The parameters `collect` takes after its context, each with the type its
+def _parameters(fonction: Callable) -> dict[str, Parameter]:
+    """The parameters `fonction` takes after its context, each with the type its
     text value converts to: `since: int | None = None` is an optional `int`."""
-    _, *parameters = inspect.signature(collect).parameters.values()
+    _, *parameters = inspect.signature(fonction).parameters.values()
     found = {}
     for parameter in parameters:
         annotation = parameter.annotation
@@ -150,46 +141,47 @@ def _parameters(collect: Callable) -> dict[str, Parameter]:
     return found
 
 
-def component(
-    description: str,
-    width: str = "1",
-    access: Access = Access.PUBLIC,
-    table: Callable | None = None,
-    geojson: Callable | None = None,
-):
-    """The component is named after its package: `components/financements/carte/`
-    is `financements.carte`.
+def component(description: str, width: str = "1", access: Access = Access.PUBLIC):
+    """The decorated function becomes the `Component`, called the same way, and
+    named after its package: `components/financements/carte/` is
+    `financements.carte`.
 
-    `width` is the share of a line the content needs, as "1/3", "1/2" or "1".
-
-    `table` and `geojson` render the component's data for download, as a
-    `Table` of raw values and as a GeoJSON dict."""
+    `width` is the share of a line the content needs, as "1/3", "1/2" or "1"."""
     share = Fraction(width)
 
-    def decorate(collect: Callable) -> Callable:
-        name = collect.__module__.removeprefix(f"{__package__}.")
+    def decorate(fonction: Callable) -> Component:
+        name = fonction.__module__.removeprefix(f"{__package__}.")
         if not 0 < share <= 1:
             raise ValueError(f"{name} : largeur {width} hors de ]0, 1].")
-        COMPONENTS[name] = Component(
+        return Component(
             name=name,
             description=description,
             width=share,
             access=access,
-            collect=collect,
-            parameters=_parameters(collect),
-            table=table,
-            geojson=geojson,
+            fonction=fonction,
+            parameters=_parameters(fonction),
         )
-        return collect
 
     return decorate
 
 
-def _instances(spec: str) -> list[Instance]:
+def _specs(requested: str) -> Iterator[re.Match]:
+    position = 0
+    while position < len(requested):
+        match = SPEC.match(requested, position)
+        if match is None:
+            raise UnknownComponent(
+                f"Composants illisibles : {requested}. "
+                "Attendu par exemple : "
+                "identite,financements.historique(since=2020),financements.*"
+            )
+        yield match
+        position = match.end()
+
+
+def _instances(name: str, arguments: str | None) -> list[Instance]:
     """`financements.*` stands for every default instance under `financements`,
     in page order."""
-    match = SPEC.fullmatch(spec)
-    name, arguments = match["name"], match["arguments"]
     if name.endswith(".*"):
         prefix = name.removesuffix("*")
         return [instance for instance in DEFAULT if instance.name.startswith(prefix)]
@@ -200,41 +192,30 @@ def _instances(spec: str) -> list[Instance]:
         if argument.strip():
             key, _, value = argument.partition("=")
             values[key.strip()] = value.strip()
-    return [COMPONENTS[name].instance(values)]
+    return [COMPONENTS[name].new(**values)]
 
 
 def _parse(requested: str) -> list[Instance]:
-    if not SPECS.fullmatch(requested):
-        raise UnknownComponent(
-            f"Composants illisibles : {requested}. "
-            "Attendu par exemple : "
-            "identite,financements.historique(since=2020),financements.*"
-        )
-    specs = [match.group(0) for match in re.finditer(ITEM, requested)]
-    expanded = {spec: _instances(spec) for spec in specs}
+    expanded = {
+        match.group(0).strip(" ,"): _instances(match["name"], match["arguments"])
+        for match in _specs(requested)
+    }
     unknown = [spec for spec, instances in expanded.items() if not instances]
     if unknown:
         raise UnknownComponent(
             f"Composant(s) inconnu(s) : {', '.join(unknown)}. "
             f"Composants disponibles : {', '.join(COMPONENTS)}."
         )
-    return [instance for spec in specs for instance in expanded[spec]]
+    return [instance for instances in expanded.values() for instance in instances]
 
 
-def order(*specs: str) -> None:
-    """Fixe les composants d'une fiche par défaut et leur ordre d'apparition."""
-    DEFAULT[:] = _parse(",".join(specs))
-    declared = set(COMPONENTS)
-    wanted = {instance.name for instance in DEFAULT}
-    if declared != wanted:
-        raise UnknownComponent(
-            f"L'ordre ne couvre pas les composants déclarés : "
-            f"manquants {sorted(declared - wanted)}."
-        )
-    names = dict.fromkeys(instance.name for instance in DEFAULT)
-    ordered = {name: COMPONENTS[name] for name in names}
+def order(*items: Component | Instance) -> None:
+    """The default fiche, in page order: a bare component stands for its
+    instance without arguments. The components known to the registry are the
+    ones listed here."""
+    DEFAULT[:] = [item if isinstance(item, Instance) else item.new() for item in items]
     COMPONENTS.clear()
-    COMPONENTS.update(ordered)
+    COMPONENTS.update({instance.name: instance.component for instance in DEFAULT})
 
 
 def selected(

@@ -21,19 +21,16 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS programme (
     code_insee TEXT NOT NULL,
     programme  TEXT NOT NULL,
-    libelle    TEXT,
     depuis     DATE,
     PRIMARY KEY (code_insee, programme)
 );
 """
 
-COLUMNS = ("code_insee", "programme", "libelle", "depuis")
+COLUMNS = ("code_insee", "programme", "depuis")
 
 UPSERT = f"""
-INSERT INTO programme ({", ".join(COLUMNS)})
-VALUES ({", ".join(f"%({c})s" for c in COLUMNS)})
-ON CONFLICT (code_insee, programme) DO UPDATE SET
-libelle = excluded.libelle, depuis = excluded.depuis
+{base.insert("programme", COLUMNS)}
+ON CONFLICT (code_insee, programme) DO UPDATE SET depuis = excluded.depuis
 """
 
 
@@ -48,7 +45,6 @@ class Programme:
     code: str
     nom: str
     dataset: str
-    colonne_libelle: str
     ressource: str | None = None
     colonne_date: ColonneDate | None = None
 
@@ -58,28 +54,24 @@ PROGRAMMES = (
         code="ACV",
         nom="Action cœur de ville",
         dataset="5fa9901c66cff095591963e8",
-        colonne_libelle="lib_acv",
         colonne_date=ColonneDate("date_signature", "%Y-%m-%d"),
     ),
     Programme(
         code="PVD",
         nom="Petites villes de demain",
         dataset="5fc1259b703620ed60a49d97",
-        colonne_libelle="lib_com",
         colonne_date=ColonneDate("date_signature", "%d/%m/%Y"),
     ),
     Programme(
         code="TI",
         nom="Territoires d'industrie",
         dataset="5fc1472f114718d419e42f8a",
-        colonne_libelle="lib_ti",
         ressource="communes couvertes",
     ),
     Programme(
         code="VA",
         nom="Villages d'avenir",
         dataset="65a11234a86f08c56f0c47b0",
-        colonne_libelle="lib_com",
     ),
 )
 
@@ -126,7 +118,6 @@ def rows(client: httpx.Client, programme: Programme):
         yield {
             "code_insee": code_insee,
             "programme": programme.code,
-            "libelle": (row.get(programme.colonne_libelle) or "").strip(),
             "depuis": _depuis(row, programme),
         }
 
@@ -141,7 +132,7 @@ def rows(client: httpx.Client, programme: Programme):
 def fetch(client: httpx.Client, connection: base.Connection) -> str:
     counts = []
     for programme in PROGRAMMES:
-        written = base.upsert(connection, UPSERT, rows(client, programme))
+        written = base.write(connection, UPSERT, rows(client, programme))
         counts.append(f"{programme.code} {written}")
     return ", ".join(counts)
 

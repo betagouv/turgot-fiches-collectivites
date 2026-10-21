@@ -47,23 +47,27 @@ just serve                            # http://127.0.0.1:8001
 
 | Endpoint | Rôle |
 | --- | --- |
-| `GET /components` | les composants : nom, description, accès, largeur, paramètres, formats de téléchargement |
+| `GET /components` | les composants : nom, description, accès, largeur, paramètres |
 | `GET /fiches/{identifiant}.pdf` | la fiche en PDF, `?component=a,b(x=1)` pour choisir |
 | `GET /fiches/{identifiant}.json` | les lignes de mise en page, chaque composant avec ses paramètres et ses données, même filtre |
 | `GET /fiches/{identifiant}/{composant}.json` | les données d'un seul composant, ses paramètres en query |
-| `GET /fiches/{identifiant}/{composant}.{format}` | les données brutes d'un composant en fichier : `csv`, `xlsx` ou `geojson`, selon ce que le composant propose |
+| `GET /fiches/{identifiant}/{composant}.{format}` | le tableau d'un composant en fichier : `csv`, `xlsx`, ou `geojson` quand une colonne porte des contours |
 
-Les données d'un composant sont son contrat avec tous les rendus : chaque valeur
-affichée y figure en `{"value": …, "label": …}`, la valeur brute et son libellé
-formaté. Les gabarits ne calculent rien ; un tiers peut reprendre la main sur la
-présentation à partir du seul JSON.
+Un composant renvoie un tableau, et c'est son contrat avec tous les rendus : un
+titre, un `header` au-dessus, des colonnes, des lignes dont chaque cellule est
+`{"value": …, "label": …}`, la valeur brute et son libellé formaté, un message
+`vide` quand il n'y a pas de ligne, une `note` sous le corps, et `focus`,
+l'index de la ligne qui concerne la collectivité de la fiche quand le tableau la
+compare à d'autres. Les gabarits dessinent ce tableau en liste, en chiffres clés,
+en barres ou en carte ; ce qui ne sert qu'au dessin, graduations d'un axe,
+couleurs d'une carte, se calcule chez eux. Un tiers peut reprendre la main sur
+la présentation à partir du seul JSON.
 
 Les fichiers à télécharger portent les valeurs brutes, sans mise en forme : un
-taux de 42 % y vaut `0.42`. Les tableaux et graphiques se téléchargent en `csv`
-et `xlsx` (`financements.historique`, `financements.annuel`,
-`financements.financeurs`, `financements.par_habitant`), les cartes aussi, une ligne par commune, et en
-`geojson` (`financements.carte`) ; `/components` liste les formats de chaque
-composant dans `downloads`.
+taux de 42 % y vaut `0.42`, et une géométrie son GeoJSON. Tout composant se
+télécharge en `csv` et `xlsx`, une ligne par ligne de son tableau, et en
+`geojson` quand une colonne porte des contours (`financements.carte`), une
+`Feature` par ligne avec les autres colonnes en propriétés.
 
 ## Déploiement
 
@@ -136,16 +140,18 @@ fico/
 ├── components/   un paquet par composant de la fiche
 │   ├── registry.py       @component(name, width, access)
 │   ├── common.typ        jetons, règles de page, éléments partagés
-│   └── <nom>/            __init__.py (sa collecte) + <nom>.typ (son rendu)
+│   └── <nom>/            __init__.py (sa collecte) + <nom>.typ et <nom>.js (ses rendus)
 ├── render/       une cible = un assembleur ; typst.py écrit le gabarit racine
 └── fiche.py      résout l'identifiant, appelle les composants retenus, délègue
 ```
 
-Un composant se déclare par décorateur, sur la fonction qui le collecte :
+Un composant se déclare par décorateur, sur la fonction qui le collecte, qui
+devient le composant et s'appelle de la même façon ; son nom public est celui
+de son paquet :
 
 ```python
-@component(name="identite", width="1/2")
-def collect(context: Context) -> Result | None
+@component(description="Identité de la collectivité…", width="1/2")
+def identite(context: Context) -> Result | None
 ```
 
 `width` dit la part de ligne dont le contenu a besoin : `"1/4"`, `"1/3"`,
@@ -156,12 +162,13 @@ entière, en PDF comme en HTML ; une ligne incomplète est répartie au prorata.
 restreints étant écartés quand l'appelant n'est pas authentifié. Une collecte
 qui renvoie `None` fait disparaître son composant de la page.
 
-L'ordre par défaut est déclaré une fois dans `components/__init__.py`, et
-vérifié contre le registre : il ne dépend pas de l'ordre des imports.
+La fiche par défaut est la liste `order(...)` de `components/__init__.py` : les
+composants dans l'ordre de la page, `carte.new(perimeter="interco")` pour une
+instance paramétrée. Un composant existe parce qu'il y figure.
 
 Les imports Typst étant statiques, le gabarit racine est écrit à la compilation
 avec les seuls composants demandés. Ajouter une cible de rendu revient à poser
-un `<nom>.html` à côté du `<nom>.typ` et un assembleur dans `render/` : ni les
+un gabarit de plus à côté du `<nom>.typ` et du `<nom>.js`, et un assembleur dans `render/` : ni les
 sources ni les collectes ne bougent.
 
 ## Choix des composants

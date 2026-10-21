@@ -1,19 +1,8 @@
-from dataclasses import dataclass
-
-from ....context import Context, Result
+from ....context import Context
 from ....sources import api_collectivites
-from ...formats import Display, euros, number, percent
+from ...formats import euros, number, percent, text
 from ...registry import component
-
-
-@dataclass
-class Synthese:
-    titre: str
-    periode: str
-    montant: Display
-    projets: Display
-    cout: Display
-    taux: Display
+from ...table import Table
 
 
 @component(
@@ -21,21 +10,30 @@ class Synthese:
     "financement, tous financeurs ou pour un seul.",
     width="1/4",
 )
-def collect(
+def synthese(
     context: Context, since: int | None = None, financeur: str | None = None
-) -> Result:
+) -> Table:
     connection, siren = context.connection, context.fiche.siren
     totaux = api_collectivites.totaux(connection, siren, since, financeur)
     cofinancement = api_collectivites.cofinancement(connection, siren, since, financeur)
     cout = cofinancement["cout"] or 0
     premiere, derniere = totaux["premiere_annee"], totaux["derniere_annee"]
 
-    synthese = Synthese(
+    rows = []
+    if totaux["projets"]:
+        rows = [
+            [text("reçus"), euros(totaux["montant"])],
+            [text("projets financés"), number(totaux["projets"])],
+            [text("de coût des projets renseignés"), euros(cout)],
+            [
+                text("de taux de financement"),
+                percent(cofinancement["montant"] / cout if cout else None),
+            ],
+        ]
+    return Table(
+        header=f"{premiere} – {derniere}" if premiere else "",
         titre=financeur or "Tous financeurs",
-        periode=f"{premiere} – {derniere}" if premiere else "",
-        montant=euros(totaux["montant"]),
-        projets=number(totaux["projets"]),
-        cout=euros(cout),
-        taux=percent(cofinancement["montant"] / cout if cout else None),
+        columns=["Indicateur", "Valeur"],
+        rows=rows,
+        vide="Aucun financement",
     )
-    return Result(data=synthese)
