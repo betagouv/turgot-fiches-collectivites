@@ -1,0 +1,73 @@
+{
+  "title": "Identité",
+  "columns": [
+    "Libellé",
+    "Valeur"
+  ],
+  "rows": [
+    [
+      {
+        "value": "Président",
+        "label": "Président"
+      },
+      {
+        "value": "Nathalie APPÉRÉ",
+        "label": "Nathalie APPÉRÉ, depuis le 9 avril 2026"
+      }
+    ],
+    [
+      {
+        "value": "SIREN",
+        "label": "SIREN"
+      },
+      {
+        "value": "243500139",
+        "label": "243500139"
+      }
+    ],
+    [
+      {
+        "value": "Type",
+        "label": "Type"
+      },
+      {
+        "value": "METRO",
+        "label": "METRO"
+      }
+    ],
+    [
+      {
+        "value": "Mode de financement",
+        "label": "Mode de financement"
+      },
+      {
+        "value": "FPU",
+        "label": "FPU"
+      }
+    ],
+    [
+      {
+        "value": "Date de création",
+        "label": "Date de création"
+      },
+      {
+        "value": "1999-12-31",
+        "label": "31 décembre 1999"
+      }
+    ],
+    [
+      {
+        "value": "Département",
+        "label": "Département"
+      },
+      {
+        "value": "Ille-et-Vilaine",
+        "label": "Ille-et-Vilaine"
+      }
+    ]
+  ],
+  "header": "",
+  "empty": "",
+  "note": "",
+  "focus": null
+}

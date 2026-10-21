@@ -1,0 +1,3 @@
+siren,nom,code_insee,population,superficie,codes_postaux,code_epci,nom_epci,code_departement,nom_departement,code_region,nom_region
+213502388,Rennes,35238,230890,50.39,"{35000,35200,35700}",243500139,Rennes Métropole,35,Ille-et-Vilaine,53,Bretagne
+213500010,Acigné,35001,,,{},,,35,Ille-et-Vilaine,53,Bretagne

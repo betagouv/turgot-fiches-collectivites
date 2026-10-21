@@ -1,0 +1,12 @@
+{
+  "title": "Montants reçus par année",
+  "columns": [
+    "Année",
+    "Montant reçu"
+  ],
+  "rows": [],
+  "header": "2021 – 2025",
+  "empty": "Aucun financement",
+  "note": "",
+  "focus": null
+}

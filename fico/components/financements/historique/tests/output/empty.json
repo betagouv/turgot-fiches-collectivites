@@ -1,0 +1,17 @@
+{
+  "title": "Historique des subventions",
+  "columns": [
+    "Année",
+    "Financeur",
+    "Référence",
+    "Projet",
+    "Coût",
+    "Subvention",
+    "Taux"
+  ],
+  "rows": [],
+  "header": "",
+  "empty": "Aucun financement",
+  "note": "",
+  "focus": null
+}

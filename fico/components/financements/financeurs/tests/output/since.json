@@ -1,0 +1,33 @@
+{
+  "title": "Répartition par financeur",
+  "columns": [
+    "Financeur",
+    "Montant reçu"
+  ],
+  "rows": [
+    [
+      {
+        "value": "DSIL",
+        "label": "DSIL"
+      },
+      {
+        "value": 20000.0,
+        "label": "20 k€"
+      }
+    ],
+    [
+      {
+        "value": "ADEME",
+        "label": "ADEME"
+      },
+      {
+        "value": 950.0,
+        "label": "950 €"
+      }
+    ]
+  ],
+  "header": "",
+  "empty": "Aucun financement",
+  "note": "",
+  "focus": null
+}

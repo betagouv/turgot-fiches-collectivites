@@ -1,0 +1,83 @@
+{
+  "title": "Montants reçus par année",
+  "columns": [
+    "Année",
+    "Montant reçu"
+  ],
+  "rows": [
+    [
+      {
+        "value": 2019,
+        "label": "2019"
+      },
+      {
+        "value": 40000.0,
+        "label": "40 k€"
+      }
+    ],
+    [
+      {
+        "value": 2020,
+        "label": "2020"
+      },
+      {
+        "value": 0,
+        "label": "0 €"
+      }
+    ],
+    [
+      {
+        "value": 2021,
+        "label": "2021"
+      },
+      {
+        "value": 30000.0,
+        "label": "30 k€"
+      }
+    ],
+    [
+      {
+        "value": 2022,
+        "label": "2022"
+      },
+      {
+        "value": 0,
+        "label": "0 €"
+      }
+    ],
+    [
+      {
+        "value": 2023,
+        "label": "2023"
+      },
+      {
+        "value": 1520000.0,
+        "label": "1,5 M€"
+      }
+    ],
+    [
+      {
+        "value": 2024,
+        "label": "2024"
+      },
+      {
+        "value": 0,
+        "label": "0 €"
+      }
+    ],
+    [
+      {
+        "value": 2025,
+        "label": "2025"
+      },
+      {
+        "value": 0,
+        "label": "0 €"
+      }
+    ]
+  ],
+  "header": "2019 – 2025",
+  "empty": "Aucun financement",
+  "note": "1 financement(s) sans date d'attribution, non représenté(s).",
+  "focus": null
+}

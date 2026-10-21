@@ -215,3 +215,20 @@ Un composant écarté n'est pas seulement masqué : ses requêtes sont évitées
 Un code INSEE désigne une commune, un SIREN une commune ou un groupement : un
 SIREN se cherche dans `commune`, puis dans `groupement`. Le type d'un groupement est
 affiché tel quel (`METRO`, `SIVU`…), comme BANATIC le publie.
+
+## Tests
+
+Chaque composant testé a un dossier `tests/` : `input/` contient une table par
+fichier CSV (`commune.csv`, `financement.csv`…), avec les seules colonnes
+utiles, et `output/` le JSON attendu de chaque test.
+
+```sh
+export TEST_DATABASE_URL=postgresql:///fico_test
+uv run pytest
+uv run pytest --update-references   # réécrit output/ ; le diff git montre ce qui a changé
+```
+
+Chaque module de test charge ses CSV dans un schéma créé pour lui dans
+`TEST_DATABASE_URL`, puis supprimé : la base peut être celle de développement.
+Les composants qui dépendent de la date du jour la figent avec la fixture
+`freeze`.

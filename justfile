@@ -18,6 +18,10 @@ fetch *args:
 fiche *args:
     uv run fico fiche {{ args }}
 
+# Run the tests, e.g. `just test --update-references` to rewrite the expected outputs
+test *args:
+    uv run pytest {{ args }}
+
 lint:
     uv run ruff check fico
     uv run ruff format --check fico

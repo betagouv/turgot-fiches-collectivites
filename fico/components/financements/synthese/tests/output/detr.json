@@ -1,0 +1,12 @@
+{
+  "title": "DETR",
+  "columns": [
+    "Indicateur",
+    "Valeur"
+  ],
+  "rows": [],
+  "header": "",
+  "empty": "Aucun financement",
+  "note": "",
+  "focus": null
+}

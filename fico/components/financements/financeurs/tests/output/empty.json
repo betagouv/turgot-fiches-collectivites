@@ -1,0 +1,12 @@
+{
+  "title": "Répartition par financeur",
+  "columns": [
+    "Financeur",
+    "Montant reçu"
+  ],
+  "rows": [],
+  "header": "",
+  "empty": "Aucun financement",
+  "note": "",
+  "focus": null
+}

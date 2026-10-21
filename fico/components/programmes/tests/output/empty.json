@@ -1,0 +1,12 @@
+{
+  "title": "Programmes",
+  "columns": [
+    "Programme",
+    "Depuis"
+  ],
+  "rows": [],
+  "header": "",
+  "empty": "Aucun programme national recensé.",
+  "note": "",
+  "focus": null
+}

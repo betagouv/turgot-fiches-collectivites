@@ -1,0 +1,33 @@
+{
+  "title": "Programmes",
+  "columns": [
+    "Programme",
+    "Depuis"
+  ],
+  "rows": [
+    [
+      {
+        "value": "Action cœur de ville",
+        "label": "Action cœur de ville"
+      },
+      {
+        "value": "2018-03-27",
+        "label": "depuis le 27 mars 2018"
+      }
+    ],
+    [
+      {
+        "value": "Territoires d'industrie",
+        "label": "Territoires d'industrie"
+      },
+      {
+        "value": null,
+        "label": ""
+      }
+    ]
+  ],
+  "header": "",
+  "empty": "Aucun programme national recensé.",
+  "note": "",
+  "focus": null
+}

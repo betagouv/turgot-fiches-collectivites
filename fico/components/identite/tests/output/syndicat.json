@@ -1,0 +1,43 @@
+{
+  "title": "Identité",
+  "columns": [
+    "Libellé",
+    "Valeur"
+  ],
+  "rows": [
+    [
+      {
+        "value": "SIREN",
+        "label": "SIREN"
+      },
+      {
+        "value": "253500000",
+        "label": "253500000"
+      }
+    ],
+    [
+      {
+        "value": "Type",
+        "label": "Type"
+      },
+      {
+        "value": "SIVU",
+        "label": "SIVU"
+      }
+    ],
+    [
+      {
+        "value": "Département",
+        "label": "Département"
+      },
+      {
+        "value": "Ille-et-Vilaine",
+        "label": "Ille-et-Vilaine"
+      }
+    ]
+  ],
+  "header": "",
+  "empty": "",
+  "note": "",
+  "focus": null
+}

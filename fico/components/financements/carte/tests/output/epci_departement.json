@@ -1,0 +1,103 @@
+{
+  "title": "Département",
+  "columns": [
+    "Code",
+    "Collectivité",
+    "Taux de financement",
+    "Contour"
+  ],
+  "rows": [
+    [
+      {
+        "value": "243500139",
+        "label": "243500139"
+      },
+      {
+        "value": "Rennes Métropole",
+        "label": "Rennes Métropole"
+      },
+      {
+        "value": 0.2,
+        "label": "20 %"
+      },
+      {
+        "value": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -1.7,
+                48.1
+              ],
+              [
+                -1.4,
+                48.1
+              ],
+              [
+                -1.4,
+                48.2
+              ],
+              [
+                -1.7,
+                48.2
+              ],
+              [
+                -1.7,
+                48.1
+              ]
+            ]
+          ]
+        },
+        "label": ""
+      }
+    ],
+    [
+      {
+        "value": "243500774",
+        "label": "243500774"
+      },
+      {
+        "value": "CC Liffré-Cormier Communauté",
+        "label": "CC Liffré-Cormier Communauté"
+      },
+      {
+        "value": null,
+        "label": "—"
+      },
+      {
+        "value": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -1.5,
+                48.2
+              ],
+              [
+                -1.4,
+                48.2
+              ],
+              [
+                -1.4,
+                48.3
+              ],
+              [
+                -1.5,
+                48.3
+              ],
+              [
+                -1.5,
+                48.2
+              ]
+            ]
+          ]
+        },
+        "label": ""
+      }
+    ]
+  ],
+  "header": "2 EPCI",
+  "empty": "",
+  "note": "",
+  "focus": 0
+}

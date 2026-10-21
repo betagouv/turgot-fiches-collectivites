@@ -1,0 +1,113 @@
+{
+  "title": "Identité",
+  "columns": [
+    "Libellé",
+    "Valeur"
+  ],
+  "rows": [
+    [
+      {
+        "value": "Maire",
+        "label": "Maire"
+      },
+      {
+        "value": "Nathalie APPÉRÉ",
+        "label": "Nathalie APPÉRÉ, depuis le 22 mars 2026"
+      }
+    ],
+    [
+      {
+        "value": "SIREN",
+        "label": "SIREN"
+      },
+      {
+        "value": "213502388",
+        "label": "213502388"
+      }
+    ],
+    [
+      {
+        "value": "Code INSEE",
+        "label": "Code INSEE"
+      },
+      {
+        "value": "35238",
+        "label": "35238"
+      }
+    ],
+    [
+      {
+        "value": "Population",
+        "label": "Population"
+      },
+      {
+        "value": 230890,
+        "label": "230 890 habitants"
+      }
+    ],
+    [
+      {
+        "value": "Superficie",
+        "label": "Superficie"
+      },
+      {
+        "value": 50.39,
+        "label": "50,4 km²"
+      }
+    ],
+    [
+      {
+        "value": "Densité",
+        "label": "Densité"
+      },
+      {
+        "value": 4582.059932526295,
+        "label": "4 582 hab./km²"
+      }
+    ],
+    [
+      {
+        "value": "Codes postaux",
+        "label": "Codes postaux"
+      },
+      {
+        "value": "35000, 35200, 35700",
+        "label": "35000, 35200, 35700"
+      }
+    ],
+    [
+      {
+        "value": "Intercommunalité",
+        "label": "Intercommunalité"
+      },
+      {
+        "value": "Rennes Métropole",
+        "label": "Rennes Métropole"
+      }
+    ],
+    [
+      {
+        "value": "Département",
+        "label": "Département"
+      },
+      {
+        "value": "Ille-et-Vilaine",
+        "label": "Ille-et-Vilaine"
+      }
+    ],
+    [
+      {
+        "value": "Région",
+        "label": "Région"
+      },
+      {
+        "value": "Bretagne",
+        "label": "Bretagne"
+      }
+    ]
+  ],
+  "header": "",
+  "empty": "",
+  "note": "",
+  "focus": null
+}

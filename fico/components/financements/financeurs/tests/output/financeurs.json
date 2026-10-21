@@ -1,0 +1,43 @@
+{
+  "title": "Répartition par financeur",
+  "columns": [
+    "Financeur",
+    "Montant reçu"
+  ],
+  "rows": [
+    [
+      {
+        "value": "DSIL",
+        "label": "DSIL"
+      },
+      {
+        "value": 1520000.0,
+        "label": "1,5 M€"
+      }
+    ],
+    [
+      {
+        "value": "Fonds Vert",
+        "label": "Fonds Vert"
+      },
+      {
+        "value": 872000.0,
+        "label": "872 k€"
+      }
+    ],
+    [
+      {
+        "value": "ADEME",
+        "label": "ADEME"
+      },
+      {
+        "value": 950.0,
+        "label": "950 €"
+      }
+    ]
+  ],
+  "header": "",
+  "empty": "Aucun financement",
+  "note": "",
+  "focus": null
+}

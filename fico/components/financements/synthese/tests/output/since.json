@@ -1,0 +1,53 @@
+{
+  "title": "Tous financeurs",
+  "columns": [
+    "Indicateur",
+    "Valeur"
+  ],
+  "rows": [
+    [
+      {
+        "value": "reçus",
+        "label": "reçus"
+      },
+      {
+        "value": 30000.0,
+        "label": "30 000 €"
+      }
+    ],
+    [
+      {
+        "value": "projets financés",
+        "label": "projets financés"
+      },
+      {
+        "value": 2,
+        "label": "2"
+      }
+    ],
+    [
+      {
+        "value": "de coût des projets renseignés",
+        "label": "de coût des projets renseignés"
+      },
+      {
+        "value": 150000.0,
+        "label": "150 000 €"
+      }
+    ],
+    [
+      {
+        "value": "de taux de financement",
+        "label": "de taux de financement"
+      },
+      {
+        "value": 0.2,
+        "label": "20 %"
+      }
+    ]
+  ],
+  "header": "2023 – 2024",
+  "empty": "Aucun financement",
+  "note": "",
+  "focus": null
+}

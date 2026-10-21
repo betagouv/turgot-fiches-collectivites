@@ -1,0 +1,95 @@
+{
+  "title": "Montants reçus, moyenne annuelle par habitant, communes de Rennes Métropole",
+  "columns": [
+    "Rang",
+    "Code",
+    "Collectivité",
+    "Population",
+    "Montant reçu",
+    "Moyenne annuelle par habitant"
+  ],
+  "rows": [
+    [
+      {
+        "value": 1,
+        "label": "1"
+      },
+      {
+        "value": "35051",
+        "label": "35051"
+      },
+      {
+        "value": "Cesson-Sévigné",
+        "label": "Cesson-Sévigné"
+      },
+      {
+        "value": 500,
+        "label": "500"
+      },
+      {
+        "value": 60000.0,
+        "label": "60 000 €"
+      },
+      {
+        "value": 20.0,
+        "label": "20 €"
+      }
+    ],
+    [
+      {
+        "value": 2,
+        "label": "2"
+      },
+      {
+        "value": "35238",
+        "label": "35238"
+      },
+      {
+        "value": "Rennes",
+        "label": "Rennes"
+      },
+      {
+        "value": 1000,
+        "label": "1 000"
+      },
+      {
+        "value": 60000.0,
+        "label": "60 000 €"
+      },
+      {
+        "value": 10.0,
+        "label": "10 €"
+      }
+    ],
+    [
+      {
+        "value": 3,
+        "label": "3"
+      },
+      {
+        "value": "35001",
+        "label": "35001"
+      },
+      {
+        "value": "Acigné",
+        "label": "Acigné"
+      },
+      {
+        "value": 200,
+        "label": "200"
+      },
+      {
+        "value": 0,
+        "label": "0 €"
+      },
+      {
+        "value": 0.0,
+        "label": "0 €"
+      }
+    ]
+  ],
+  "header": "2020 – 2025",
+  "empty": "Aucun financement",
+  "note": "",
+  "focus": 1
+}

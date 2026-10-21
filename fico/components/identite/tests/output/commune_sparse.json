@@ -1,0 +1,53 @@
+{
+  "title": "Identité",
+  "columns": [
+    "Libellé",
+    "Valeur"
+  ],
+  "rows": [
+    [
+      {
+        "value": "SIREN",
+        "label": "SIREN"
+      },
+      {
+        "value": "213500010",
+        "label": "213500010"
+      }
+    ],
+    [
+      {
+        "value": "Code INSEE",
+        "label": "Code INSEE"
+      },
+      {
+        "value": "35001",
+        "label": "35001"
+      }
+    ],
+    [
+      {
+        "value": "Département",
+        "label": "Département"
+      },
+      {
+        "value": "Ille-et-Vilaine",
+        "label": "Ille-et-Vilaine"
+      }
+    ],
+    [
+      {
+        "value": "Région",
+        "label": "Région"
+      },
+      {
+        "value": "Bretagne",
+        "label": "Bretagne"
+      }
+    ]
+  ],
+  "header": "",
+  "empty": "",
+  "note": "",
+  "focus": null
+}

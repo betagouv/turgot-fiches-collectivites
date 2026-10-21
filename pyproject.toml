@@ -21,7 +21,11 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 module-root = ""
 
+[tool.pytest.ini_options]
+testpaths = ["fico"]
+
 [dependency-groups]
 dev = [
+    "pytest>=9.1.1",
     "ruff>=0.16.10",
 ]
