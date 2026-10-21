@@ -49,7 +49,7 @@
   [
     #carte.titre
     #h(0.4em)
-    #text(size: 7.5pt, fill: luma(45%), weight: "regular")[#carte.communes communes]
+    #text(size: 7.5pt, fill: luma(45%), weight: "regular")[#carte.effectif]
   ],
   {
     // stroke_width rejects a `{property}` template: a string there drops the

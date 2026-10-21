@@ -3,7 +3,7 @@
 from enum import StrEnum
 
 from ....context import Context, Result
-from ....sources import api_collectivites, contours
+from ....sources import api_collectivites, collectivites, contours
 from ....sources.collectivites import COMMUNE
 from ...carto import Echelle, choroplethe, geojson, table
 from ...formats import percent
@@ -22,9 +22,37 @@ class Perimeter(StrEnum):
     INTERCO = "interco"
 
 
+def _epci(context: Context, perimeter: Perimeter) -> Result | None:
+    fiche = context.fiche
+    if (
+        perimeter is not Perimeter.DEPARTEMENT
+        or fiche.type not in collectivites.EPCI_A_FISCALITE_PROPRE
+    ):
+        return None
+    voisins = collectivites.epci_du_departement(
+        context.connection, fiche.code_departement
+    )
+    sirens = [voisin["siren"] for voisin in voisins]
+    territoire = contours.epci(context.connection, sirens)
+    if not territoire["features"]:
+        return None
+    taux = api_collectivites.taux_par_siren(context.connection, sirens)
+    carte = choroplethe(
+        "Département",
+        territoire,
+        taux,
+        ECHELLE,
+        fiche.siren,
+        unite="EPCI",
+        focus_label="cet EPCI",
+    )
+    return Result(data=carte)
+
+
 @component(
     description="Communes du département ou de l'intercommunalité de la commune, "
-    "colorées par taux de financement.",
+    "colorées par taux de financement ; pour un EPCI, les EPCI à fiscalité propre "
+    "du département.",
     width="1/2",
     table=table,
     geojson=geojson,
@@ -32,7 +60,7 @@ class Perimeter(StrEnum):
 def collect(context: Context, perimeter: Perimeter) -> Result | None:
     fiche = context.fiche
     if fiche.famille != COMMUNE:
-        return None
+        return _epci(context, perimeter)
     match perimeter:
         case Perimeter.DEPARTEMENT:
             titre = "Département"

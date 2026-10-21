@@ -42,5 +42,5 @@ function legend(data) {
 }
 
 export function map(carte) {
-  return panel(`${carte.titre} — ${carte.communes} communes`, `${svg(carte)}${legend(carte.legend)}`)
+  return panel(`${carte.titre} — ${carte.effectif}`, `${svg(carte)}${legend(carte.legend)}`)
 }

@@ -339,6 +339,20 @@ def taux_par_commune(connection: base.Connection, codes_insee) -> dict[str, floa
     return {row["code_insee"]: row["montant"] / row["cout"] for row in rows}
 
 
+def taux_par_siren(connection: base.Connection, sirens: list[str]) -> dict[str, float]:
+    """Taux de financement of the projets each of `sirens` carries."""
+    par_projet = _par_projet("p.siren = ANY(%(sirens)s)")
+    rows = connection.execute(
+        f"""
+        SELECT siren, SUM(attribue) AS montant, SUM(budget) AS cout
+        FROM ({par_projet}) AS par_projet
+        GROUP BY siren
+        """,
+        {"sirens": sirens, "since": None, "financeur": None},
+    ).fetchall()
+    return {row["siren"]: row["montant"] / row["cout"] for row in rows}
+
+
 def cofinancement(
     connection: base.Connection,
     siren: str,

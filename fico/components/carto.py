@@ -48,14 +48,14 @@ class Carte:
     titre: str
     territoire: dict
     scale: float
-    communes: int
+    effectif: str
     viewbox: list[float]
     stroke: float
     legend: Legend
     focus: str
 
 
-def _legend(echelle: Echelle) -> Legend:
+def _legend(echelle: Echelle, focus: str) -> Legend:
     bornes = [None, *echelle.seuils, None]
     steps = []
     for color, (bas, haut) in zip(echelle.couleurs, pairwise(bornes), strict=True):
@@ -70,7 +70,7 @@ def _legend(echelle: Echelle) -> Legend:
         title=echelle.titre,
         steps=steps,
         no_data=LegendStep(COULEUR_SANS_DONNEE, "n.c."),
-        focus=LegendStep(COULEUR_FOCUS, "cette commune"),
+        focus=LegendStep(COULEUR_FOCUS, focus),
     )
 
 
@@ -104,19 +104,21 @@ def choroplethe(
     valeurs: dict[str, float],
     echelle: Echelle,
     focus: str,
+    unite: str = "communes",
+    focus_label: str = "cette commune",
 ) -> Carte:
-    """Colour and frame the communes of `geojson` by their value in `valeurs`,
-    keyed by code INSEE."""
+    """Colour and frame the features of `geojson` by their value in `valeurs`,
+    keyed by their `code`; `unite` names them in the count."""
     _colorise(geojson, valeurs, echelle)
     scale, viewbox = _frame(geojson)
     return Carte(
         titre=titre,
         territoire=geojson,
         scale=scale,
-        communes=len(geojson["features"]),
+        effectif=f"{len(geojson['features'])} {unite}",
         viewbox=viewbox,
         stroke=max(viewbox[2], viewbox[3]) * STROKE_RATIO,
-        legend=_legend(echelle),
+        legend=_legend(echelle, focus_label),
         focus=focus,
     )
 
@@ -160,7 +162,7 @@ def _frame(geojson: dict) -> tuple[float, list[float]]:
 
 def table(carte: Carte) -> Table:
     return Table(
-        columns=["Code INSEE", "Commune", carte.legend.title],
+        columns=["Code", "Collectivité", carte.legend.title],
         rows=[
             [
                 feature["properties"]["code"],
