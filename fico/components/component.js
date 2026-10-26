@@ -18,7 +18,7 @@ function downloads(data) {
     return []
   }
   const geometries = data.rows.some((row) => row.some((cell) => cell.value?.coordinates))
-  return geometries ? ["csv", "xlsx", "geojson"] : ["csv", "xlsx"]
+  return ["png", "svg", "csv", "xlsx", ...(geometries ? ["geojson"] : [])]
 }
 
 customElements.define(
@@ -63,7 +63,7 @@ customElements.define(
       this.insertAdjacentHTML(
         "beforeend",
         `<details class="downloads">
-          <summary class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-download-line" title="Télécharger les données" aria-label="Télécharger les données"></summary>
+          <summary class="fr-btn fr-btn--tertiary-no-outline fr-btn--sm fr-icon-download-line" title="Télécharger" aria-label="Télécharger"></summary>
           <ul class="fr-text--sm">${items}</ul>
         </details>`,
       )

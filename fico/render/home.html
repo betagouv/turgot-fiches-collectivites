@@ -37,7 +37,7 @@
         <tr><td><code>GET /fiches/{identifiant}.json</code></td><td>les données de tous les composants</td></tr>
         <tr><td><code>GET /fiches/{identifiant}/{composant}.json</code></td><td>les données d'un composant</td></tr>
         <tr><td><code>GET /fiches/{identifiant}/{composant}.html</code></td><td>un composant seul, en page web</td></tr>
-        <tr><td><code>GET /fiches/{identifiant}/{composant}.{format}</code></td><td>les données brutes d'un composant en fichier : <code>csv</code>, <code>xlsx</code> ou <code>geojson</code></td></tr>
+        <tr><td><code>GET /fiches/{identifiant}/{composant}.{format}</code></td><td>un composant en image, <code>png</code> ou <code>svg</code>, ou ses données brutes en fichier : <code>csv</code>, <code>xlsx</code> ou <code>geojson</code></td></tr>
         <tr><td><code>GET /components</code></td><td>la liste des composants, en JSON</td></tr>
       </tbody>
     </table></div>
@@ -65,6 +65,10 @@
         <a href="/fiches/35238/financements.historique.xlsx?since=2020"><code>.xlsx</code></a>,
         les cartes aussi, une ligne par commune, et en
         <a href="/fiches/35238/financements.carte.geojson?perimetre=interco"><code>.geojson</code></a>.</li>
+      <li><strong>Exporter un composant en image</strong>, tel qu'il apparaît
+        dans le PDF :
+        <a href="/fiches/35238/financements.carte.png?perimetre=interco"><code>.png</code></a> ou
+        <a href="/fiches/35238/financements.carte.svg?perimetre=interco"><code>.svg</code></a>.</li>
       <li><strong>Paramètres disponibles</strong> : listés par
         <a href="/components"><code>/components</code></a>, avec leur type,
         s'ils sont requis et leurs valeurs possibles, ainsi que les formats de

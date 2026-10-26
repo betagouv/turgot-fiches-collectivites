@@ -22,6 +22,8 @@ LIBRARIES = [
 ]
 ROOT = "fiche.typ"
 FONTS = Path(__file__).parent.parent.parent / "fonts"
+# Twice a screen's density, so that images stay sharp on high-density displays.
+PPI = 192
 
 TEMPLATE = """#import "common.typ": header, row, theme
 {imports}
@@ -33,6 +35,14 @@ TEMPLATE = """#import "common.typ": header, row, theme
 #header(data.nom, data.libelle_type)
 
 {body}
+"""
+
+COMPONENT_TEMPLATE = """#import "common.typ": alone
+#import "{name}.typ" as {alias}
+
+#show: alone.with({share})
+
+#{alias}.render(json("data.json"))
 """
 
 
@@ -63,8 +73,7 @@ def _document(names: list[str], lines: list[list[dict]]) -> str:
     return TEMPLATE.format(imports=imports, body=body)
 
 
-def compile_fiche(header: dict, lines: list[list[dict]]) -> bytes:
-    names = list(dict.fromkeys(entry["name"] for line in lines for entry in line))
+def _compile(names: list[str], data, document: str, **options) -> bytes:
     with TemporaryDirectory() as tmp:
         build = Path(tmp)
         for library in LIBRARIES:
@@ -75,7 +84,20 @@ def compile_fiche(header: dict, lines: list[list[dict]]) -> bytes:
             )
 
         (build / "data.json").write_text(
-            json.dumps({**header, "lines": lines}, default=asdict, ensure_ascii=False)
+            json.dumps(data, default=asdict, ensure_ascii=False)
         )
-        (build / ROOT).write_text(_document(names, lines))
-        return typst.compile(build / ROOT, font_paths=[FONTS])
+        (build / ROOT).write_text(document)
+        return typst.compile(build / ROOT, font_paths=[FONTS], **options)
+
+
+def compile_fiche(header: dict, lines: list[list[dict]]) -> bytes:
+    names = list(dict.fromkeys(entry["name"] for line in lines for entry in line))
+    return _compile(names, {**header, "lines": lines}, _document(names, lines))
+
+
+def compile_component(name: str, width: Fraction, data, image_format: str) -> bytes:
+    """One component as an image, `png` or `svg`, on a page fitted to it."""
+    document = COMPONENT_TEMPLATE.format(
+        name=name, alias=_alias(name), share=float(width)
+    )
+    return _compile([name], data, document, format=image_format, ppi=PPI)

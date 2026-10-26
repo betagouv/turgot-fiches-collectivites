@@ -84,11 +84,18 @@ def render(header: dict, lines: list[list[dict]]) -> bytes:
     return typst.compile_fiche(header, lines)
 
 
+def render_component(instance: Instance, data, image_format: str) -> bytes:
+    return typst.compile_component(
+        instance.name, instance.component.width, data, image_format
+    )
+
+
 __all__ = [
     "InvalidIdentifier",
     "collect",
     "collect_one",
     "describe",
     "render",
+    "render_component",
     "resolve",
 ]

@@ -26,6 +26,8 @@ class Download(StrEnum):
     CSV = "csv"
     XLSX = "xlsx"
     GEOJSON = "geojson"
+    PNG = "png"
+    SVG = "svg"
 
 
 class UnknownComponent(Exception):

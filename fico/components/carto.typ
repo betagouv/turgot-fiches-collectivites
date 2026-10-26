@@ -53,8 +53,9 @@
   )
 }
 
+// Rounded to the contours' own precision, which keeps the rendered map light.
 #let project(coordinates, scale) = if type(coordinates.first()) in (int, float) {
-  (coordinates.first() * scale, ..coordinates.slice(1))
+  (calc.round(coordinates.first() * scale, digits: 4), ..coordinates.slice(1))
 } else {
   coordinates.map(part => project(part, scale))
 }

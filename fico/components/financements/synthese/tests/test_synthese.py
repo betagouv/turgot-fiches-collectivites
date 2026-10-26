@@ -24,3 +24,19 @@ def test_since(client, reference):
 
     assert response.status_code == 200
     reference("since", response.json())
+
+
+def test_png(client):
+    response = client.get("/fiches/35238/financements.synthese.png")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+    assert response.content.startswith(b"\x89PNG")
+
+
+def test_svg(client, reference):
+    response = client.get("/fiches/35238/financements.synthese.svg")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/svg+xml"
+    reference("synthese.svg", response.text)

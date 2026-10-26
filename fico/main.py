@@ -7,7 +7,14 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from . import components, sources
-from .fiche import InvalidIdentifier, collect, collect_one, describe, render
+from .fiche import (
+    InvalidIdentifier,
+    collect,
+    collect_one,
+    describe,
+    render,
+    render_component,
+)
 from .render import html, table
 from .sources.collectivites import NotFound
 
@@ -22,6 +29,8 @@ MEDIA_TYPES = {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ),
     components.Download.GEOJSON: "application/geo+json",
+    components.Download.PNG: "image/png",
+    components.Download.SVG: "image/svg+xml",
 }
 
 
@@ -130,7 +139,8 @@ def component_html(identifiant: str, name: str, request: Request):
 def component_download(
     identifiant: str, name: str, extension: components.Download, request: Request
 ):
-    data = _data(identifiant, _instance(name, request))
+    instance = _instance(name, request)
+    data = _data(identifiant, instance)
     match extension:
         case components.Download.CSV:
             content = table.to_csv(data)
@@ -140,6 +150,8 @@ def component_download(
             if table.geometry_column(data) is None:
                 raise HTTPException(404, f"{name} ne porte pas de contours.")
             content = json.dumps(table.to_geojson(data)).encode()
+        case components.Download.PNG | components.Download.SVG:
+            content = render_component(instance, data, extension)
     filename = f"{identifiant}-{name}.{extension}"
     return Response(
         content=content,

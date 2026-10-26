@@ -2,7 +2,7 @@
 
 Magasin de composants pour tableau de bord sur les collectivités territoriales, en PDF, en JSON ou en web components à intégrer dans une autre application.
 
-Expose soit une fiche, soit des composants séparément, en PDF, web components, JSON, CSV, xlsx.
+Expose soit une fiche, soit des composants séparément, en PDF, web components, JSON, CSV, xlsx, PNG, SVG.
 
 Voir la home pour plus de détails sur l'usage en intégration.
 
@@ -32,6 +32,7 @@ just serve                                         # http://127.0.0.1:8001
 | `GET /fiches/{id}.{pdf,html,json}` | la fiche, `?component=a,b(x=1)` pour choisir |
 | `GET /fiches/{id}/{composant}.{json,html}` | un composant, paramètres en query |
 | `GET /fiches/{id}/{composant}.{csv,xlsx,geojson}` | les données d'un composant en fichier |
+| `GET /fiches/{id}/{composant}.{png,svg}` | un composant en image, rendu comme dans le PDF |
 
 ## Composants
 

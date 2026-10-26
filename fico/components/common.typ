@@ -5,17 +5,9 @@
 #let grey = rgb("#f6f6f6")
 #let muted = luma(40%)
 
-#let theme(source: "", body) = {
-  set page(
-    paper: "a4",
-    margin: (x: 1.6cm, top: 1.6cm, bottom: 2cm),
-    footer: context [
-      #set text(size: 7pt, fill: luma(45%))
-      #source
-      #h(1fr)
-      #counter(page).display("1 / 1", both: true)
-    ],
-  )
+#let margin = 1.6cm
+
+#let style(body) = {
   set text(font: ("Marianne", "Liberation Sans"), size: 9pt, lang: "fr")
   show heading.where(level: 1): it => block(below: 0.5em, text(size: 19pt, it.body))
   show heading.where(level: 2): it => block(
@@ -24,6 +16,31 @@
     text(size: 12pt, it.body),
   )
   body
+}
+
+#let theme(source: "", body) = {
+  set page(
+    paper: "a4",
+    margin: (x: margin, top: margin, bottom: 2cm),
+    footer: context [
+      #set text(size: 7pt, fill: luma(45%))
+      #source
+      #h(1fr)
+      #counter(page).display("1 / 1", both: true)
+    ],
+  )
+  style(body)
+}
+
+// A component on its own, as wide as its share of a fiche's line.
+#let alone(share, body) = {
+  let padding = 0.5cm
+  set page(
+    width: share * (21cm - 2 * margin) + 2 * padding,
+    height: auto,
+    margin: padding,
+  )
+  style(body)
 }
 
 #let badge(label, color: blue) = box(

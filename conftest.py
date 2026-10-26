@@ -72,20 +72,24 @@ def client(request):
 
 @pytest.fixture
 def reference(request):
-    """Compares a rendering to `output/<name>.json`, or rewrites it under
-    `--update-references`."""
+    """Compares a rendering to `output/<name>.json`, or a text rendering to
+    `output/<name>` as is, or rewrites it under `--update-references`."""
     folder = request.path.parent / "output"
     update = request.config.getoption("--update-references")
 
     def check(name: str, rendered) -> None:
-        path = folder / f"{name}.json"
+        if isinstance(rendered, str):
+            path, text, parse = folder / name, rendered, str
+        else:
+            path = folder / f"{name}.json"
+            text = json.dumps(rendered, indent=2, ensure_ascii=False) + "\n"
+            parse = json.loads
         if update:
             folder.mkdir(exist_ok=True)
-            text = json.dumps(rendered, indent=2, ensure_ascii=False)
-            path.write_text(text + "\n", encoding="utf-8")
+            path.write_text(text, encoding="utf-8")
             return
         assert path.exists(), f"{path} absent : à créer avec --update-references"
-        assert rendered == json.loads(path.read_text(encoding="utf-8"))
+        assert rendered == parse(path.read_text(encoding="utf-8"))
 
     return check
 
