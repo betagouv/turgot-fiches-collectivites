@@ -179,6 +179,7 @@ def montants_by_siren(
         FROM financement f JOIN projet p ON p.id = f.projet_id
         WHERE p.siren = ANY(%(sirens)s) AND {RECEIVED} AND {FINANCEUR}
           AND f.annee >= %(start)s AND f.annee < %(stop)s
+          AND f.montant_attribue IS NOT NULL
         GROUP BY p.siren
         """,
         {
