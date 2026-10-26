@@ -8,201 +8,119 @@ The database keeps only the fields the fiches read.
 https://api.collectivites.beta.gouv.fr/api/consultation
 """
 
+import gzip
+import hashlib
 import json
 import os
-import time
+import tempfile
+from itertools import batched
+from typing import IO
 
 import httpx
-import psycopg
 
 from . import base
-from .registry import Interrupted, Schedule, source
-
-NAME = "api-collectivites"
-URL = "https://api.collectivites.beta.gouv.fr/consultation/v1/projets"
-TOKEN_VARIABLE = "API_COLLECTIVITES_TOKEN"
-PAGE_SIZE = 1000
-ATTEMPTS = 6
+from .registry import Schedule, source
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS projet (
-    id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    provenances         TEXT NOT NULL,
+    id                  BIGINT PRIMARY KEY,
     siren               TEXT,
     nom                 TEXT,
-    porteur_nom         TEXT,
-    budget_previsionnel DOUBLE PRECISION,
-    phase               TEXT,
-    phase_statut        TEXT,
-    ouverture           TEXT,
-    thematiques         TEXT
+    budget_previsionnel DOUBLE PRECISION
 );
 CREATE INDEX IF NOT EXISTS projet_siren ON projet (siren);
-
-CREATE TABLE IF NOT EXISTS projet_commune (
-    projet_id  BIGINT NOT NULL REFERENCES projet (id),
-    code_insee TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS projet_commune_insee ON projet_commune (code_insee);
 
 CREATE TABLE IF NOT EXISTS financement (
     projet_id         BIGINT NOT NULL REFERENCES projet (id),
     source            TEXT,
     reference         TEXT,
     annee             INTEGER,
-    montant_demande   DOUBLE PRECISION,
     montant_attribue  DOUBLE PRECISION,
     statut            TEXT
 );
 CREATE INDEX IF NOT EXISTS financement_projet ON financement (projet_id);
 """
 
-INSERT_PROJET = """
-INSERT INTO projet (
-    provenances, siren, nom, porteur_nom, budget_previsionnel, phase,
-    phase_statut, ouverture, thematiques
+INSERT_PROJET = base.insert("projet", ("id", "siren", "nom", "budget_previsionnel"))
+INSERT_FINANCEMENT = base.insert(
+    "financement",
+    ("projet_id", "source", "reference", "annee", "montant_attribue", "statut"),
 )
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-RETURNING id
-"""
-
-INSERT_COMMUNE = "INSERT INTO projet_commune (projet_id, code_insee) VALUES (%s, %s)"
-
-INSERT_FINANCEMENT = """
-INSERT INTO financement
-    (projet_id, source, reference, annee, montant_demande, montant_attribue, statut)
-VALUES (%s, %s, %s, %s, %s, %s, %s)
-"""
 
 
-class TokenMissing(Exception):
-    pass
+def _projet(projet_id: int, projet: dict) -> dict:
+    return {
+        "id": projet_id,
+        "siren": projet.get("collectiviteResponsableSiren"),
+        "nom": projet.get("nom"),
+        "budget_previsionnel": projet.get("budgetPrevisionnel"),
+    }
 
 
-def _retry_delay(response: httpx.Response, attempt: int) -> int:
-    # Retry-After may also be an HTTP date, which falls back to the backoff.
-    retry_after = response.headers.get("retry-after", "")
-    return int(retry_after) if retry_after.isdigit() else 5 * 2**attempt
-
-
-def _page(client: httpx.Client, token: str, cursor: str | None) -> httpx.Response:
-    params = {"limit": PAGE_SIZE}
-    if cursor:
-        params["cursor"] = cursor
-    headers = {"Authorization": f"Bearer {token}"}
-    for attempt in range(ATTEMPTS):
-        response = client.get(URL, params=params, headers=headers)
-        if response.status_code != 429 and response.status_code < 500:
-            break
-        if attempt < ATTEMPTS - 1:
-            time.sleep(_retry_delay(response, attempt))
-    response.raise_for_status()
-    return response
-
-
-def _store(cursor: psycopg.Cursor, projet: dict) -> None:
-    provenances = "|".join(
-        sorted(f"{p['provenance']}:{p['idSource']}" for p in projet["provenances"])
-    )
-    labels = projet.get("labels") or {}
-    cursor.execute(
-        INSERT_PROJET,
-        (
-            provenances,
-            projet.get("collectiviteResponsableSiren"),
-            projet.get("nom"),
-            projet.get("porteurNom"),
-            projet.get("budgetPrevisionnel"),
-            projet.get("phase"),
-            projet.get("phaseStatut"),
-            projet.get("ouverture"),
-            json.dumps(
-                labels.get("classificationThematiques") or [], ensure_ascii=False
-            ),
-        ),
-    )
-    projet_id = cursor.fetchone()["id"]
-    # Upstream sometimes packs a whole territory into one comma-separated item.
-    codes = [
-        code.strip()
-        for item in projet.get("territoireCommunes") or []
-        for code in item.split(",")
-        if code.strip()
+def _financements(projet_id: int, projet: dict) -> list[dict]:
+    return [
+        {
+            "projet_id": projet_id,
+            "source": financement.get("source"),
+            "reference": financement.get("referenceExterne"),
+            "annee": int(financement["dateAttribution"][:4])
+            if financement.get("dateAttribution")
+            else None,
+            "montant_attribue": financement.get("montantAttribue"),
+            "statut": financement.get("statut"),
+        }
+        for financement in projet.get("financements") or []
     ]
-    cursor.executemany(INSERT_COMMUNE, [(projet_id, code) for code in codes])
-    cursor.executemany(
-        INSERT_FINANCEMENT,
-        [
-            (
-                projet_id,
-                f.get("source"),
-                f.get("referenceExterne"),
-                int(f["dateAttribution"][:4]) if f.get("dateAttribution") else None,
-                f.get("montantDemande"),
-                f.get("montantAttribue"),
-                f.get("statut"),
-            )
-            for f in projet.get("financements") or []
-        ],
-    )
 
 
-def _counts(connection: base.Connection) -> tuple[int, int]:
-    row = connection.execute(
-        "SELECT (SELECT COUNT(*) FROM projet) AS projets, "
-        "(SELECT COUNT(*) FROM financement) AS financements"
-    ).fetchone()
-    return row["projets"], row["financements"]
+def _download(client: httpx.Client, url: str, archive: IO[bytes]) -> str:
+    """Write the export into `archive` as served, and return its SHA-256."""
+    digest = hashlib.sha256()
+    with client.stream("GET", url, timeout=600) as response:
+        response.raise_for_status()
+        for chunk in response.iter_raw():
+            digest.update(chunk)
+            archive.write(chunk)
+    return digest.hexdigest()
+
+
+def _store(connection: base.Connection, lines: IO[str]) -> tuple[int, int]:
+    projets = financements = 0
+    numbered = enumerate(map(json.loads, lines), start=1)
+    with connection.transaction(), connection.cursor() as cursor:
+        for batch in batched(numbered, base.BATCH_SIZE):
+            funding = [row for item in batch for row in _financements(*item)]
+            cursor.executemany(INSERT_PROJET, [_projet(*item) for item in batch])
+            cursor.executemany(INSERT_FINANCEMENT, funding)
+            projets += len(batch)
+            financements += len(funding)
+            print(f"    {projets} projets, {financements} financements", flush=True)
+    return projets, financements
 
 
 @source(
-    name=NAME,
+    name="api-collectivites",
     label="API Collectivités (api.collectivites.beta.gouv.fr) : projets et "
     "financements consolidés",
     schedule=Schedule.DAILY,
     schema=SCHEMA,
-    paginated=True,
 )
-def fetch(
-    client: httpx.Client, connection: base.Connection, max_pages: int | None = None
-) -> str:
-    token = os.environ.get(TOKEN_VARIABLE)
-    if not token:
-        raise TokenMissing(f"Variable {TOKEN_VARIABLE} absente de l'environnement.")
-
-    cursor = base.saved_cursor(connection, NAME)
-    start = time.perf_counter()
-    pages = 0
-    downloaded = 0
-    projets, financements = _counts(connection)
-    while True:
-        response = _page(client, token, cursor)
-        payload = response.json()
-        cursor = payload.get("nextCursor")
-        with connection.transaction(), connection.cursor() as writer:
-            for projet in payload["data"]:
-                _store(writer, projet)
-            base.save_cursor(connection, NAME, cursor)
-        pages += 1
-        downloaded += response.num_bytes_downloaded
-        projets += len(payload["data"])
-        financements += sum(len(p.get("financements") or []) for p in payload["data"])
-        minutes = (time.perf_counter() - start) / 60
-        print(
-            f"    page {pages:>4} — {projets} projets, "
-            f"{financements} financements en base, "
-            f"{downloaded / 1e6:.1f} Mo reçus, {minutes:.1f} min",
-            flush=True,
-        )
-        if not cursor:
-            break
-        if max_pages and pages >= max_pages:
-            raise Interrupted(
-                f"arrêt après {pages} pages et {downloaded / 1e6:.1f} Mo reçus, "
-                f"{projets} projets en base — reprise au prochain appel"
-            )
-
-    return f"{projets} projets, {financements} financements"
+def fetch(client: httpx.Client, connection: base.Connection) -> str:
+    token = os.environ["API_COLLECTIVITES_TOKEN"]
+    # Describes the nightly export, one projet per line, and gives its download URL.
+    response = client.get(
+        "https://api.collectivites.beta.gouv.fr/consultation/v1/export/description",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    response.raise_for_status()
+    export = response.json()
+    with tempfile.TemporaryFile() as archive:
+        if _download(client, export["url"], archive) != export["sha256"]:
+            raise ValueError(f"Empreinte inattendue pour l'export {export['url']}.")
+        archive.seek(0)
+        with gzip.open(archive, "rt", encoding="utf-8") as lines:
+            projets, financements = _store(connection, lines)
+    return f"{projets} projets, {financements} financements ({export['generatedAt']})"
 
 
 RECEIVED = "f.statut IN ('Obtenu', 'Payé')"

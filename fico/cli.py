@@ -8,7 +8,6 @@ from . import components, sources
 from .fiche import InvalidIdentifier, collect, render
 from .sources import base
 from .sources.collectivites import NotFound
-from .sources.registry import Interrupted
 
 
 def build(identifiant: str, output_path: Path, chosen) -> Path:
@@ -64,15 +63,8 @@ def command_fetch(args) -> None:
                 print(f"  {source.name:12} à jour ({previous:%d/%m/%Y})")
                 continue
             print(f"  {source.name:12} récupération…", flush=True)
-            options = {}
-            if args.max_pages and source.paginated:
-                options["max_pages"] = args.max_pages
-            try:
-                with base.staged(connection, source):
-                    report = source.fetch(client, connection, **options)
-            except Interrupted as interruption:
-                print(f"  {source.name:12} {interruption}")
-                continue
+            with base.staged(connection, source):
+                report = source.fetch(client, connection)
             base.publish(connection, source)
             base.record_fetch(connection, source.name, report)
             print(f"  {source.name:12} {report}")
@@ -120,12 +112,6 @@ def main(argv=None):
         "--force",
         action="store_true",
         help="Récupère même si le rythme n'est pas échu",
-    )
-    fetch.add_argument(
-        "--max-pages",
-        type=int,
-        help="Pour les sources paginées : s'arrête après N pages, "
-        "et reprend là au prochain appel",
     )
     fetch.set_defaults(run=command_fetch)
 

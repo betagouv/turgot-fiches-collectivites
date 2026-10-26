@@ -23,7 +23,6 @@ class Source:
     schedule: Schedule
     schema: str
     fetch: Callable
-    paginated: bool
 
     @property
     def interval(self) -> timedelta | None:
@@ -37,29 +36,10 @@ class UnknownSource(Exception):
     pass
 
 
-class Interrupted(Exception):
-    """Raised by a fetch stopped before its end: it does not count as a fetch,
-    so the source stays due."""
-
-
-def source(
-    name: str,
-    label: str,
-    schedule: Schedule,
-    schema: str = "",
-    paginated: bool = False,
-):
-    """A `paginated` source's fetch takes `max_pages`, and resumes where the
-    previous call stopped."""
-
+def source(name: str, label: str, schedule: Schedule, schema: str = ""):
     def decorate(fetch: Callable) -> Callable:
         SOURCES[name] = Source(
-            name=name,
-            label=label,
-            schedule=schedule,
-            schema=schema,
-            fetch=fetch,
-            paginated=paginated,
+            name=name, label=label, schedule=schedule, schema=schema, fetch=fetch
         )
         return fetch
 
