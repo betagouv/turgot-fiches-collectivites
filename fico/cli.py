@@ -6,7 +6,7 @@ import httpx
 
 from . import components, sources
 from .fiche import InvalidIdentifier, collect, render
-from .sources import base
+from .sources import database
 from .sources.collectivites import NotFound
 
 
@@ -27,23 +27,23 @@ def command_fiche(args) -> None:
     output_path = args.output or Path(f"{args.identifiant}.pdf")
     try:
         written = build(args.identifiant, output_path, chosen)
-    except (InvalidIdentifier, base.DatabaseMissing) as error:
+    except (InvalidIdentifier, database.DatabaseMissing) as error:
         sys.exit(str(error))
     except NotFound:
         sys.exit(f"Aucune collectivité connue pour {args.identifiant}.")
     print(written)
 
 
-def _connect() -> base.Connection:
+def _connect() -> database.Connection:
     try:
-        return base.connect()
-    except base.DatabaseMissing as error:
+        return database.connect()
+    except database.DatabaseMissing as error:
         sys.exit(str(error))
 
 
 def command_migrate(args) -> None:
     with _connect() as connection:
-        base.migrate(connection)
+        database.migrate(connection)
 
 
 def command_fetch(args) -> None:
@@ -56,17 +56,17 @@ def command_fetch(args) -> None:
         _connect() as connection,
         httpx.Client(timeout=300, follow_redirects=True) as client,
     ):
-        base.migrate(connection)
+        database.migrate(connection)
         for source in chosen:
-            if not args.force and not base.is_due(connection, source):
-                previous = base.last_fetch(connection, source.name)
+            if not args.force and not database.is_due(connection, source):
+                previous = database.last_fetch(connection, source.name)
                 print(f"  {source.name:12} à jour ({previous:%d/%m/%Y})")
                 continue
             print(f"  {source.name:12} récupération…", flush=True)
-            with base.staged(connection, source):
+            with database.staged(connection, source):
                 report = source.fetch(client, connection)
-            base.publish(connection, source)
-            base.record_fetch(connection, source.name, report)
+            database.publish(connection, source)
+            database.record_fetch(connection, source.name, report)
             print(f"  {source.name:12} {report}")
 
 

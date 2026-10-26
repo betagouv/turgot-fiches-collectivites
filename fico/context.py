@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from .sources.base import Connection
 from .sources.collectivites import Fiche
+from .sources.database import Connection
 
 
 @dataclass

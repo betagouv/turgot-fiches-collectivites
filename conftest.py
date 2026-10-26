@@ -17,10 +17,8 @@ from psycopg import sql
 from psycopg.conninfo import make_conninfo
 
 from fico.main import app
-from fico.sources import base
+from fico.sources import database
 from fico.sources.registry import schemas
-
-TEST_URL_VARIABLE = "TEST_DATABASE_URL"
 
 
 def pytest_addoption(parser):
@@ -37,7 +35,7 @@ def _creation_rank(path: Path) -> int:
     return "\n".join(schemas()).find(f"CREATE TABLE IF NOT EXISTS {path.stem} ")
 
 
-def _load(connection: base.Connection, data: Path) -> None:
+def _load(connection: database.Connection, data: Path) -> None:
     """Each `<table>.csv` into its table, its header naming the columns."""
     for path in sorted(data.glob("*.csv"), key=_creation_rank):
         with path.open(encoding="utf-8") as file:
@@ -53,18 +51,18 @@ def _load(connection: base.Connection, data: Path) -> None:
 
 @pytest.fixture(scope="module")
 def client(request):
-    url = os.environ.get(TEST_URL_VARIABLE)
+    url = os.environ.get("TEST_DATABASE_URL")
     if not url:
-        pytest.fail(f"Variable {TEST_URL_VARIABLE} absente de l'environnement.")
+        pytest.fail("Variable TEST_DATABASE_URL absente de l'environnement.")
     schema = sql.Identifier(f"test_{uuid.uuid4().hex[:12]}")
     with psycopg.connect(url, autocommit=True) as connection:
         connection.execute(sql.SQL("CREATE SCHEMA {}").format(schema))
     try:
         with pytest.MonkeyPatch.context() as patch:
             scoped = make_conninfo(url, options=f"-csearch_path={schema.as_string()}")
-            patch.setenv(base.URL_VARIABLE, scoped)
-            with base.connect() as connection:
-                base.migrate(connection)
+            patch.setenv("DATABASE_URL", scoped)
+            with database.connect() as connection:
+                database.migrate(connection)
                 _load(connection, request.path.parent / "input")
             yield TestClient(app)
     finally:

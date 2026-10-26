@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from ....context import Context
-from ....sources import api_collectivites, base, collectivites
+from ....sources import api_collectivites, collectivites, database
 from ....sources.collectivites import COMMUNE, Fiche
 from ...formats import euros, number, plain, text
 from ...registry import component
@@ -18,7 +18,9 @@ COLUMNS = [
 ]
 
 
-def _pairs(connection: base.Connection, fiche: Fiche) -> tuple[str, list[dict]] | None:
+def _pairs(
+    connection: database.Connection, fiche: Fiche
+) -> tuple[str, list[dict]] | None:
     """What the collectivité compares to, named, with their siren, nom and
     population."""
     if fiche.famille == COMMUNE:

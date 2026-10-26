@@ -20,7 +20,6 @@ from psycopg.rows import dict_row
 
 from .registry import Source, schemas
 
-URL_VARIABLE = "DATABASE_URL"
 BATCH_SIZE = 5_000
 
 FETCH_SCHEMA = """
@@ -39,9 +38,9 @@ class DatabaseMissing(Exception):
 
 
 def connect() -> Connection:
-    url = os.environ.get(URL_VARIABLE)
+    url = os.environ.get("DATABASE_URL")
     if not url:
-        raise DatabaseMissing(f"Variable {URL_VARIABLE} absente de l'environnement.")
+        raise DatabaseMissing("Variable DATABASE_URL absente de l'environnement.")
     return psycopg.connect(url, autocommit=True, row_factory=dict_row)
 
 
@@ -92,7 +91,7 @@ def publish(connection: Connection, source: Source) -> None:
         connection.execute(sql.SQL("DROP SCHEMA {}").format(sql.Identifier(schema)))
 
 
-def insert(table: str, columns: tuple[str, ...]) -> str:
+def insert_statement(table: str, columns: tuple[str, ...]) -> str:
     """An INSERT of `columns` into `table`, its rows given as dicts."""
     names = ", ".join(columns)
     values = ", ".join(f"%({column})s" for column in columns)

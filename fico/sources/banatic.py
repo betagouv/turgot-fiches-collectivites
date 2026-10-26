@@ -14,7 +14,7 @@ from xml.etree.ElementTree import iterparse
 
 import httpx
 
-from . import base
+from . import database
 from .registry import Schedule, source
 
 URL = (
@@ -48,7 +48,7 @@ COLUMNS = (
     "date_creation",
 )
 
-INSERT = base.insert("groupement", COLUMNS)
+INSERT = database.insert_statement("groupement", COLUMNS)
 
 
 def _sheet_rows(archive: zipfile.ZipFile):
@@ -106,8 +106,8 @@ def parse(content: bytes) -> list[dict]:
     schedule=Schedule.MONTHLY,
     schema=SCHEMA,
 )
-def fetch(client: httpx.Client, connection: base.Connection) -> str:
+def fetch(client: httpx.Client, connection: database.Connection) -> str:
     response = client.get(URL, timeout=600)
     response.raise_for_status()
-    written = base.write(connection, INSERT, parse(response.content))
+    written = database.write(connection, INSERT, parse(response.content))
     return f"{written} groupement(s)"

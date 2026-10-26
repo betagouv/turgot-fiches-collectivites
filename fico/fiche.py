@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from .components import Instance, rows
 from .context import Context
 from .render import typst
-from .sources import base, collectivites
+from .sources import collectivites, database
 from .sources.collectivites import COMMUNE, Fiche
 
 SOURCE = (
@@ -20,7 +20,7 @@ class InvalidIdentifier(Exception):
     pass
 
 
-def resolve(connection: base.Connection, identifiant: str) -> Fiche:
+def resolve(connection: database.Connection, identifiant: str) -> Fiche:
     """Trouve la collectivité derrière un code INSEE de commune ou un SIREN."""
     if CODE_INSEE.fullmatch(identifiant):
         return collectivites.by_code_insee(connection, identifiant)
@@ -42,12 +42,12 @@ def _header(fiche: Fiche) -> dict:
 
 def describe(identifiant: str) -> dict:
     """The fiche's header alone, without collecting any component."""
-    with base.connect() as connection:
+    with database.connect() as connection:
         return _header(resolve(connection, identifiant))
 
 
 def collect_one(identifiant: str, instance: Instance):
-    with base.connect() as connection:
+    with database.connect() as connection:
         context = Context(fiche=resolve(connection, identifiant), connection=connection)
         return instance(context)
 
@@ -56,7 +56,7 @@ def collect(identifiant: str, instances) -> tuple[dict, list[list[dict]]]:
     """The header, and the lines of the instances that have something to show,
     each with its data: the fiche's contract with every renderer."""
     shown, data = [], {}
-    with base.connect() as connection:
+    with database.connect() as connection:
         fiche = resolve(connection, identifiant)
         context = Context(fiche=fiche, connection=connection)
         for instance in instances:

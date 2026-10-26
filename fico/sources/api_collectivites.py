@@ -18,7 +18,7 @@ from typing import IO
 
 import httpx
 
-from . import base
+from . import database
 from .registry import Schedule, source
 
 SCHEMA = """
@@ -41,8 +41,10 @@ CREATE TABLE IF NOT EXISTS financement (
 CREATE INDEX IF NOT EXISTS financement_projet ON financement (projet_id);
 """
 
-INSERT_PROJET = base.insert("projet", ("id", "siren", "nom", "budget_previsionnel"))
-INSERT_FINANCEMENT = base.insert(
+INSERT_PROJET = database.insert_statement(
+    "projet", ("id", "siren", "nom", "budget_previsionnel")
+)
+INSERT_FINANCEMENT = database.insert_statement(
     "financement",
     ("projet_id", "source", "reference", "annee", "montant_attribue", "statut"),
 )
@@ -84,11 +86,11 @@ def _download(client: httpx.Client, url: str, archive: IO[bytes]) -> str:
     return digest.hexdigest()
 
 
-def _store(connection: base.Connection, lines: IO[str]) -> tuple[int, int]:
+def _store(connection: database.Connection, lines: IO[str]) -> tuple[int, int]:
     projets = financements = 0
     numbered = enumerate(map(json.loads, lines), start=1)
     with connection.transaction(), connection.cursor() as cursor:
-        for batch in batched(numbered, base.BATCH_SIZE):
+        for batch in batched(numbered, database.BATCH_SIZE):
             funding = [row for item in batch for row in _financements(*item)]
             cursor.executemany(INSERT_PROJET, [_projet(*item) for item in batch])
             cursor.executemany(INSERT_FINANCEMENT, funding)
@@ -105,7 +107,7 @@ def _store(connection: base.Connection, lines: IO[str]) -> tuple[int, int]:
     schedule=Schedule.DAILY,
     schema=SCHEMA,
 )
-def fetch(client: httpx.Client, connection: base.Connection) -> str:
+def fetch(client: httpx.Client, connection: database.Connection) -> str:
     token = os.environ["API_COLLECTIVITES_TOKEN"]
     # Describes the nightly export, one projet per line, and gives its download URL.
     response = client.get(
@@ -130,7 +132,7 @@ FINANCEUR = "(%(financeur)s::text IS NULL OR f.source = %(financeur)s)"
 
 
 def financements_recus(
-    connection: base.Connection, siren: str, since: int | None = None
+    connection: database.Connection, siren: str, since: int | None = None
 ) -> list[dict]:
     return connection.execute(
         f"""
@@ -146,7 +148,7 @@ def financements_recus(
 
 
 def totaux(
-    connection: base.Connection,
+    connection: database.Connection,
     siren: str,
     since: int | None = None,
     financeur: str | None = None,
@@ -164,7 +166,7 @@ def totaux(
 
 
 def montants_by_siren(
-    connection: base.Connection,
+    connection: database.Connection,
     sirens: list[str],
     years: range,
     financeur: str | None = None,
@@ -190,7 +192,7 @@ def montants_by_siren(
 
 
 def totaux_by_source(
-    connection: base.Connection, siren: str, since: int | None = None
+    connection: database.Connection, siren: str, since: int | None = None
 ) -> list[dict]:
     return connection.execute(
         f"""
@@ -207,7 +209,7 @@ def totaux_by_source(
 
 
 def totaux_by_annee(
-    connection: base.Connection, siren: str, since: int | None = None
+    connection: database.Connection, siren: str, since: int | None = None
 ) -> list[dict]:
     return connection.execute(
         f"""
@@ -237,7 +239,7 @@ def _by_projet(siren_condition: str) -> str:
     """
 
 
-def taux_by_commune(connection: base.Connection, codes_insee) -> dict[str, float]:
+def taux_by_commune(connection: database.Connection, codes_insee) -> dict[str, float]:
     """Taux de financement of the projets each commune carries."""
     codes = list(codes_insee)
     if not codes:
@@ -257,7 +259,9 @@ def taux_by_commune(connection: base.Connection, codes_insee) -> dict[str, float
     return {row["code_insee"]: row["montant"] / row["cout"] for row in rows}
 
 
-def taux_by_siren(connection: base.Connection, sirens: list[str]) -> dict[str, float]:
+def taux_by_siren(
+    connection: database.Connection, sirens: list[str]
+) -> dict[str, float]:
     """Taux de financement of the projets each of `sirens` carries."""
     by_projet = _by_projet("p.siren = ANY(%(sirens)s)")
     rows = connection.execute(
@@ -272,7 +276,7 @@ def taux_by_siren(connection: base.Connection, sirens: list[str]) -> dict[str, f
 
 
 def cofinancement(
-    connection: base.Connection,
+    connection: database.Connection,
     siren: str,
     since: int | None = None,
     financeur: str | None = None,

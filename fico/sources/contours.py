@@ -9,7 +9,7 @@ import json
 
 import httpx
 
-from . import base
+from . import database
 from .registry import Schedule, source
 
 BASE_URL = "https://object.data.gouv.fr/contours-administratifs/2025/geojson"
@@ -36,8 +36,8 @@ CREATE TABLE IF NOT EXISTS epci_contour (
 
 COLUMNS = ("code", "nom", "departement", "epci", "geometry")
 
-INSERT = base.insert("contour", COLUMNS)
-INSERT_EPCI = base.insert("epci_contour", ("code", "nom", "geometry"))
+INSERT = database.insert_statement("contour", COLUMNS)
+INSERT_EPCI = database.insert_statement("epci_contour", ("code", "nom", "geometry"))
 
 
 def _features(client: httpx.Client, url: str) -> list[dict]:
@@ -65,9 +65,9 @@ def _rows(features: list[dict]):
     schedule=Schedule.ONESHOT,
     schema=SCHEMA,
 )
-def fetch(client: httpx.Client, connection: base.Connection) -> str:
-    communes = base.write(connection, INSERT, _rows(_features(client, COMMUNES)))
-    epci = base.write(connection, INSERT_EPCI, _rows(_features(client, EPCI)))
+def fetch(client: httpx.Client, connection: database.Connection) -> str:
+    communes = database.write(connection, INSERT, _rows(_features(client, COMMUNES)))
+    epci = database.write(connection, INSERT_EPCI, _rows(_features(client, EPCI)))
     return f"{communes} commune(s), {epci} EPCI"
 
 
@@ -83,7 +83,7 @@ def _contours(rows) -> list[dict]:
     ]
 
 
-def by_departement(connection: base.Connection, code: str) -> list[dict]:
+def by_departement(connection: database.Connection, code: str) -> list[dict]:
     return _contours(
         connection.execute(
             "SELECT code, nom, geometry FROM contour WHERE departement = %s "
@@ -93,7 +93,7 @@ def by_departement(connection: base.Connection, code: str) -> list[dict]:
     )
 
 
-def by_epci(connection: base.Connection, siren: str) -> list[dict]:
+def by_epci(connection: database.Connection, siren: str) -> list[dict]:
     return _contours(
         connection.execute(
             "SELECT code, nom, geometry FROM contour WHERE epci = %s ORDER BY code",
@@ -102,7 +102,7 @@ def by_epci(connection: base.Connection, siren: str) -> list[dict]:
     )
 
 
-def epci(connection: base.Connection, sirens: list[str]) -> list[dict]:
+def epci(connection: database.Connection, sirens: list[str]) -> list[dict]:
     """The contours of the EPCI of `sirens`, their SIREN in `code`."""
     return _contours(
         connection.execute(

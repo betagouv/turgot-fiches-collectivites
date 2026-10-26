@@ -9,7 +9,7 @@ https://geo.api.gouv.fr/decoupage-administratif/communes
 
 import httpx
 
-from . import base
+from . import database
 from .registry import Schedule, source
 
 URL = "https://geo.api.gouv.fr/communes"
@@ -47,7 +47,7 @@ COLUMNS = (
     "nom_region",
 )
 
-INSERT = base.insert("commune", COLUMNS)
+INSERT = database.insert_statement("commune", COLUMNS)
 
 
 def _row(commune: dict) -> dict:
@@ -78,10 +78,10 @@ def _row(commune: dict) -> dict:
     schedule=Schedule.MONTHLY,
     schema=SCHEMA,
 )
-def fetch(client: httpx.Client, connection: base.Connection) -> str:
+def fetch(client: httpx.Client, connection: database.Connection) -> str:
     response = client.get(URL, params={"fields": FIELDS})
     response.raise_for_status()
     communes = response.json()
     rows = [_row(c) for c in communes if c.get("siren")]
-    written = base.write(connection, INSERT, rows)
+    written = database.write(connection, INSERT, rows)
     return f"{written} commune(s), {len(communes) - written} sans SIREN écartée(s)"
