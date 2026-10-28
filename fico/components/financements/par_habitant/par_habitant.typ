@@ -1,6 +1,8 @@
 #import "common.typ": empty, muted, panel
 
 #let highlighted = 3
+// Below this count, every bar is wide enough to be highlighted.
+#let few = 20
 
 #let accent(index, count, focus) = if index == focus {
   "focus"
@@ -8,7 +10,7 @@
   "top"
 } else if index >= count - highlighted {
   "bottom"
-} else if focus != none and calc.abs(index - focus) == 1 {
+} else if count < few or (focus != none and calc.abs(index - focus) == 1) {
   "neighbour"
 } else {
   ""
@@ -48,7 +50,7 @@
   let kinds = range(data.rows.len()).map(index => accent(index, data.rows.len(), data.focus))
   let bars = data.rows.zip(kinds)
   grid(
-    columns: kinds.map(kind => if kind == "" { 1fr } else { 0.9cm }),
+    columns: kinds.map(kind => if kind == "" or kinds.len() < few { 1fr } else { 0.9cm }),
     column-gutter: 1pt,
     rows: (height + 2.6em, 1.4em),
     ..bars.map(pair => bar(pair.at(0), pair.at(1), pair.at(0).last().value / maximum, height)),

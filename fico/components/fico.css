@@ -112,7 +112,7 @@
     height: calc(var(--share) * 100%);
     background: var(--blue-france-850-200);
 
-    &:not([data-accent=""]) {
+    .ranking:not([data-few]) > &:not([data-accent=""]) {
       flex: 0 0 2.75rem;
     }
 
