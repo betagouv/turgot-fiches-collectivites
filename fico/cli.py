@@ -41,11 +41,6 @@ def _connect() -> database.Connection:
         sys.exit(str(error))
 
 
-def command_migrate(args) -> None:
-    with _connect() as connection:
-        database.migrate(connection)
-
-
 def command_fetch(args) -> None:
     try:
         chosen = sources.selected(args.sources)
@@ -114,9 +109,6 @@ def main(argv=None):
         help="Récupère même si le rythme n'est pas échu",
     )
     fetch.set_defaults(run=command_fetch)
-
-    migrate = sub.add_parser("migrate", help="Crée les tables manquantes.")
-    migrate.set_defaults(run=command_migrate)
 
     args = parser.parse_args(argv)
     args.run(args)

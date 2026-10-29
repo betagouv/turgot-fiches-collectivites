@@ -7,7 +7,7 @@ dokku := "ssh dokku@" + host
 
 [private]
 default:
-    @just --list remote
+    @just --list dokku
 
 [private]
 check-host:
@@ -29,7 +29,7 @@ deploy: check-host
 https: check-host
     {{ dokku }} letsencrypt:enable {{ app }}
 
-# Run `fico fetch` in a detached container, e.g. `just remote fetch api-collectivites --force`
+# Run `fico fetch` in a detached container, e.g. `just dokku fetch api-collectivites --force`
 fetch *args: check-host
     {{ dokku }} run:detached {{ app }} python -m fico.cli fetch {{ args }}
 

@@ -1,0 +1,8 @@
+{
+  "jobs": [
+    {
+      "command": "0 4 * * * python -m fico.cli fetch",
+      "size": "M"
+    }
+  ]
+}

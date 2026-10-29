@@ -77,13 +77,26 @@ just test --update-references   # réécrit les sorties attendues
 Chaque composant a un dossier `tests/` : `input/` (un CSV par table), `output/`
 (le JSON attendu).
 
-## Déploiement (Dokku / Scalingo)
+## Déploiement
+
+Dokku :
 
 ```sh
 export FICO_HOST=serveur
-just remote setup     # rejouable
-just remote deploy
-just remote https     # une fois, après le premier deploy
-just remote fetch
-just remote pull      # copie la base du serveur en local
+just dokku setup     # rejouable
+just dokku deploy
+just dokku https     # une fois, après le premier deploy
+just dokku fetch
+just dokku pull      # copie la base du serveur en local
 ```
+
+Scalingo (`FICO_APP`, `SCALINGO_REGION` pour changer l'app ou la région) :
+
+```sh
+just scalingo setup    # rejouable
+just scalingo deploy
+just scalingo fetch
+just scalingo pull     # copie la dernière sauvegarde de la base en local
+```
+
+Le fetch quotidien tourne via `cron.json`.

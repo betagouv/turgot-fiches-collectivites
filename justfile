@@ -1,6 +1,7 @@
 set dotenv-load
 
-mod remote
+mod dokku
+mod scalingo
 
 [private]
 default:
