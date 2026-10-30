@@ -1,6 +1,8 @@
 import { empty, escape, panel } from "/assets/common.js"
 
 const HIGHLIGHTED = 3
+// Below this count, every bar is wide enough to be highlighted.
+const FEW = 20
 
 function accent(index, count, focus) {
   if (index === focus) {
@@ -12,7 +14,7 @@ function accent(index, count, focus) {
   if (index >= count - HIGHLIGHTED) {
     return "bottom"
   }
-  if (focus !== null && Math.abs(index - focus) === 1) {
+  if (count < FEW || (focus !== null && Math.abs(index - focus) === 1)) {
     return "neighbour"
   }
   return ""
@@ -34,7 +36,8 @@ function ranking(data) {
   const bars = data.rows
     .map((row, index) => bar(row, accent(index, data.rows.length, data.focus), row.at(-1).value / maximum))
     .join("")
-  return `<div class="ranking">${bars}</div>`
+  const few = data.rows.length < FEW ? " data-few" : ""
+  return `<div class="ranking"${few}>${bars}</div>`
 }
 
 export function render(data) {
