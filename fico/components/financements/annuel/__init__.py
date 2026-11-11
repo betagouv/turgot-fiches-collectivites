@@ -13,9 +13,7 @@ from ...table import Table
 )
 def annuel(context: Context, since: int | None = None) -> Table:
     years = financements.years(since)
-    totals = api_collectivites.totaux_by_annee(
-        context.connection, context.fiche.siren, years
-    )
+    totals = api_collectivites.totaux_by_annee(context.fiche.siren, years)
     by_year = {total["annee"]: total["montant"] or 0 for total in totals}
     montants = {year: by_year.get(year, 0) for year in years}
     rows = []

@@ -35,7 +35,7 @@ def _creation_rank(path: Path) -> int:
     return "\n".join(schemas()).find(f"CREATE TABLE IF NOT EXISTS {path.stem} ")
 
 
-def _load(connection: database.Connection, data: Path) -> None:
+def _load(data: Path) -> None:
     """Each `<table>.csv` into its table, its header naming the columns."""
     for path in sorted(data.glob("*.csv"), key=_creation_rank):
         with path.open(encoding="utf-8") as file:
@@ -45,7 +45,7 @@ def _load(connection: database.Connection, data: Path) -> None:
             sql.Identifier(path.stem),
             sql.SQL(", ").join(sql.Identifier(column) for column in columns),
         )
-        with connection.cursor().copy(statement) as copy:
+        with database.connection.cursor().copy(statement) as copy:
             copy.write(path.read_bytes())
 
 
@@ -61,9 +61,9 @@ def client(request):
         with pytest.MonkeyPatch.context() as patch:
             scoped = make_conninfo(url, options=f"-csearch_path={schema.as_string()}")
             patch.setenv("DATABASE_URL", scoped)
-            with database.connect() as connection:
-                database.migrate(connection)
-                _load(connection, request.path.parent / "input")
+            with database.connection.connect():
+                database.migrate()
+                _load(request.path.parent / "input")
             yield TestClient(app)
     finally:
         with psycopg.connect(url, autocommit=True) as connection:

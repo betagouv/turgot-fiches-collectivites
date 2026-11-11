@@ -17,6 +17,7 @@ from enum import StrEnum
 import httpx
 
 from . import database
+from .database import connection
 from .registry import Schedule, source
 
 DATASET_URL = "https://www.data.gouv.fr/api/1/datasets/5c34c4d1634f4173183a64f1/"
@@ -110,21 +111,19 @@ def rows(client: httpx.Client, url: str, file: File):
     schedule=Schedule.MONTHLY,
     schema=SCHEMA,
 )
-def fetch(client: httpx.Client, connection: database.Connection) -> str:
+def fetch(client: httpx.Client) -> str:
     response = client.get(DATASET_URL)
     response.raise_for_status()
     resources = response.json()["resources"]
     urls = {file: _url(resources, file) for file in FILES}
     counts = []
     for file, url in urls.items():
-        written = database.write(connection, INSERT, rows(client, url, file))
+        written = database.write(INSERT, rows(client, url, file))
         counts.append(f"{written} {file.fonction}(s)")
     return ", ".join(counts)
 
 
-def for_collectivite(
-    connection: database.Connection, fonction: Fonction, code: str
-) -> Executif | None:
+def for_collectivite(fonction: Fonction, code: str) -> Executif | None:
     row = connection.execute(
         "SELECT fonction, nom, prenom, depuis FROM executif "
         "WHERE fonction = %s AND code = %s",

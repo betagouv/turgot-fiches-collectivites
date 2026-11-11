@@ -10,6 +10,7 @@ import json
 import httpx
 
 from . import database
+from .database import connection
 from .registry import Schedule, source
 
 BASE_URL = "https://object.data.gouv.fr/contours-administratifs/2025/geojson"
@@ -65,9 +66,9 @@ def _rows(features: list[dict]):
     schedule=Schedule.ONESHOT,
     schema=SCHEMA,
 )
-def fetch(client: httpx.Client, connection: database.Connection) -> str:
-    communes = database.write(connection, INSERT, _rows(_features(client, COMMUNES)))
-    epci = database.write(connection, INSERT_EPCI, _rows(_features(client, EPCI)))
+def fetch(client: httpx.Client) -> str:
+    communes = database.write(INSERT, _rows(_features(client, COMMUNES)))
+    epci = database.write(INSERT_EPCI, _rows(_features(client, EPCI)))
     return f"{communes} commune(s), {epci} EPCI"
 
 
@@ -83,7 +84,7 @@ def _contours(rows) -> list[dict]:
     ]
 
 
-def by_departement(connection: database.Connection, code: str) -> list[dict]:
+def by_departement(code: str) -> list[dict]:
     return _contours(
         connection.execute(
             "SELECT code, nom, geometry FROM contour WHERE departement = %s "
@@ -93,7 +94,7 @@ def by_departement(connection: database.Connection, code: str) -> list[dict]:
     )
 
 
-def by_epci(connection: database.Connection, siren: str) -> list[dict]:
+def by_epci(siren: str) -> list[dict]:
     return _contours(
         connection.execute(
             "SELECT code, nom, geometry FROM contour WHERE epci = %s ORDER BY code",
@@ -102,7 +103,7 @@ def by_epci(connection: database.Connection, siren: str) -> list[dict]:
     )
 
 
-def epci(connection: database.Connection, sirens: list[str]) -> list[dict]:
+def epci(sirens: list[str]) -> list[dict]:
     """The contours of the EPCI of `sirens`, their SIREN in `code`."""
     return _contours(
         connection.execute(

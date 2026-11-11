@@ -8,6 +8,7 @@ from . import components, sources
 from .errors import FicoError
 from .fiche import collect, render
 from .sources import database
+from .sources.database import connection
 
 
 def build(identifiant: str, output_path: Path, chosen) -> Path:
@@ -25,20 +26,20 @@ def command_fiche(args) -> None:
 def command_fetch(args) -> None:
     chosen = sources.selected(args.sources)
     with (
-        database.connect() as connection,
+        connection.connect(),
         httpx.Client(timeout=300, follow_redirects=True) as client,
     ):
-        database.migrate(connection)
+        database.migrate()
         for source in chosen:
-            if not args.force and not database.is_due(connection, source):
-                previous = database.last_fetch(connection, source.name)
+            if not args.force and not database.is_due(source):
+                previous = database.last_fetch(source.name)
                 print(f"  {source.name:12} à jour ({previous:%d/%m/%Y})")
                 continue
             print(f"  {source.name:12} récupération…", flush=True)
-            with database.staged(connection, source):
-                report = source.fetch(client, connection)
-            database.publish(connection, source)
-            database.record_fetch(connection, source.name, report)
+            with database.staged(source):
+                report = source.fetch(client)
+            database.publish(source)
+            database.record_fetch(source.name, report)
             print(f"  {source.name:12} {report}")
 
 

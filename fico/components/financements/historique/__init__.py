@@ -16,9 +16,7 @@ COLUMNS = ["Année", "Financeur", "Référence", "Projet", "Coût", "Subvention"
 def historique(context: Context, since: int | None = None) -> Table:
     years = financements.years(since)
     rows = []
-    for row in api_collectivites.financements_recus(
-        context.connection, context.fiche.siren, years
-    ):
+    for row in api_collectivites.financements_recus(context.fiche.siren, years):
         cout = row["budget_previsionnel"] or None
         montant = row["montant_attribue"]
         rows.append(

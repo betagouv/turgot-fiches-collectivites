@@ -106,8 +106,8 @@ def parse(content: bytes) -> list[dict]:
     schedule=Schedule.MONTHLY,
     schema=SCHEMA,
 )
-def fetch(client: httpx.Client, connection: database.Connection) -> str:
+def fetch(client: httpx.Client) -> str:
     response = client.get(URL, timeout=600)
     response.raise_for_status()
-    written = database.write(connection, INSERT, parse(response.content))
+    written = database.write(INSERT, parse(response.content))
     return f"{written} groupement(s)"

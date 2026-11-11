@@ -11,6 +11,7 @@ transaction, so readers see the previous snapshot until the new one is complete.
 import os
 from collections.abc import Iterator
 from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import UTC, datetime
 from itertools import batched
 
@@ -31,22 +32,39 @@ CREATE TABLE IF NOT EXISTS fetch_log (
 );
 """
 
-Connection = psycopg.Connection[dict]
-
 
 class DatabaseMissing(FicoError):
     def __init__(self):
         super().__init__("Variable DATABASE_URL absente de l'environnement.")
 
 
-def connect() -> Connection:
-    url = os.environ.get("DATABASE_URL")
-    if not url:
-        raise DatabaseMissing()
-    return psycopg.connect(url, autocommit=True, row_factory=dict_row)
+class CurrentConnection:
+    """The connection the innermost `connect()` block opened, in this thread or
+    this request: `connection.execute(...)` runs on it."""
+
+    def __init__(self):
+        self._opened: ContextVar[psycopg.Connection[dict]] = ContextVar("connection")
+
+    @contextmanager
+    def connect(self) -> Iterator[None]:
+        url = os.environ.get("DATABASE_URL")
+        if not url:
+            raise DatabaseMissing()
+        with psycopg.connect(url, autocommit=True, row_factory=dict_row) as opened:
+            token = self._opened.set(opened)
+            try:
+                yield
+            finally:
+                self._opened.reset(token)
+
+    def __getattr__(self, name: str):
+        return getattr(self._opened.get(), name)
 
 
-def migrate(connection: Connection) -> None:
+connection = CurrentConnection()
+
+
+def migrate() -> None:
     with connection.transaction():
         connection.execute(FETCH_SCHEMA)
         for schema in schemas():
@@ -58,7 +76,7 @@ def _staging(source: Source) -> str:
 
 
 @contextmanager
-def staged(connection: Connection, source: Source) -> Iterator[None]:
+def staged(source: Source) -> Iterator[None]:
     """Within the block, the source's tables are those of a fresh staging
     schema."""
     identifier = sql.Identifier(_staging(source))
@@ -72,7 +90,7 @@ def staged(connection: Connection, source: Source) -> Iterator[None]:
         connection.execute("RESET search_path")
 
 
-def publish(connection: Connection, source: Source) -> None:
+def publish(source: Source) -> None:
     """Replace the source's public tables with its staged ones. CASCADE takes the
     foreign keys between a source's own tables with them, whatever their order."""
     schema = _staging(source)
@@ -100,7 +118,7 @@ def insert_statement(table: str, columns: tuple[str, ...]) -> str:
     return f"INSERT INTO {table} ({names}) VALUES ({values})"
 
 
-def write(connection: Connection, statement: str, rows) -> int:
+def write(statement: str, rows) -> int:
     """Run `statement` once per row, by batches, in one transaction."""
     written = 0
     with connection.transaction(), connection.cursor() as cursor:
@@ -110,14 +128,14 @@ def write(connection: Connection, statement: str, rows) -> int:
     return written
 
 
-def last_fetch(connection: Connection, name: str) -> datetime | None:
+def last_fetch(name: str) -> datetime | None:
     row = connection.execute(
         "SELECT fetched_at FROM fetch_log WHERE source = %s", (name,)
     ).fetchone()
     return row["fetched_at"] if row else None
 
 
-def record_fetch(connection: Connection, name: str, report: str) -> None:
+def record_fetch(name: str, report: str) -> None:
     connection.execute(
         "INSERT INTO fetch_log (source, fetched_at, report) VALUES (%s, %s, %s) "
         "ON CONFLICT (source) DO UPDATE SET "
@@ -126,8 +144,8 @@ def record_fetch(connection: Connection, name: str, report: str) -> None:
     )
 
 
-def is_due(connection: Connection, source: Source) -> bool:
-    previous = last_fetch(connection, source.name)
+def is_due(source: Source) -> bool:
+    previous = last_fetch(source.name)
     if previous is None:
         return True
     if source.interval is None:

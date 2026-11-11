@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from ..errors import FicoError
-from . import database
+from .database import connection
 
 COMMUNE = "commune"
 GROUPEMENT = "groupement"
@@ -40,35 +40,35 @@ class Fiche:
     date_creation: date | None = None
 
 
-def _commune(connection: database.Connection, column: str, value: str) -> Fiche | None:
+def _commune(column: str, value: str) -> Fiche | None:
     row = connection.execute(
         f"SELECT * FROM commune WHERE {column} = %s", (value,)
     ).fetchone()
     return Fiche(famille=COMMUNE, type="COM", **row) if row else None
 
 
-def _groupement(connection: database.Connection, siren: str) -> Fiche | None:
+def _groupement(siren: str) -> Fiche | None:
     row = connection.execute(
         "SELECT * FROM groupement WHERE siren = %s", (siren,)
     ).fetchone()
     return Fiche(famille=GROUPEMENT, **row) if row else None
 
 
-def by_code_insee(connection: database.Connection, code_insee: str) -> Fiche:
-    fiche = _commune(connection, "code_insee", code_insee)
+def by_code_insee(code_insee: str) -> Fiche:
+    fiche = _commune("code_insee", code_insee)
     if fiche is None:
         raise NotFound(code_insee)
     return fiche
 
 
-def by_siren(connection: database.Connection, siren: str) -> Fiche:
-    fiche = _commune(connection, "siren", siren) or _groupement(connection, siren)
+def by_siren(siren: str) -> Fiche:
+    fiche = _commune("siren", siren) or _groupement(siren)
     if fiche is None:
         raise NotFound(siren)
     return fiche
 
 
-def communes_of_epci(connection: database.Connection, code_epci: str) -> list[dict]:
+def communes_of_epci(code_epci: str) -> list[dict]:
     """The communes `code_epci` gathers: siren, code_insee, nom, population."""
     return connection.execute(
         "SELECT siren, code_insee, nom, population FROM commune WHERE code_epci = %s",
@@ -76,9 +76,7 @@ def communes_of_epci(connection: database.Connection, code_epci: str) -> list[di
     ).fetchall()
 
 
-def epci_of_departement(
-    connection: database.Connection, code_departement: str
-) -> list[dict]:
+def epci_of_departement(code_departement: str) -> list[dict]:
     """The EPCI à fiscalité propre seated in `code_departement`: siren, nom,
     population."""
     return connection.execute(

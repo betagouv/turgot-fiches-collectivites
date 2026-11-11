@@ -31,12 +31,9 @@ def _executif(executif: rne.Executif | None) -> Display:
 )
 def identite(context: Context) -> Table:
     fiche = context.fiche
-    connection = context.connection
 
     if fiche.famille != COMMUNE:
-        president = rne.for_collectivite(
-            connection, rne.Fonction.PRESIDENT, fiche.siren
-        )
+        president = rne.for_collectivite(rne.Fonction.PRESIDENT, fiche.siren)
         return _table(
             [
                 ("Président", _executif(president)),
@@ -55,7 +52,7 @@ def identite(context: Context) -> Table:
         else None
     )
 
-    maire = rne.for_collectivite(connection, rne.Fonction.MAIRE, fiche.code_insee)
+    maire = rne.for_collectivite(rne.Fonction.MAIRE, fiche.code_insee)
     return _table(
         [
             ("Maire", _executif(maire)),

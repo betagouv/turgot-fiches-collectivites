@@ -19,6 +19,7 @@ from typing import IO
 import httpx
 
 from . import database
+from .database import connection
 from .registry import Schedule, source
 
 SCHEMA = """
@@ -86,7 +87,7 @@ def _download(client: httpx.Client, url: str, archive: IO[bytes]) -> str:
     return digest.hexdigest()
 
 
-def _store(connection: database.Connection, lines: IO[str]) -> tuple[int, int]:
+def _store(lines: IO[str]) -> tuple[int, int]:
     projets = financements = 0
     numbered = enumerate(map(json.loads, lines), start=1)
     with connection.transaction(), connection.cursor() as cursor:
@@ -107,7 +108,7 @@ def _store(connection: database.Connection, lines: IO[str]) -> tuple[int, int]:
     schedule=Schedule.DAILY,
     schema=SCHEMA,
 )
-def fetch(client: httpx.Client, connection: database.Connection) -> str:
+def fetch(client: httpx.Client) -> str:
     token = os.environ["API_COLLECTIVITES_TOKEN"]
     # Describes the nightly export, one projet per line, and gives its download URL.
     response = client.get(
@@ -121,7 +122,7 @@ def fetch(client: httpx.Client, connection: database.Connection) -> str:
             raise ValueError(f"Empreinte inattendue pour l'export {export['url']}.")
         archive.seek(0)
         with gzip.open(archive, "rt", encoding="utf-8") as lines:
-            projets, financements = _store(connection, lines)
+            projets, financements = _store(lines)
     return f"{projets} projets, {financements} financements ({export['generatedAt']})"
 
 
@@ -131,9 +132,7 @@ PERIOD = "f.annee >= %(start)s AND f.annee < %(stop)s"
 FINANCEUR = "(%(financeur)s::text IS NULL OR f.source = %(financeur)s)"
 
 
-def financements_recus(
-    connection: database.Connection, siren: str, years: range
-) -> list[dict]:
+def financements_recus(siren: str, years: range) -> list[dict]:
     return connection.execute(
         f"""
         SELECT f.annee, f.source, f.reference, f.montant_attribue,
@@ -146,12 +145,7 @@ def financements_recus(
     ).fetchall()
 
 
-def totaux(
-    connection: database.Connection,
-    siren: str,
-    years: range,
-    financeur: str | None = None,
-) -> dict:
+def totaux(siren: str, years: range, financeur: str | None = None) -> dict:
     return connection.execute(
         f"""
         SELECT SUM(f.montant_attribue) AS montant,
@@ -169,7 +163,6 @@ def totaux(
 
 
 def montants_by_siren(
-    connection: database.Connection,
     sirens: list[str],
     years: range,
     financeur: str | None = None,
@@ -194,9 +187,7 @@ def montants_by_siren(
     return {row["siren"]: row["montant"] for row in rows}
 
 
-def totaux_by_source(
-    connection: database.Connection, siren: str, years: range
-) -> list[dict]:
+def totaux_by_source(siren: str, years: range) -> list[dict]:
     return connection.execute(
         f"""
         SELECT f.source,
@@ -211,9 +202,7 @@ def totaux_by_source(
     ).fetchall()
 
 
-def totaux_by_annee(
-    connection: database.Connection, siren: str, years: range
-) -> list[dict]:
+def totaux_by_annee(siren: str, years: range) -> list[dict]:
     return connection.execute(
         f"""
         SELECT f.annee, SUM(f.montant_attribue) AS montant
@@ -240,9 +229,7 @@ def _by_projet(siren_condition: str) -> str:
     """
 
 
-def taux_by_commune(
-    connection: database.Connection, codes_insee, years: range
-) -> dict[str, float]:
+def taux_by_commune(codes_insee, years: range) -> dict[str, float]:
     """Taux de financement of the projets each commune carries."""
     codes = list(codes_insee)
     if not codes:
@@ -267,9 +254,7 @@ def taux_by_commune(
     return {row["code_insee"]: row["montant"] / row["cout"] for row in rows}
 
 
-def taux_by_siren(
-    connection: database.Connection, sirens: list[str], years: range
-) -> dict[str, float]:
+def taux_by_siren(sirens: list[str], years: range) -> dict[str, float]:
     """Taux de financement of the projets each of `sirens` carries."""
     by_projet = _by_projet("p.siren = ANY(%(sirens)s)")
     rows = connection.execute(
@@ -288,12 +273,7 @@ def taux_by_siren(
     return {row["siren"]: row["montant"] / row["cout"] for row in rows}
 
 
-def cofinancement(
-    connection: database.Connection,
-    siren: str,
-    years: range,
-    financeur: str | None = None,
-) -> dict:
+def cofinancement(siren: str, years: range, financeur: str | None = None) -> dict:
     """A projet's whole budget counts as soon as one of its financements falls
     within `years`, or comes from `financeur`: the rate is then the share of
     that budget the selected financements cover."""

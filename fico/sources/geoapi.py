@@ -78,10 +78,10 @@ def _row(commune: dict) -> dict:
     schedule=Schedule.MONTHLY,
     schema=SCHEMA,
 )
-def fetch(client: httpx.Client, connection: database.Connection) -> str:
+def fetch(client: httpx.Client) -> str:
     response = client.get(URL, params={"fields": FIELDS})
     response.raise_for_status()
     communes = response.json()
     rows = [_row(c) for c in communes if c.get("siren")]
-    written = database.write(connection, INSERT, rows)
+    written = database.write(INSERT, rows)
     return f"{written} commune(s), {len(communes) - written} sans SIREN écartée(s)"

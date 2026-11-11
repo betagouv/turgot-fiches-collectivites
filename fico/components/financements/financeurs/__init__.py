@@ -13,9 +13,7 @@ from ...table import Table
 )
 def financeurs(context: Context, since: int | None = None) -> Table:
     years = financements.years(since)
-    totals = api_collectivites.totaux_by_source(
-        context.connection, context.fiche.siren, years
-    )
+    totals = api_collectivites.totaux_by_source(context.fiche.siren, years)
     return Table(
         header=f"{years[0]} – {years[-1]}",
         title="Répartition par financeur",

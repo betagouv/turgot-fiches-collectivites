@@ -15,10 +15,10 @@ from ...table import Table
 def synthese(
     context: Context, since: int | None = None, financeur: str | None = None
 ) -> Table:
-    connection, siren = context.connection, context.fiche.siren
+    siren = context.fiche.siren
     years = financements.years(since)
-    totaux = api_collectivites.totaux(connection, siren, years, financeur)
-    cofinancement = api_collectivites.cofinancement(connection, siren, years, financeur)
+    totaux = api_collectivites.totaux(siren, years, financeur)
+    cofinancement = api_collectivites.cofinancement(siren, years, financeur)
     cout = cofinancement["cout"] or 0
 
     rows = []

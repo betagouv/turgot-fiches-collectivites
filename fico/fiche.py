@@ -5,8 +5,9 @@ from .components import Instance, rows
 from .context import Context
 from .errors import FicoError
 from .render import typst
-from .sources import collectivites, database
+from .sources import collectivites
 from .sources.collectivites import COMMUNE, Fiche
+from .sources.database import connection
 
 SOURCE = (
     "Sources : geo.api.gouv.fr, BANATIC, API Collectivités, "
@@ -25,12 +26,12 @@ class InvalidIdentifier(FicoError):
         )
 
 
-def resolve(connection: database.Connection, identifiant: str) -> Fiche:
+def resolve(identifiant: str) -> Fiche:
     """Trouve la collectivité derrière un code INSEE de commune ou un SIREN."""
     if CODE_INSEE.fullmatch(identifiant):
-        return collectivites.by_code_insee(connection, identifiant)
+        return collectivites.by_code_insee(identifiant)
     if SIREN.fullmatch(identifiant):
-        return collectivites.by_siren(connection, identifiant)
+        return collectivites.by_siren(identifiant)
     raise InvalidIdentifier(identifiant)
 
 
@@ -44,23 +45,22 @@ def _header(fiche: Fiche) -> dict:
 
 def describe(identifiant: str) -> dict:
     """The fiche's header alone, without collecting any component."""
-    with database.connect() as connection:
-        return _header(resolve(connection, identifiant))
+    with connection.connect():
+        return _header(resolve(identifiant))
 
 
 def collect_one(identifiant: str, instance: Instance):
-    with database.connect() as connection:
-        context = Context(fiche=resolve(connection, identifiant), connection=connection)
-        return instance(context)
+    with connection.connect():
+        return instance(Context(fiche=resolve(identifiant)))
 
 
 def collect(identifiant: str, instances) -> tuple[dict, list[list[dict]]]:
     """The header, and the lines of the instances that have something to show,
     each with its data: the fiche's contract with every renderer."""
     shown, data = [], {}
-    with database.connect() as connection:
-        fiche = resolve(connection, identifiant)
-        context = Context(fiche=fiche, connection=connection)
+    with connection.connect():
+        fiche = resolve(identifiant)
+        context = Context(fiche=fiche)
         for instance in instances:
             result = instance(context)
             if result is not None:

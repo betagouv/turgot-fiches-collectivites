@@ -48,16 +48,12 @@ def _epci(context: Context, perimetre: Perimetre) -> Table | None:
         or fiche.type not in collectivites.EPCI_A_FISCALITE_PROPRE
     ):
         return None
-    peers = collectivites.epci_of_departement(
-        context.connection, fiche.code_departement
-    )
+    peers = collectivites.epci_of_departement(fiche.code_departement)
     sirens = [peer["siren"] for peer in peers]
-    territoire = contours.epci(context.connection, sirens)
+    territoire = contours.epci(sirens)
     if not territoire:
         return None
-    taux = api_collectivites.taux_by_siren(
-        context.connection, sirens, financements.years()
-    )
+    taux = api_collectivites.taux_by_siren(sirens, financements.years())
     return _table("Département", "EPCI", territoire, taux, fiche.siren)
 
 
@@ -74,18 +70,14 @@ def carte(context: Context, perimetre: Perimetre) -> Table | None:
     match perimetre:
         case Perimetre.DEPARTEMENT:
             title = "Département"
-            communes = contours.by_departement(
-                context.connection, fiche.code_departement
-            )
+            communes = contours.by_departement(fiche.code_departement)
         case Perimetre.INTERCO:
             if not fiche.code_epci:
                 return None
             title = "Intercommunalité"
-            communes = contours.by_epci(context.connection, fiche.code_epci)
+            communes = contours.by_epci(fiche.code_epci)
     if not communes:
         return None
     codes = [commune["code"] for commune in communes]
-    taux = api_collectivites.taux_by_commune(
-        context.connection, codes, financements.years()
-    )
+    taux = api_collectivites.taux_by_commune(codes, financements.years())
     return _table(title, "communes", communes, taux, fiche.code_insee)

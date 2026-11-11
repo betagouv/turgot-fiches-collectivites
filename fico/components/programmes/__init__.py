@@ -23,7 +23,7 @@ def _depuis(value: date | None) -> Display:
 def programmes(context: Context) -> Table | None:
     if context.fiche.famille != COMMUNE:
         return None
-    rows = for_commune(context.connection, context.fiche.code_insee)
+    rows = for_commune(context.fiche.code_insee)
     return Table(
         title="Programmes",
         columns=["Programme", "Depuis"],

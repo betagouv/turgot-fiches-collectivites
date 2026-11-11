@@ -13,6 +13,7 @@ from datetime import date
 import httpx
 
 from . import database
+from .database import connection
 from .registry import Schedule, source
 
 DATA_GOUV_URL = "https://www.data.gouv.fr/api/1/datasets"
@@ -129,15 +130,15 @@ def rows(client: httpx.Client, programme: Programme):
     schedule=Schedule.MONTHLY,
     schema=SCHEMA,
 )
-def fetch(client: httpx.Client, connection: database.Connection) -> str:
+def fetch(client: httpx.Client) -> str:
     counts = []
     for programme in PROGRAMMES:
-        written = database.write(connection, UPSERT, rows(client, programme))
+        written = database.write(UPSERT, rows(client, programme))
         counts.append(f"{programme.code} {written}")
     return ", ".join(counts)
 
 
-def for_commune(connection: database.Connection, code_insee: str) -> list[dict]:
+def for_commune(code_insee: str) -> list[dict]:
     return connection.execute(
         "SELECT * FROM programme WHERE code_insee = %s ORDER BY programme",
         (code_insee,),

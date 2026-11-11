@@ -1,5 +1,5 @@
 from ....context import Context
-from ....sources import api_collectivites, collectivites, database
+from ....sources import api_collectivites, collectivites
 from ....sources.collectivites import COMMUNE, Fiche
 from ... import financements
 from ...formats import euros, number, plain, text
@@ -16,19 +16,17 @@ COLUMNS = [
 ]
 
 
-def _pairs(
-    connection: database.Connection, fiche: Fiche
-) -> tuple[str, list[dict]] | None:
+def _pairs(fiche: Fiche) -> tuple[str, list[dict]] | None:
     """What the collectivité compares to, named, with their siren, nom and
     population."""
     if fiche.famille == COMMUNE:
         if not fiche.code_epci:
             return None
-        communes = collectivites.communes_of_epci(connection, fiche.code_epci)
+        communes = collectivites.communes_of_epci(fiche.code_epci)
         return f"communes de {fiche.nom_epci}", communes
     if fiche.type not in collectivites.EPCI_A_FISCALITE_PROPRE:
         return None
-    epci = collectivites.epci_of_departement(connection, fiche.code_departement)
+    epci = collectivites.epci_of_departement(fiche.code_departement)
     return f"EPCI à fiscalité propre, {fiche.nom_departement}", epci
 
 
@@ -42,17 +40,14 @@ def par_habitant(
     context: Context, since: int | None = None, financeur: str | None = None
 ) -> Table | None:
     fiche = context.fiche
-    pairs = _pairs(context.connection, fiche)
+    pairs = _pairs(fiche)
     if pairs is None:
         return None
     perimetre, peers = pairs
 
     years = financements.years(since)
     montants = api_collectivites.montants_by_siren(
-        context.connection,
-        [peer["siren"] for peer in peers],
-        years,
-        financeur,
+        [peer["siren"] for peer in peers], years, financeur
     )
     rows = [
         {**peer, "montant": montants.get(peer["siren"], 0)}
