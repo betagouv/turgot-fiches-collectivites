@@ -1,4 +1,3 @@
-from ....context import Context
 from ....sources import api_collectivites, collectivites
 from ....sources.collectivites import COMMUNE, Fiche
 from ... import financements
@@ -37,9 +36,8 @@ def _pairs(fiche: Fiche) -> tuple[str, list[dict]] | None:
     "révolues ou depuis l'année since.",
 )
 def par_habitant(
-    context: Context, since: int | None = None, financeur: str | None = None
+    fiche: Fiche, since: int | None = None, financeur: str | None = None
 ) -> Table | None:
-    fiche = context.fiche
     pairs = _pairs(fiche)
     if pairs is None:
         return None

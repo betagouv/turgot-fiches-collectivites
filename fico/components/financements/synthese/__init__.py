@@ -1,5 +1,5 @@
-from ....context import Context
 from ....sources import api_collectivites
+from ....sources.collectivites import Fiche
 from ... import financements
 from ...formats import euros, number, percent, text
 from ...registry import component
@@ -13,12 +13,11 @@ from ...table import Table
     width="1/4",
 )
 def synthese(
-    context: Context, since: int | None = None, financeur: str | None = None
+    fiche: Fiche, since: int | None = None, financeur: str | None = None
 ) -> Table:
-    siren = context.fiche.siren
     years = financements.years(since)
-    totaux = api_collectivites.totaux(siren, years, financeur)
-    cofinancement = api_collectivites.cofinancement(siren, years, financeur)
+    totaux = api_collectivites.totaux(fiche.siren, years, financeur)
+    cofinancement = api_collectivites.cofinancement(fiche.siren, years, financeur)
     cout = cofinancement["cout"] or 0
 
     rows = []

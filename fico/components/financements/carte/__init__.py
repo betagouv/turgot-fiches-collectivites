@@ -2,9 +2,8 @@
 
 from enum import StrEnum
 
-from ....context import Context
 from ....sources import api_collectivites, collectivites, contours
-from ....sources.collectivites import COMMUNE
+from ....sources.collectivites import COMMUNE, Fiche
 from ... import financements
 from ...formats import Display, percent, text
 from ...registry import component
@@ -41,8 +40,7 @@ def _table(
     )
 
 
-def _epci(context: Context, perimetre: Perimetre) -> Table | None:
-    fiche = context.fiche
+def _epci(fiche: Fiche, perimetre: Perimetre) -> Table | None:
     if (
         perimetre is not Perimetre.DEPARTEMENT
         or fiche.type not in collectivites.EPCI_A_FISCALITE_PROPRE
@@ -63,10 +61,9 @@ def _epci(context: Context, perimetre: Perimetre) -> Table | None:
     "du département ; sur les six dernières années révolues.",
     width="1/2",
 )
-def carte(context: Context, perimetre: Perimetre) -> Table | None:
-    fiche = context.fiche
+def carte(fiche: Fiche, perimetre: Perimetre) -> Table | None:
     if fiche.famille != COMMUNE:
-        return _epci(context, perimetre)
+        return _epci(fiche, perimetre)
     match perimetre:
         case Perimetre.DEPARTEMENT:
             title = "Département"

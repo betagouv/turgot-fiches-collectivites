@@ -1,5 +1,5 @@
-from ....context import Context
 from ....sources import api_collectivites
+from ....sources.collectivites import Fiche
 from ... import financements
 from ...formats import compact_euros, plain
 from ...registry import component
@@ -11,9 +11,9 @@ from ...table import Table
     "depuis l'année since.",
     width="1/2",
 )
-def annuel(context: Context, since: int | None = None) -> Table:
+def annuel(fiche: Fiche, since: int | None = None) -> Table:
     years = financements.years(since)
-    totals = api_collectivites.totaux_by_annee(context.fiche.siren, years)
+    totals = api_collectivites.totaux_by_annee(fiche.siren, years)
     by_year = {total["annee"]: total["montant"] or 0 for total in totals}
     montants = {year: by_year.get(year, 0) for year in years}
     rows = []

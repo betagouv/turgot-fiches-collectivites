@@ -1,5 +1,5 @@
-from ....context import Context
 from ....sources import api_collectivites
+from ....sources.collectivites import Fiche
 from ... import financements
 from ...formats import euros, percent, plain, text
 from ...registry import component
@@ -13,10 +13,10 @@ COLUMNS = ["Année", "Financeur", "Référence", "Projet", "Coût", "Subvention"
     "coût et leur taux de financement, sur les six dernières années révolues ou "
     "depuis l'année since.",
 )
-def historique(context: Context, since: int | None = None) -> Table:
+def historique(fiche: Fiche, since: int | None = None) -> Table:
     years = financements.years(since)
     rows = []
-    for row in api_collectivites.financements_recus(context.fiche.siren, years):
+    for row in api_collectivites.financements_recus(fiche.siren, years):
         cout = row["budget_previsionnel"] or None
         montant = row["montant_attribue"]
         rows.append(

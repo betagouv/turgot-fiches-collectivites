@@ -2,7 +2,6 @@ import re
 from datetime import UTC, datetime
 
 from .components import Instance, rows
-from .context import Context
 from .errors import FicoError
 from .render import typst
 from .sources import collectivites
@@ -51,7 +50,7 @@ def describe(identifiant: str) -> dict:
 
 def collect_one(identifiant: str, instance: Instance):
     with connection.connect():
-        return instance(Context(fiche=resolve(identifiant)))
+        return instance(resolve(identifiant))
 
 
 def collect(identifiant: str, instances) -> tuple[dict, list[list[dict]]]:
@@ -60,9 +59,8 @@ def collect(identifiant: str, instances) -> tuple[dict, list[list[dict]]]:
     shown, data = [], {}
     with connection.connect():
         fiche = resolve(identifiant)
-        context = Context(fiche=fiche)
         for instance in instances:
-            result = instance(context)
+            result = instance(fiche)
             if result is not None:
                 shown.append(instance)
                 data[instance.spec] = result

@@ -1,6 +1,5 @@
-from ...context import Context
 from ...sources import rne
-from ...sources.collectivites import COMMUNE
+from ...sources.collectivites import COMMUNE, Fiche
 from ..formats import Display, decimal, long_date, number, text
 from ..registry import component
 from ..table import Table
@@ -29,9 +28,7 @@ def _executif(executif: rne.Executif | None) -> Display:
     "département, région.",
     width="1/2",
 )
-def identite(context: Context) -> Table:
-    fiche = context.fiche
-
+def identite(fiche: Fiche) -> Table:
     if fiche.famille != COMMUNE:
         president = rne.for_collectivite(rne.Fonction.PRESIDENT, fiche.siren)
         return _table(

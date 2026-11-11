@@ -7,8 +7,8 @@ from enum import Enum, StrEnum
 from fractions import Fraction
 from pathlib import Path
 
-from ..context import Context
 from ..errors import FicoError
+from ..sources.collectivites import Fiche
 from .table import Table
 
 ROOT = Path(__file__).parent
@@ -72,8 +72,8 @@ class Component:
     fonction: Callable
     parameters: dict[str, Parameter]
 
-    def __call__(self, context: Context, **arguments) -> Table | None:
-        return self.fonction(context, **arguments)
+    def __call__(self, fiche: Fiche, **arguments) -> Table | None:
+        return self.fonction(fiche, **arguments)
 
     def new(self, **values) -> Instance:
         """The component with its keyword arguments, each converted to its
@@ -114,8 +114,8 @@ class Instance:
     component: Component
     arguments: dict[str, object]
 
-    def __call__(self, context: Context) -> Table | None:
-        return self.component(context, **self.arguments)
+    def __call__(self, fiche: Fiche) -> Table | None:
+        return self.component(fiche, **self.arguments)
 
     @property
     def name(self) -> str:
@@ -134,7 +134,7 @@ COMPONENTS: dict[str, Component] = {}
 
 
 def _parameters(fonction: Callable) -> dict[str, Parameter]:
-    """The parameters `fonction` takes after its context, each with the type its
+    """The parameters `fonction` takes after its fiche, each with the type its
     text value converts to: `since: int | None = None` is an optional `int`."""
     _, *parameters = inspect.signature(fonction).parameters.values()
     found = {}

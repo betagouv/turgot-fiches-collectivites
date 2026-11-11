@@ -1,7 +1,6 @@
 from datetime import date
 
-from ...context import Context
-from ...sources.collectivites import COMMUNE
+from ...sources.collectivites import COMMUNE, Fiche
 from ...sources.programmes import BY_CODE, for_commune
 from ..formats import Display, long_date, text
 from ..registry import component
@@ -20,10 +19,10 @@ def _depuis(value: date | None) -> Display:
     "ville, Petites villes de demain, Territoires d'industrie, Villages d'avenir.",
     width="1/2",
 )
-def programmes(context: Context) -> Table | None:
-    if context.fiche.famille != COMMUNE:
+def programmes(fiche: Fiche) -> Table | None:
+    if fiche.famille != COMMUNE:
         return None
-    rows = for_commune(context.fiche.code_insee)
+    rows = for_commune(fiche.code_insee)
     return Table(
         title="Programmes",
         columns=["Programme", "Depuis"],

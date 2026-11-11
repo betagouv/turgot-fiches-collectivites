@@ -1,5 +1,5 @@
-from ....context import Context
 from ....sources import api_collectivites
+from ....sources.collectivites import Fiche
 from ... import financements
 from ...formats import compact_euros, text
 from ...registry import component
@@ -11,9 +11,9 @@ from ...table import Table
     "dernières années révolues ou depuis l'année since.",
     width="1/2",
 )
-def financeurs(context: Context, since: int | None = None) -> Table:
+def financeurs(fiche: Fiche, since: int | None = None) -> Table:
     years = financements.years(since)
-    totals = api_collectivites.totaux_by_source(context.fiche.siren, years)
+    totals = api_collectivites.totaux_by_source(fiche.siren, years)
     return Table(
         header=f"{years[0]} – {years[-1]}",
         title="Répartition par financeur",
