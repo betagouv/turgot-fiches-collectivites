@@ -1,0 +1,586 @@
+{
+  "nom": "Rennes",
+  "libelle_type": "Commune",
+  "source": "Sources : geo.api.gouv.fr, BANATIC, API Collectivités, contours et programmes publiés sur data.gouv.fr — généré le 01/06/2026",
+  "lines": [
+    [
+      {
+        "name": "identite",
+        "parameters": {},
+        "width": "1/2",
+        "data": {
+          "title": "Identité",
+          "columns": [
+            "Libellé",
+            "Valeur"
+          ],
+          "rows": [
+            [
+              {
+                "value": "SIREN",
+                "label": "SIREN"
+              },
+              {
+                "value": "213502388",
+                "label": "213502388"
+              }
+            ],
+            [
+              {
+                "value": "Code INSEE",
+                "label": "Code INSEE"
+              },
+              {
+                "value": "35238",
+                "label": "35238"
+              }
+            ],
+            [
+              {
+                "value": "Population",
+                "label": "Population"
+              },
+              {
+                "value": 230890,
+                "label": "230 890 habitants"
+              }
+            ],
+            [
+              {
+                "value": "Superficie",
+                "label": "Superficie"
+              },
+              {
+                "value": 50.39,
+                "label": "50,4 km²"
+              }
+            ],
+            [
+              {
+                "value": "Densité",
+                "label": "Densité"
+              },
+              {
+                "value": 4582.059932526295,
+                "label": "4 582 hab./km²"
+              }
+            ],
+            [
+              {
+                "value": "Codes postaux",
+                "label": "Codes postaux"
+              },
+              {
+                "value": "35000, 35200, 35700",
+                "label": "35000, 35200, 35700"
+              }
+            ],
+            [
+              {
+                "value": "Intercommunalité",
+                "label": "Intercommunalité"
+              },
+              {
+                "value": "Rennes Métropole",
+                "label": "Rennes Métropole"
+              }
+            ],
+            [
+              {
+                "value": "Département",
+                "label": "Département"
+              },
+              {
+                "value": "Ille-et-Vilaine",
+                "label": "Ille-et-Vilaine"
+              }
+            ],
+            [
+              {
+                "value": "Région",
+                "label": "Région"
+              },
+              {
+                "value": "Bretagne",
+                "label": "Bretagne"
+              }
+            ]
+          ],
+          "header": "",
+          "empty": "",
+          "note": "",
+          "focus": null
+        }
+      },
+      {
+        "name": "programmes",
+        "parameters": {},
+        "width": "1/2",
+        "data": {
+          "title": "Programmes",
+          "columns": [
+            "Programme",
+            "Depuis"
+          ],
+          "rows": [],
+          "header": "",
+          "empty": "Aucun programme national recensé.",
+          "note": "",
+          "focus": null
+        }
+      }
+    ],
+    [
+      {
+        "name": "financements.synthese",
+        "parameters": {},
+        "width": "1/4",
+        "data": {
+          "title": "Tous financeurs",
+          "columns": [
+            "Indicateur",
+            "Valeur"
+          ],
+          "rows": [
+            [
+              {
+                "value": "reçus",
+                "label": "reçus"
+              },
+              {
+                "value": 80000.0,
+                "label": "80 000 €"
+              }
+            ],
+            [
+              {
+                "value": "projets financés",
+                "label": "projets financés"
+              },
+              {
+                "value": 1,
+                "label": "1"
+              }
+            ],
+            [
+              {
+                "value": "de coût des projets renseignés",
+                "label": "de coût des projets renseignés"
+              },
+              {
+                "value": 200000.0,
+                "label": "200 000 €"
+              }
+            ],
+            [
+              {
+                "value": "de taux de financement",
+                "label": "de taux de financement"
+              },
+              {
+                "value": 0.4,
+                "label": "40 %"
+              }
+            ]
+          ],
+          "header": "2020 – 2025",
+          "empty": "Aucun financement",
+          "note": "",
+          "focus": null
+        }
+      },
+      {
+        "name": "financements.synthese",
+        "parameters": {
+          "financeur": "DSIL"
+        },
+        "width": "1/4",
+        "data": {
+          "title": "DSIL",
+          "columns": [
+            "Indicateur",
+            "Valeur"
+          ],
+          "rows": [
+            [
+              {
+                "value": "reçus",
+                "label": "reçus"
+              },
+              {
+                "value": 60000.0,
+                "label": "60 000 €"
+              }
+            ],
+            [
+              {
+                "value": "projets financés",
+                "label": "projets financés"
+              },
+              {
+                "value": 1,
+                "label": "1"
+              }
+            ],
+            [
+              {
+                "value": "de coût des projets renseignés",
+                "label": "de coût des projets renseignés"
+              },
+              {
+                "value": 200000.0,
+                "label": "200 000 €"
+              }
+            ],
+            [
+              {
+                "value": "de taux de financement",
+                "label": "de taux de financement"
+              },
+              {
+                "value": 0.3,
+                "label": "30 %"
+              }
+            ]
+          ],
+          "header": "2020 – 2025",
+          "empty": "Aucun financement",
+          "note": "",
+          "focus": null
+        }
+      },
+      {
+        "name": "financements.synthese",
+        "parameters": {
+          "financeur": "DETR"
+        },
+        "width": "1/4",
+        "data": {
+          "title": "DETR",
+          "columns": [
+            "Indicateur",
+            "Valeur"
+          ],
+          "rows": [],
+          "header": "2020 – 2025",
+          "empty": "Aucun financement",
+          "note": "",
+          "focus": null
+        }
+      },
+      {
+        "name": "financements.synthese",
+        "parameters": {
+          "financeur": "Fonds Vert"
+        },
+        "width": "1/4",
+        "data": {
+          "title": "Fonds Vert",
+          "columns": [
+            "Indicateur",
+            "Valeur"
+          ],
+          "rows": [
+            [
+              {
+                "value": "reçus",
+                "label": "reçus"
+              },
+              {
+                "value": 20000.0,
+                "label": "20 000 €"
+              }
+            ],
+            [
+              {
+                "value": "projets financés",
+                "label": "projets financés"
+              },
+              {
+                "value": 1,
+                "label": "1"
+              }
+            ],
+            [
+              {
+                "value": "de coût des projets renseignés",
+                "label": "de coût des projets renseignés"
+              },
+              {
+                "value": 200000.0,
+                "label": "200 000 €"
+              }
+            ],
+            [
+              {
+                "value": "de taux de financement",
+                "label": "de taux de financement"
+              },
+              {
+                "value": 0.1,
+                "label": "10 %"
+              }
+            ]
+          ],
+          "header": "2020 – 2025",
+          "empty": "Aucun financement",
+          "note": "",
+          "focus": null
+        }
+      }
+    ],
+    [
+      {
+        "name": "financements.annuel",
+        "parameters": {},
+        "width": "1/2",
+        "data": {
+          "title": "Montants reçus par année",
+          "columns": [
+            "Année",
+            "Montant reçu"
+          ],
+          "rows": [
+            [
+              {
+                "value": 2020,
+                "label": "2020"
+              },
+              {
+                "value": 0,
+                "label": "0 €"
+              }
+            ],
+            [
+              {
+                "value": 2021,
+                "label": "2021"
+              },
+              {
+                "value": 0,
+                "label": "0 €"
+              }
+            ],
+            [
+              {
+                "value": 2022,
+                "label": "2022"
+              },
+              {
+                "value": 0,
+                "label": "0 €"
+              }
+            ],
+            [
+              {
+                "value": 2023,
+                "label": "2023"
+              },
+              {
+                "value": 60000.0,
+                "label": "60 k€"
+              }
+            ],
+            [
+              {
+                "value": 2024,
+                "label": "2024"
+              },
+              {
+                "value": 20000.0,
+                "label": "20 k€"
+              }
+            ],
+            [
+              {
+                "value": 2025,
+                "label": "2025"
+              },
+              {
+                "value": 0,
+                "label": "0 €"
+              }
+            ]
+          ],
+          "header": "2020 – 2025",
+          "empty": "Aucun financement",
+          "note": "",
+          "focus": null
+        }
+      },
+      {
+        "name": "financements.financeurs",
+        "parameters": {},
+        "width": "1/2",
+        "data": {
+          "title": "Répartition par financeur",
+          "columns": [
+            "Financeur",
+            "Montant reçu"
+          ],
+          "rows": [
+            [
+              {
+                "value": "DSIL",
+                "label": "DSIL"
+              },
+              {
+                "value": 60000.0,
+                "label": "60 k€"
+              }
+            ],
+            [
+              {
+                "value": "Fonds Vert",
+                "label": "Fonds Vert"
+              },
+              {
+                "value": 20000.0,
+                "label": "20 k€"
+              }
+            ]
+          ],
+          "header": "2020 – 2025",
+          "empty": "Aucun financement",
+          "note": "",
+          "focus": null
+        }
+      }
+    ],
+    [
+      {
+        "name": "financements.par_habitant",
+        "parameters": {},
+        "width": "1",
+        "data": {
+          "title": "Montants reçus, moyenne annuelle par habitant, communes de Rennes Métropole",
+          "columns": [
+            "Rang",
+            "Code",
+            "Collectivité",
+            "Population",
+            "Montant reçu",
+            "Moyenne annuelle par habitant"
+          ],
+          "rows": [
+            [
+              {
+                "value": 1,
+                "label": "1"
+              },
+              {
+                "value": "35238",
+                "label": "35238"
+              },
+              {
+                "value": "Rennes",
+                "label": "Rennes"
+              },
+              {
+                "value": 230890,
+                "label": "230 890"
+              },
+              {
+                "value": 80000.0,
+                "label": "80 000 €"
+              },
+              {
+                "value": 0.0577475565565132,
+                "label": "0 €"
+              }
+            ]
+          ],
+          "header": "2020 – 2025",
+          "empty": "Aucun financement",
+          "note": "",
+          "focus": 0
+        }
+      }
+    ],
+    [
+      {
+        "name": "financements.historique",
+        "parameters": {},
+        "width": "1",
+        "data": {
+          "title": "Historique des subventions (2)",
+          "columns": [
+            "Année",
+            "Financeur",
+            "Référence",
+            "Projet",
+            "Coût",
+            "Subvention",
+            "Taux"
+          ],
+          "rows": [
+            [
+              {
+                "value": 2024,
+                "label": "2024"
+              },
+              {
+                "value": "Fonds Vert",
+                "label": "Fonds Vert"
+              },
+              {
+                "value": null,
+                "label": "—"
+              },
+              {
+                "value": "Rénovation du gymnase",
+                "label": "Rénovation du gymnase"
+              },
+              {
+                "value": 200000.0,
+                "label": "200 000 €"
+              },
+              {
+                "value": 20000.0,
+                "label": "20 000 €"
+              },
+              {
+                "value": 0.1,
+                "label": "10 %"
+              }
+            ],
+            [
+              {
+                "value": 2023,
+                "label": "2023"
+              },
+              {
+                "value": "DSIL",
+                "label": "DSIL"
+              },
+              {
+                "value": null,
+                "label": "—"
+              },
+              {
+                "value": "Rénovation du gymnase",
+                "label": "Rénovation du gymnase"
+              },
+              {
+                "value": 200000.0,
+                "label": "200 000 €"
+              },
+              {
+                "value": 60000.0,
+                "label": "60 000 €"
+              },
+              {
+                "value": 0.3,
+                "label": "30 %"
+              }
+            ]
+          ],
+          "header": "2020 – 2025",
+          "empty": "Aucun financement",
+          "note": "",
+          "focus": null
+        }
+      }
+    ]
+  ]
+}
