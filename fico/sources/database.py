@@ -18,6 +18,7 @@ import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
 
+from ..errors import FicoError
 from .registry import Source, schemas
 
 BATCH_SIZE = 5_000
@@ -33,14 +34,15 @@ CREATE TABLE IF NOT EXISTS fetch_log (
 Connection = psycopg.Connection[dict]
 
 
-class DatabaseMissing(Exception):
-    pass
+class DatabaseMissing(FicoError):
+    def __init__(self):
+        super().__init__("Variable DATABASE_URL absente de l'environnement.")
 
 
 def connect() -> Connection:
     url = os.environ.get("DATABASE_URL")
     if not url:
-        raise DatabaseMissing("Variable DATABASE_URL absente de l'environnement.")
+        raise DatabaseMissing()
     return psycopg.connect(url, autocommit=True, row_factory=dict_row)
 
 

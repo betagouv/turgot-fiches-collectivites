@@ -51,10 +51,7 @@ async def bad_request(request: Request, error: Exception) -> JSONResponse:
 
 @app.exception_handler(NotFound)
 async def not_found(request: Request, error: NotFound) -> JSONResponse:
-    return JSONResponse(
-        status_code=404,
-        content={"detail": f"Aucune collectivité connue pour {error}."},
-    )
+    return JSONResponse(status_code=404, content={"detail": str(error)})
 
 
 def _instance(name: str, request: Request) -> components.Instance:

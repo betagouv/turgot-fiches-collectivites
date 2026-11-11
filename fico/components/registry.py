@@ -8,6 +8,7 @@ from fractions import Fraction
 from pathlib import Path
 
 from ..context import Context
+from ..errors import FicoError
 from .table import Table
 
 ROOT = Path(__file__).parent
@@ -30,11 +31,16 @@ class Download(StrEnum):
     SVG = "svg"
 
 
-class UnknownComponent(Exception):
-    pass
+class UnknownComponent(FicoError):
+    def __init__(self, unknown: list[str]):
+        super().__init__(
+            f"Composant(s) inconnu(s) : {', '.join(unknown)}. "
+            f"Composants disponibles : {', '.join(COMPONENTS)}. "
+            "Exemple : identite,financements.historique(since=2020),financements.*"
+        )
 
 
-class InvalidParameter(Exception):
+class InvalidParameter(FicoError):
     pass
 
 
@@ -172,11 +178,7 @@ def _specs(requested: str) -> Iterator[re.Match]:
     while position < len(requested):
         match = SPEC.match(requested, position)
         if match is None:
-            raise UnknownComponent(
-                f"Composants illisibles : {requested}. "
-                "Attendu par exemple : "
-                "identite,financements.historique(since=2020),financements.*"
-            )
+            raise UnknownComponent([requested[position:].strip()])
         yield match
         position = match.end()
 
@@ -208,10 +210,7 @@ def _parse(requested: str, default: Sequence[Instance]) -> list[Instance]:
     }
     unknown = [spec for spec, instances in expanded.items() if not instances]
     if unknown:
-        raise UnknownComponent(
-            f"Composant(s) inconnu(s) : {', '.join(unknown)}. "
-            f"Composants disponibles : {', '.join(COMPONENTS)}."
-        )
+        raise UnknownComponent(unknown)
     return [instance for instances in expanded.values() for instance in instances]
 
 

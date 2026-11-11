@@ -5,9 +5,9 @@ from pathlib import Path
 import httpx
 
 from . import components, sources
-from .fiche import InvalidIdentifier, collect, render
+from .errors import FicoError
+from .fiche import collect, render
 from .sources import database
-from .sources.collectivites import NotFound
 
 
 def build(identifiant: str, output_path: Path, chosen) -> Path:
@@ -17,42 +17,15 @@ def build(identifiant: str, output_path: Path, chosen) -> Path:
 
 
 def command_fiche(args) -> None:
-    try:
-        chosen = components.selected(
-            args.component, components.DEFAULT, authenticated=True
-        )
-    except (components.UnknownComponent, components.InvalidParameter) as error:
-        sys.exit(str(error))
-
+    chosen = components.selected(args.component, components.DEFAULT, authenticated=True)
     output_path = args.output or Path(f"{args.identifiant}.pdf")
-    try:
-        written = build(args.identifiant, output_path, chosen)
-    except (
-        InvalidIdentifier,
-        components.InvalidParameter,
-        database.DatabaseMissing,
-    ) as error:
-        sys.exit(str(error))
-    except NotFound:
-        sys.exit(f"Aucune collectivité connue pour {args.identifiant}.")
-    print(written)
-
-
-def _connect() -> database.Connection:
-    try:
-        return database.connect()
-    except database.DatabaseMissing as error:
-        sys.exit(str(error))
+    print(build(args.identifiant, output_path, chosen))
 
 
 def command_fetch(args) -> None:
-    try:
-        chosen = sources.selected(args.sources)
-    except sources.UnknownSource as error:
-        sys.exit(str(error))
-
+    chosen = sources.selected(args.sources)
     with (
-        _connect() as connection,
+        database.connect() as connection,
         httpx.Client(timeout=300, follow_redirects=True) as client,
     ):
         database.migrate(connection)
@@ -115,7 +88,10 @@ def main(argv=None):
     fetch.set_defaults(run=command_fetch)
 
     args = parser.parse_args(argv)
-    args.run(args)
+    try:
+        args.run(args)
+    except FicoError as error:
+        sys.exit(str(error))
 
 
 if __name__ == "__main__":

@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from datetime import timedelta
 from enum import StrEnum
 
+from ..errors import FicoError
+
 
 class Schedule(StrEnum):
     ONESHOT = "oneshot"
@@ -32,8 +34,12 @@ class Source:
 SOURCES: dict[str, Source] = {}
 
 
-class UnknownSource(Exception):
-    pass
+class UnknownSource(FicoError):
+    def __init__(self, unknown: list[str]):
+        super().__init__(
+            f"Source(s) inconnue(s) : {', '.join(unknown)}. "
+            f"Sources disponibles : {', '.join(SOURCES)}."
+        )
 
 
 def source(name: str, label: str, schedule: Schedule, schema: str = ""):
@@ -56,8 +62,5 @@ def selected(requested: str | None) -> tuple[Source, ...]:
     names = tuple(name.strip() for name in requested.split(",") if name.strip())
     unknown = [name for name in names if name not in SOURCES]
     if unknown:
-        raise UnknownSource(
-            f"Source(s) inconnue(s) : {', '.join(unknown)}. "
-            f"Sources disponibles : {', '.join(SOURCES)}."
-        )
+        raise UnknownSource(unknown)
     return tuple(SOURCES[name] for name in names)

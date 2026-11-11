@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 
 from .components import Instance, rows
 from .context import Context
+from .errors import FicoError
 from .render import typst
 from .sources import collectivites, database
 from .sources.collectivites import COMMUNE, Fiche
@@ -16,8 +17,12 @@ CODE_INSEE = re.compile(r"\d{5}|2[AB]\d{3}")
 SIREN = re.compile(r"\d{9}")
 
 
-class InvalidIdentifier(Exception):
-    pass
+class InvalidIdentifier(FicoError):
+    def __init__(self, identifiant: str):
+        super().__init__(
+            f"{identifiant} n'est ni un code INSEE de commune (5 caractères) "
+            "ni un SIREN (9 chiffres)."
+        )
 
 
 def resolve(connection: database.Connection, identifiant: str) -> Fiche:
@@ -26,10 +31,7 @@ def resolve(connection: database.Connection, identifiant: str) -> Fiche:
         return collectivites.by_code_insee(connection, identifiant)
     if SIREN.fullmatch(identifiant):
         return collectivites.by_siren(connection, identifiant)
-    raise InvalidIdentifier(
-        f"{identifiant} n'est ni un code INSEE de commune (5 caractères) "
-        f"ni un SIREN (9 chiffres)."
-    )
+    raise InvalidIdentifier(identifiant)
 
 
 def _header(fiche: Fiche) -> dict:

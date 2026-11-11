@@ -4,6 +4,7 @@ lus sous une même forme, une ligne par SIREN."""
 from dataclasses import dataclass, field
 from datetime import date
 
+from ..errors import FicoError
 from . import database
 
 COMMUNE = "commune"
@@ -11,8 +12,9 @@ GROUPEMENT = "groupement"
 EPCI_A_FISCALITE_PROPRE = ["CC", "CA", "CU", "METRO", "MET69"]
 
 
-class NotFound(Exception):
-    pass
+class NotFound(FicoError):
+    def __init__(self, identifiant: str):
+        super().__init__(f"Aucune collectivité connue pour {identifiant}.")
 
 
 @dataclass
