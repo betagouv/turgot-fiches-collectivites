@@ -5,6 +5,7 @@ from enum import StrEnum
 from ....context import Context
 from ....sources import api_collectivites, collectivites, contours
 from ....sources.collectivites import COMMUNE
+from ... import financements
 from ...formats import Display, percent, text
 from ...registry import component
 from ...table import Table
@@ -54,14 +55,16 @@ def _epci(context: Context, perimetre: Perimetre) -> Table | None:
     territoire = contours.epci(context.connection, sirens)
     if not territoire:
         return None
-    taux = api_collectivites.taux_by_siren(context.connection, sirens)
+    taux = api_collectivites.taux_by_siren(
+        context.connection, sirens, financements.years()
+    )
     return _table("Département", "EPCI", territoire, taux, fiche.siren)
 
 
 @component(
     description="Communes du département ou de l'intercommunalité de la commune, "
     "colorées par taux de financement ; pour un EPCI, les EPCI à fiscalité propre "
-    "du département.",
+    "du département ; sur les six dernières années révolues.",
     width="1/2",
 )
 def carte(context: Context, perimetre: Perimetre) -> Table | None:
@@ -82,5 +85,7 @@ def carte(context: Context, perimetre: Perimetre) -> Table | None:
     if not communes:
         return None
     codes = [commune["code"] for commune in communes]
-    taux = api_collectivites.taux_by_commune(context.connection, codes)
+    taux = api_collectivites.taux_by_commune(
+        context.connection, codes, financements.years()
+    )
     return _table(title, "communes", communes, taux, fiche.code_insee)

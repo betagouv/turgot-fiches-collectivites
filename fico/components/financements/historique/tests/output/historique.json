@@ -1,5 +1,5 @@
 {
-  "title": "Historique des subventions (4)",
+  "title": "Historique des subventions (3)",
   "columns": [
     "Année",
     "Financeur",
@@ -99,39 +99,9 @@
         "value": 0.25,
         "label": "25 %"
       }
-    ],
-    [
-      {
-        "value": null,
-        "label": "—"
-      },
-      {
-        "value": "Agence de l'eau",
-        "label": "Agence de l'eau"
-      },
-      {
-        "value": "AELB 240231401",
-        "label": "AELB 240231401"
-      },
-      {
-        "value": "Végétalisation de la cour d'école",
-        "label": "Végétalisation de la cour d'école"
-      },
-      {
-        "value": null,
-        "label": "—"
-      },
-      {
-        "value": 5000.0,
-        "label": "5 000 €"
-      },
-      {
-        "value": null,
-        "label": "—"
-      }
     ]
   ],
-  "header": "2021 – 2024",
+  "header": "2020 – 2025",
   "empty": "Aucun financement",
   "note": "",
   "focus": null

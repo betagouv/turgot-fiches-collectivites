@@ -7,6 +7,16 @@
   "rows": [
     [
       {
+        "value": 2020,
+        "label": "2020"
+      },
+      {
+        "value": 0,
+        "label": "0 €"
+      }
+    ],
+    [
+      {
         "value": 2021,
         "label": "2021"
       },
@@ -56,8 +66,8 @@
       }
     ]
   ],
-  "header": "2021 – 2025",
+  "header": "2020 – 2025",
   "empty": "Aucun financement",
-  "note": "1 financement(s) sans date d'attribution, non représenté(s).",
+  "note": "",
   "focus": null
 }

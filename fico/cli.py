@@ -27,7 +27,11 @@ def command_fiche(args) -> None:
     output_path = args.output or Path(f"{args.identifiant}.pdf")
     try:
         written = build(args.identifiant, output_path, chosen)
-    except (InvalidIdentifier, database.DatabaseMissing) as error:
+    except (
+        InvalidIdentifier,
+        components.InvalidParameter,
+        database.DatabaseMissing,
+    ) as error:
         sys.exit(str(error))
     except NotFound:
         sys.exit(f"Aucune collectivité connue pour {args.identifiant}.")

@@ -1,15 +1,3 @@
-from datetime import UTC, datetime
-
-import pytest
-
-from fico.components.financements import par_habitant
-
-
-@pytest.fixture(autouse=True)
-def mid_2026(freeze):
-    freeze(par_habitant, datetime(2026, 6, 1, tzinfo=UTC))
-
-
 def test_commune_among_its_interco(client, reference):
     response = client.get("/fiches/35238/financements.par_habitant.json")
 

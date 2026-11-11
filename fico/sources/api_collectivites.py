@@ -126,42 +126,45 @@ def fetch(client: httpx.Client, connection: database.Connection) -> str:
 
 
 RECEIVED = "f.statut IN ('Obtenu', 'Payé')"
-# From `since` on when given, the financements without a year included.
-SINCE = "(%(since)s::int IS NULL OR f.annee IS NULL OR f.annee >= %(since)s)"
+# A financement without a year falls in no period.
+PERIOD = "f.annee >= %(start)s AND f.annee < %(stop)s"
 FINANCEUR = "(%(financeur)s::text IS NULL OR f.source = %(financeur)s)"
 
 
 def financements_recus(
-    connection: database.Connection, siren: str, since: int | None = None
+    connection: database.Connection, siren: str, years: range
 ) -> list[dict]:
     return connection.execute(
         f"""
         SELECT f.annee, f.source, f.reference, f.montant_attribue,
                p.nom, p.budget_previsionnel
         FROM financement f JOIN projet p ON p.id = f.projet_id
-        WHERE p.siren = %(siren)s AND {RECEIVED} AND {SINCE}
-        ORDER BY f.annee DESC NULLS LAST,
-                 f.source COLLATE "fr-x-icu", p.nom COLLATE "fr-x-icu"
+        WHERE p.siren = %(siren)s AND {RECEIVED} AND {PERIOD}
+        ORDER BY f.annee DESC, f.source COLLATE "fr-x-icu", p.nom COLLATE "fr-x-icu"
         """,
-        {"siren": siren, "since": since},
+        {"siren": siren, "start": years.start, "stop": years.stop},
     ).fetchall()
 
 
 def totaux(
     connection: database.Connection,
     siren: str,
-    since: int | None = None,
+    years: range,
     financeur: str | None = None,
 ) -> dict:
     return connection.execute(
         f"""
         SELECT SUM(f.montant_attribue) AS montant,
-               COUNT(DISTINCT f.projet_id) AS projets,
-               MIN(f.annee) AS first_year, MAX(f.annee) AS last_year
+               COUNT(DISTINCT f.projet_id) AS projets
         FROM financement f JOIN projet p ON p.id = f.projet_id
-        WHERE p.siren = %(siren)s AND {RECEIVED} AND {SINCE} AND {FINANCEUR}
+        WHERE p.siren = %(siren)s AND {RECEIVED} AND {PERIOD} AND {FINANCEUR}
         """,
-        {"siren": siren, "since": since, "financeur": financeur},
+        {
+            "siren": siren,
+            "start": years.start,
+            "stop": years.stop,
+            "financeur": financeur,
+        },
     ).fetchone()
 
 
@@ -177,8 +180,7 @@ def montants_by_siren(
         f"""
         SELECT p.siren, SUM(f.montant_attribue) AS montant
         FROM financement f JOIN projet p ON p.id = f.projet_id
-        WHERE p.siren = ANY(%(sirens)s) AND {RECEIVED} AND {FINANCEUR}
-          AND f.annee >= %(start)s AND f.annee < %(stop)s
+        WHERE p.siren = ANY(%(sirens)s) AND {RECEIVED} AND {PERIOD} AND {FINANCEUR}
           AND f.montant_attribue IS NOT NULL
         GROUP BY p.siren
         """,
@@ -193,7 +195,7 @@ def montants_by_siren(
 
 
 def totaux_by_source(
-    connection: database.Connection, siren: str, since: int | None = None
+    connection: database.Connection, siren: str, years: range
 ) -> list[dict]:
     return connection.execute(
         f"""
@@ -201,28 +203,26 @@ def totaux_by_source(
                SUM(f.montant_attribue) AS montant,
                COUNT(DISTINCT f.projet_id) AS projets
         FROM financement f JOIN projet p ON p.id = f.projet_id
-        WHERE p.siren = %(siren)s AND {RECEIVED} AND {SINCE}
+        WHERE p.siren = %(siren)s AND {RECEIVED} AND {PERIOD}
         GROUP BY f.source
         ORDER BY montant DESC
         """,
-        {"siren": siren, "since": since},
+        {"siren": siren, "start": years.start, "stop": years.stop},
     ).fetchall()
 
 
 def totaux_by_annee(
-    connection: database.Connection, siren: str, since: int | None = None
+    connection: database.Connection, siren: str, years: range
 ) -> list[dict]:
     return connection.execute(
         f"""
-        SELECT f.annee,
-               SUM(f.montant_attribue) AS montant,
-               COUNT(*) AS financements
+        SELECT f.annee, SUM(f.montant_attribue) AS montant
         FROM financement f JOIN projet p ON p.id = f.projet_id
-        WHERE p.siren = %(siren)s AND {RECEIVED} AND {SINCE}
+        WHERE p.siren = %(siren)s AND {RECEIVED} AND {PERIOD}
         GROUP BY f.annee
         ORDER BY f.annee
         """,
-        {"siren": siren, "since": since},
+        {"siren": siren, "start": years.start, "stop": years.stop},
     ).fetchall()
 
 
@@ -234,13 +234,15 @@ def _by_projet(siren_condition: str) -> str:
         SELECT p.siren, p.budget_previsionnel AS budget,
                SUM(f.montant_attribue) AS attribue
         FROM projet p JOIN financement f ON f.projet_id = p.id
-        WHERE {siren_condition} AND {RECEIVED} AND {SINCE} AND {FINANCEUR}
+        WHERE {siren_condition} AND {RECEIVED} AND {PERIOD} AND {FINANCEUR}
           AND p.budget_previsionnel > 0 AND f.montant_attribue IS NOT NULL
         GROUP BY p.id
     """
 
 
-def taux_by_commune(connection: database.Connection, codes_insee) -> dict[str, float]:
+def taux_by_commune(
+    connection: database.Connection, codes_insee, years: range
+) -> dict[str, float]:
     """Taux de financement of the projets each commune carries."""
     codes = list(codes_insee)
     if not codes:
@@ -255,13 +257,18 @@ def taux_by_commune(connection: database.Connection, codes_insee) -> dict[str, f
         JOIN commune c ON c.siren = by_projet.siren
         GROUP BY c.code_insee
         """,
-        {"codes": codes, "since": None, "financeur": None},
+        {
+            "codes": codes,
+            "start": years.start,
+            "stop": years.stop,
+            "financeur": None,
+        },
     ).fetchall()
     return {row["code_insee"]: row["montant"] / row["cout"] for row in rows}
 
 
 def taux_by_siren(
-    connection: database.Connection, sirens: list[str]
+    connection: database.Connection, sirens: list[str], years: range
 ) -> dict[str, float]:
     """Taux de financement of the projets each of `sirens` carries."""
     by_projet = _by_projet("p.siren = ANY(%(sirens)s)")
@@ -271,7 +278,12 @@ def taux_by_siren(
         FROM ({by_projet}) AS by_projet
         GROUP BY siren
         """,
-        {"sirens": sirens, "since": None, "financeur": None},
+        {
+            "sirens": sirens,
+            "start": years.start,
+            "stop": years.stop,
+            "financeur": None,
+        },
     ).fetchall()
     return {row["siren"]: row["montant"] / row["cout"] for row in rows}
 
@@ -279,11 +291,11 @@ def taux_by_siren(
 def cofinancement(
     connection: database.Connection,
     siren: str,
-    since: int | None = None,
+    years: range,
     financeur: str | None = None,
 ) -> dict:
     """A projet's whole budget counts as soon as one of its financements falls
-    from `since` on, or comes from `financeur`: the rate is then the share of
+    within `years`, or comes from `financeur`: the rate is then the share of
     that budget the selected financements cover."""
     by_projet = _by_projet("p.siren = %(siren)s")
     return connection.execute(
@@ -291,5 +303,10 @@ def cofinancement(
         SELECT SUM(attribue) AS montant, SUM(budget) AS cout, COUNT(*) AS projets
         FROM ({by_projet}) AS by_projet
         """,
-        {"siren": siren, "since": since, "financeur": financeur},
+        {
+            "siren": siren,
+            "start": years.start,
+            "stop": years.stop,
+            "financeur": financeur,
+        },
     ).fetchone()

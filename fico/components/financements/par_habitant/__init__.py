@@ -1,13 +1,11 @@
-from datetime import UTC, datetime
-
 from ....context import Context
 from ....sources import api_collectivites, collectivites, database
 from ....sources.collectivites import COMMUNE, Fiche
+from ... import financements
 from ...formats import euros, number, plain, text
 from ...registry import component
 from ...table import Table
 
-YEARS = 6
 COLUMNS = [
     "Rang",
     "Code",
@@ -49,9 +47,7 @@ def par_habitant(
         return None
     perimetre, peers = pairs
 
-    # The current year is still running: it would pull the average down.
-    current_year = datetime.now(UTC).year
-    years = range(since or current_year - YEARS, current_year)
+    years = financements.years(since)
     montants = api_collectivites.montants_by_siren(
         context.connection,
         [peer["siren"] for peer in peers],
@@ -73,7 +69,7 @@ def par_habitant(
 
     subject = financeur or "Montants reçus"
     return Table(
-        header=f"{years[0]} – {years[-1]}" if years else f"depuis {since}",
+        header=f"{years[0]} – {years[-1]}",
         title=f"{subject}, moyenne annuelle par habitant, {perimetre}",
         columns=COLUMNS,
         rows=[

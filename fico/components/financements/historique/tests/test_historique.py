@@ -5,7 +5,7 @@ def test_every_financement_received(client, reference):
     reference("historique", response.json())
 
 
-def test_since_keeps_the_financements_without_a_year(client, reference):
+def test_since(client, reference):
     response = client.get("/fiches/35238/financements.historique.json?since=2023")
 
     assert response.status_code == 200

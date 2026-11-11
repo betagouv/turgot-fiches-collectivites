@@ -1,5 +1,6 @@
 from ....context import Context
 from ....sources import api_collectivites
+from ... import financements
 from ...formats import euros, number, percent, text
 from ...registry import component
 from ...table import Table
@@ -7,17 +8,18 @@ from ...table import Table
 
 @component(
     description="Total reçu, nombre de projets, coût des projets et taux de "
-    "financement, tous financeurs ou pour un seul.",
+    "financement, tous financeurs ou pour un seul, sur les six dernières années "
+    "révolues ou depuis l'année since.",
     width="1/4",
 )
 def synthese(
     context: Context, since: int | None = None, financeur: str | None = None
 ) -> Table:
     connection, siren = context.connection, context.fiche.siren
-    totaux = api_collectivites.totaux(connection, siren, since, financeur)
-    cofinancement = api_collectivites.cofinancement(connection, siren, since, financeur)
+    years = financements.years(since)
+    totaux = api_collectivites.totaux(connection, siren, years, financeur)
+    cofinancement = api_collectivites.cofinancement(connection, siren, years, financeur)
     cout = cofinancement["cout"] or 0
-    first, last = totaux["first_year"], totaux["last_year"]
 
     rows = []
     if totaux["projets"]:
@@ -31,7 +33,7 @@ def synthese(
             ],
         ]
     return Table(
-        header=f"{first} – {last}" if first else "",
+        header=f"{years[0]} – {years[-1]}",
         title=financeur or "Tous financeurs",
         columns=["Indicateur", "Valeur"],
         rows=rows,
