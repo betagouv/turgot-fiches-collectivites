@@ -37,7 +37,7 @@
         <tr><td><code>GET /fiches/{identifiant}.json</code></td><td>les données de tous les composants</td></tr>
         <tr><td><code>GET /fiches/{identifiant}/{composant}.json</code></td><td>les données d'un composant</td></tr>
         <tr><td><code>GET /fiches/{identifiant}/{composant}.html</code></td><td>un composant seul, en page web</td></tr>
-        <tr><td><code>GET /fiches/{identifiant}/{composant}.{format}</code></td><td>un composant en image, <code>png</code> ou <code>svg</code>, ou ses données brutes en fichier : <code>csv</code>, <code>xlsx</code> ou <code>geojson</code></td></tr>
+        <tr><td><code>GET /fiches/{identifiant}/{composant}.{format}</code></td><td>un composant en image, <code>png</code> ou <code>svg</code>, ou ses données brutes en fichier : <code>csv</code>, <code>xlsx</code>, <code>ods</code> ou <code>geojson</code></td></tr>
         <tr><td><code>GET /components</code></td><td>la liste des composants, en JSON</td></tr>
       </tbody>
     </table></div>
@@ -61,8 +61,9 @@
         <a href="/fiches/35238/financements.historique.html?since=2020"><code>/fiches/35238/financements.historique.html?since=2020</code></a>.</li>
       <li><strong>Télécharger les données</strong> d'un composant, en valeurs
         brutes : les tableaux en
-        <a href="/fiches/35238/financements.historique.csv?since=2020"><code>.csv</code></a> ou
-        <a href="/fiches/35238/financements.historique.xlsx?since=2020"><code>.xlsx</code></a>,
+        <a href="/fiches/35238/financements.historique.csv?since=2020"><code>.csv</code></a>,
+        <a href="/fiches/35238/financements.historique.xlsx?since=2020"><code>.xlsx</code></a> ou
+        <a href="/fiches/35238/financements.historique.ods?since=2020"><code>.ods</code></a>,
         les cartes aussi, une ligne par commune, et en
         <a href="/fiches/35238/financements.carte.geojson?perimetre=interco"><code>.geojson</code></a>.</li>
       <li><strong>Exporter un composant en image</strong>, tel qu'il apparaît

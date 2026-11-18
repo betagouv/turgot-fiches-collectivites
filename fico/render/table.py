@@ -1,10 +1,12 @@
-"""A table as a file: CSV and XLSX of raw values, GeoJSON when a column holds
-geometries."""
+"""A table as a file: CSV, XLSX and ODS of raw values, GeoJSON when a column
+holds geometries."""
 
 import csv
 import io
 import json
 
+from odfdo import Document
+from odfdo import Table as OdsTable
 from openpyxl import Workbook
 
 from ..components.table import Table
@@ -34,6 +36,17 @@ def to_xlsx(table: Table) -> bytes:
         sheet.append(row)
     output = io.BytesIO()
     workbook.save(output)
+    return output.getvalue()
+
+
+def to_ods(table: Table) -> bytes:
+    document = Document("spreadsheet")
+    document.body.clear()
+    sheet = OdsTable("Données")
+    sheet.set_values([table.columns, *_rows(table)])
+    document.body.append(sheet)
+    output = io.BytesIO()
+    document.save(output)
     return output.getvalue()
 
 

@@ -18,7 +18,7 @@ function downloads(data) {
     return []
   }
   const geometries = data.rows.some((row) => row.some((cell) => cell.value?.coordinates))
-  return ["png", "svg", "csv", "xlsx", ...(geometries ? ["geojson"] : [])]
+  return ["png", "svg", "csv", "xlsx", "ods", ...(geometries ? ["geojson"] : [])]
 }
 
 customElements.define(
