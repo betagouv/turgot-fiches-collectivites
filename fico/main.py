@@ -28,6 +28,7 @@ MEDIA_TYPES = {
     components.Download.XLSX: (
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ),
+    components.Download.ODS: "application/vnd.oasis.opendocument.spreadsheet",
     components.Download.GEOJSON: "application/geo+json",
     components.Download.PNG: "image/png",
     components.Download.SVG: "image/svg+xml",
@@ -143,6 +144,8 @@ def component_download(
             content = table.to_csv(data)
         case components.Download.XLSX:
             content = table.to_xlsx(data)
+        case components.Download.ODS:
+            content = table.to_ods(data)
         case components.Download.GEOJSON:
             if table.geometry_column(data) is None:
                 raise HTTPException(404, f"{name} ne porte pas de contours.")
