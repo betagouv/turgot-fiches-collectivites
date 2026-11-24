@@ -1,10 +1,13 @@
 """The HTML pages: the home page, and the page of a fiche, a shell around one
 <fico-fiche> element that loads and lays out the components itself."""
 
+import base64
+import hashlib
 from html import escape
 from pathlib import Path
 from string import Template
 
+from .. import ASSETS, VERSION
 from ..sources.registry import Schedule
 
 DSFR_DIST = "https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.15.3/dist"
@@ -28,8 +31,8 @@ PAGE = """<!doctype html>
   <title>{nom}</title>
   <link rel="stylesheet" href="{dsfr}">
   <link rel="stylesheet" href="{dsfr_icons}">
-  <link rel="stylesheet" href="/assets/fico.css">
-  <script type="module" src="/assets/fiche.js"></script>
+  <link rel="stylesheet" href="/assets/fico.{version}.css">
+  <script type="module" src="/assets/fico.{version}.js"></script>
 </head>
 <body>
   <main class="fr-container fr-my-4w">
@@ -51,6 +54,11 @@ def _parameters(component) -> str:
     return "<br>".join(items)
 
 
+def _integrity(extension: str) -> str:
+    digest = hashlib.sha384((ASSETS / f"fico.{VERSION}.{extension}").read_bytes())
+    return f"sha384-{base64.b64encode(digest.digest()).decode()}"
+
+
 def home(base: str, components, sources) -> str:
     """`base` is this server's address, so the integration examples work as is."""
     rows = "".join(
@@ -70,6 +78,9 @@ def home(base: str, components, sources) -> str:
         components=rows,
         sources=source_rows,
         logo=LOGO,
+        version=VERSION,
+        script_integrity=_integrity("js"),
+        style_integrity=_integrity("css"),
     )
 
 
@@ -80,4 +91,5 @@ def page(header: dict, identifiant: str, chosen) -> str:
         dsfr_icons=DSFR_ICONS,
         collectivite=escape(identifiant),
         components=escape(",".join(instance.spec for instance in chosen)),
+        version=VERSION,
     )

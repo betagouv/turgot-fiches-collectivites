@@ -1,1 +1,1 @@
-export { listing as render } from "/assets/common.js"
+export { listing as render } from "../common.js"

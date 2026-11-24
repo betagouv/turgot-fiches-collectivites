@@ -1,10 +1,10 @@
 // <fico-component name="financements.historique" collectivite="35238" since="2020">: fetches
 // the component's JSON from the server this script comes from, its other
 // attributes passed as the component's parameters, unless `data` was set before
-// the element joined the page; then lays it out with the `render` exported by
-// the component's module.
+// the element joined the page; then lays it out with the component's renderer.
 
-import { applyStyles, escape } from "/assets/common.js"
+import { applyStyles, escape } from "./common.js"
+import { COMPONENTS } from "./components.js"
 
 const OWN_ATTRIBUTES = new Set(["name", "collectivite", "id", "class", "style"])
 
@@ -37,6 +37,12 @@ customElements.define(
     async connectedCallback() {
       this.classList.add("fico")
       const name = this.getAttribute("name")
+      // A page may pin a bundle older than the server, which can list components
+      // this bundle does not know.
+      if (!(name in COMPONENTS)) {
+        this.remove()
+        return
+      }
       if (this.data === undefined) {
         const response = await fetch(this.url("json"))
         // A 404 means the component has nothing to show for this collectivité.
@@ -50,8 +56,7 @@ customElements.define(
         }
         this.data = await response.json()
       }
-      const { render } = await import(new URL(`/assets/components/${name}.js`, import.meta.url))
-      this.innerHTML = render(this.data)
+      this.innerHTML = COMPONENTS[name](this.data)
       applyStyles(this)
       const formats = downloads(this.data)
       if (!formats.length) {

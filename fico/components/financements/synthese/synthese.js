@@ -1,1 +1,1 @@
-export { figures as render } from "/assets/common.js"
+export { figures as render } from "../../common.js"

@@ -4,8 +4,8 @@
 // groups them into lines; this element only places them, handing each its data
 // so it does not fetch it again.
 
-import "/assets/component.js"
-import { escape } from "/assets/common.js"
+import "./component.js"
+import { escape } from "./common.js"
 
 customElements.define(
   "fico-fiche",
