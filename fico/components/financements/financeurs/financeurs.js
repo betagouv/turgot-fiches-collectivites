@@ -1,1 +1,1 @@
-export { definitions as render } from "/assets/common.js"
+export { definitions as render } from "../../common.js"

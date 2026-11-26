@@ -79,6 +79,17 @@ Chaque composant a un dossier `tests/` : `input/` (un CSV par table), `output/`
 
 ## Déploiement
 
+Chaque déploiement sort une nouvelle version, en calver sans zéro en tête :
+
+```sh
+uv version 2026.11.25   # met à jour pyproject.toml et uv.lock
+just assets             # construit fico/assets/fico.<version>.js et .css, affiche leurs empreintes
+```
+
+Commiter les deux fichiers de `fico/assets/` avec `pyproject.toml` et `uv.lock`.
+Une version commitée ne se reconstruit plus : les intégrateurs figent son
+empreinte. Pour une deuxième version le même jour : `2026.11.25.1`.
+
 Dokku :
 
 ```sh

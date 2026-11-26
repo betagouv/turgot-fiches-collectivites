@@ -88,7 +88,7 @@ wheels = [
 
 [[package]]
 name = "fico"
-version = "0.1.0"
+version = "2026.11.24"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },

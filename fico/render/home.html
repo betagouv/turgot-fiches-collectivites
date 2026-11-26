@@ -92,11 +92,11 @@
         <code>fico.css</code> : les composants n'apportent pas leurs styles ;
         <pre class="fr-ml-3w"><code>&lt;link rel="stylesheet" href="$dsfr"&gt;
 &lt;link rel="stylesheet" href="$dsfr_icons"&gt;
-&lt;link rel="stylesheet" href="$base/assets/fico.css"&gt;</code></pre></li>
-      <li>importer <code>component.js</code> et placer un élément
+&lt;link rel="stylesheet" href="$base/assets/fico.$version.css" integrity="$style_integrity" crossorigin="anonymous"&gt;</code></pre></li>
+      <li>importer <code>fico.$version.js</code> et placer un élément
         <code>&lt;fico-component&gt;</code> par composant, ses paramètres en
         attributs :
-        <pre class="fr-ml-3w"><code>&lt;script type="module" src="$base/assets/component.js"&gt;&lt;/script&gt;
+        <pre class="fr-ml-3w"><code>&lt;script type="module" src="$base/assets/fico.$version.js" integrity="$script_integrity" crossorigin="anonymous"&gt;&lt;/script&gt;
 &lt;fico-component name="identite" collectivite="35238"&gt;&lt;/fico-component&gt;
 &lt;fico-component name="financements.historique" collectivite="35238" since="2020"&gt;&lt;/fico-component&gt;</code></pre></li>
     </ol>
@@ -104,7 +104,7 @@
       choisis en un seul appel et les dispose comme le PDF : deux composants
       étroits qui se suivent partagent une ligne, un composant sans données
       disparaît. Avec les mêmes feuilles de style :</p>
-    <pre class="fr-ml-3w"><code>&lt;script type="module" src="$base/assets/fiche.js"&gt;&lt;/script&gt;
+    <pre class="fr-ml-3w"><code>&lt;script type="module" src="$base/assets/fico.$version.js" integrity="$script_integrity" crossorigin="anonymous"&gt;&lt;/script&gt;
 &lt;fico-fiche collectivite="35238" components="identite,programmes,financements.historique(since=2020)"&gt;&lt;/fico-fiche&gt;</code></pre>
 
     <h2 class="fr-mt-6w">Sources</h2>

@@ -1,1 +1,1 @@
-export { tabular as render } from "/assets/common.js"
+export { tabular as render } from "../../common.js"

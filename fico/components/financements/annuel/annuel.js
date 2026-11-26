@@ -1,4 +1,4 @@
-import { empty, escape, note, panel } from "/assets/common.js"
+import { empty, escape, note, panel } from "../../common.js"
 
 const TICK_COUNT = 4
 

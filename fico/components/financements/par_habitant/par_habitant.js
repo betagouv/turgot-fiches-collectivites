@@ -1,4 +1,4 @@
-import { empty, escape, panel } from "/assets/common.js"
+import { empty, escape, panel } from "../../common.js"
 
 const HIGHLIGHTED = 3
 // Below this count, every bar is wide enough to be highlighted.

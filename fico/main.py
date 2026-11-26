@@ -4,9 +4,14 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+)
 
-from . import components, sources
+from . import ASSETS, VERSION, components, sources
 from .fiche import (
     InvalidIdentifier,
     collect,
@@ -18,11 +23,12 @@ from .fiche import (
 from .render import html, table
 from .sources.collectivites import NotFound
 
-ASSETS = Path(components.__file__).parent
-SHARED_ASSETS = {"carto.js", "common.js", "component.js", "fiche.js", "fico.css"}
-# Embedding pages reference unversioned URLs: a short lifetime bounds how long
-# they run the previous code after a deployment.
-ASSET_CACHE = {"Cache-Control": "public, max-age=300"}
+# Clients may pin a version's integrity: its files never change.
+VERSION_CACHE = {"Cache-Control": "public, max-age=31536000, immutable"}
+UNVERSIONED = {"fico.js", "fiche.js", "component.js", "fico.css"}
+# Embedding pages referencing an unversioned URL: a short lifetime bounds how
+# long they run the previous version after a deployment.
+UNVERSIONED_CACHE = {"Cache-Control": "public, max-age=300"}
 MEDIA_TYPES = {
     components.Download.CSV: "text/csv; charset=utf-8",
     components.Download.XLSX: (
@@ -160,16 +166,12 @@ def component_download(
     )
 
 
-@app.get("/assets/components/{name}.js")
-async def component_script(name: str):
-    if name not in components.COMPONENTS:
-        raise HTTPException(404, f"Module inconnu : {name}.")
-    script = components.template(name, "js")
-    return FileResponse(script, media_type="text/javascript", headers=ASSET_CACHE)
-
-
 @app.get("/assets/{filename}")
-async def shared_asset(filename: str):
-    if filename not in SHARED_ASSETS:
+async def asset(filename: str):
+    if filename in UNVERSIONED:
+        current = f"/assets/fico.{VERSION}{Path(filename).suffix}"
+        return RedirectResponse(current, headers=UNVERSIONED_CACHE)
+    path = ASSETS / filename
+    if not path.is_file():
         raise HTTPException(404, f"Fichier inconnu : {filename}.")
-    return FileResponse(ASSETS / filename, headers=ASSET_CACHE)
+    return FileResponse(path, headers=VERSION_CACHE)

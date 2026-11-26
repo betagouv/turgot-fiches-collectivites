@@ -1,7 +1,7 @@
 // A choropleth of a table whose columns are code, name, value, geometry: each
 // feature takes the shade of its value's band, the focused row is outlined.
 
-import { escape, panel } from "/assets/common.js"
+import { escape, panel } from "./common.js"
 
 const THRESHOLDS = [0.15, 0.25, 0.35, 0.5]
 const COLORS = ["#ececfe", "#cacafb", "#9a9af8", "#6a6af4", "#000091"]

@@ -1,1 +1,1 @@
-export { map as render } from "/assets/carto.js"
+export { map as render } from "../../carto.js"
